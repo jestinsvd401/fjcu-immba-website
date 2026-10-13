@@ -115,7 +115,7 @@ function pageContent(page, lang) {
               <a href="gallery.html">${t.galleryMore} →</a>
             </div>
             <div class="gallery-grid" style="grid-template-columns:1fr 1fr">
-              ${GALLERY.slice(0, 4).map(([src, alt]) => `<a href="gallery.html"><img src="${src}" alt="${alt}"></a>`).join("")}
+              ${GALLERY.slice(0, 4).map((item) => `<a href="gallery.html"><img src="${item.src}" alt="${item.alt[lang]}"></a>`).join("")}
             </div>
           </div>
         </div>
@@ -336,8 +336,8 @@ function pageContent(page, lang) {
     gallery: () => `
       ${hero(zh ? "活動集錦" : "Events", zh ? "課堂、交流與校園活動" : "Classes, exchanges, and campus events")}
       <section class="section"><div class="container">
-        <div class="gallery-grid">${GALLERY.map(([src, alt]) => `<a href="${src}" target="_blank" rel="noopener"><img src="${src}" alt="${alt}"></a>`).join("")}</div>
-        <p class="muted" style="margin-top:20px">${zh ? "相片為學程氛圍示意；官方活動紀錄請見原站相片集錦。" : "Images illustrate programme life. Official event albums remain on the university gallery."}</p>
+        <div class="gallery-grid">${GALLERY.map((item) => `<a href="${item.src}" target="_blank" rel="noopener"><img src="${item.src}" alt="${item.alt[lang]}"></a>`).join("")}</div>
+        <p class="muted" style="margin-top:20px">${zh ? "相片來自學程課堂、校園與交流活動。" : "Photos from classes, campus, and programme outings."}</p>
       </div></section>`,
 
     news: () => {

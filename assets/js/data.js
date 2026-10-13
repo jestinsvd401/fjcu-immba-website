@@ -157,7 +157,7 @@ const I18N = {
     home: {
       eyebrow: "Fu Jen Catholic University",
       title: "MBA in International Management",
-      lead: "An English-taught MBA in Taipei — global, cross-disciplinary, digital.",
+      lead: "An English-taught World class MBA in Taipei, Global, Digital & Innovative",
       cta1: "Explore the Program",
       cta2: "Books & Materials Marketplace",
       cta3: "Apply Now",
@@ -240,18 +240,17 @@ const FACULTY = [
 ];
 
 const GALLERY = [
-  ["https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1400&q=80", "Graduation"],
-  ["https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1400&q=80", "Seminar"],
-  ["https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1400&q=80", "Workshop"],
-  ["https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=1400&q=80", "Lecture"],
-  ["https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=1400&q=80", "Collaboration"],
-  ["https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=1400&q=80", "Discussion"],
-  ["https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1400&q=80", "Campus"],
-  ["https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1400&q=80", "Team"],
-  ["https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1400&q=80", "Analytics"],
-  ["https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1400&q=80", "Studio"],
-  ["https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=1400&q=80", "Meeting"],
-  ["https://images.unsplash.com/photo-1427504494782-3e37052ccb06?auto=format&fit=crop&w=1400&q=80", "Library"]
+  { src: "assets/images/gallery/students-ice-cream.jpg", alt: { en: "imMBA students and friends sharing ice cream", zh: "imMBA 同學一起吃冰" } },
+  { src: "assets/images/gallery/classroom.jpg", alt: { en: "imMBA classroom", zh: "imMBA 教室" } },
+  { src: "assets/images/gallery/tech-exhibition.jpg", alt: { en: "Students at a technology exhibition", zh: "同學參觀科技展" } },
+  { src: "assets/images/gallery/centennial-celebration.jpg", alt: { en: "Fu Jen Catholic University 100th anniversary celebration", zh: "輔仁大學創校 100 週年慶祝大會" } },
+  { src: "assets/images/gallery/centennial-arena.jpg", alt: { en: "Centennial assembly in the Fu Jen arena", zh: "輔大體育館百年慶祝大會" } },
+  { src: "assets/images/gallery/campus-cross.jpg", alt: { en: "The Fu Jen campus cross at night", zh: "輔大校園十字架夜景" } },
+  { src: "assets/images/gallery/research-display.jpg", alt: { en: "Research publication display area", zh: "研究論著發表展示區" } },
+  { src: "assets/images/gallery/taipei-101-fireworks.jpg", alt: { en: "Taipei 101 fireworks", zh: "台北 101 煙火" } },
+  { src: "assets/images/gallery/outdoor-retreat.jpg", alt: { en: "Programme outing in the mountains", zh: "學程戶外交流" } },
+  { src: "assets/images/gallery/field-trip.jpg", alt: { en: "Students on a field trip", zh: "同學校外教學" } },
+  { src: "assets/images/gallery/waterfall-outing.jpg", alt: { en: "Students at a waterfall during an outing", zh: "同學戶外行程瀑布合影" } }
 ];
 
 const MATERIALS = [
