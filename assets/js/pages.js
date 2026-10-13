@@ -71,6 +71,7 @@ function pageContent(page, lang) {
       <section class="hero">
         <div class="hero-media">
           <img src="assets/images/fju-campus.jpg" alt="${zh ? "輔仁大學野聲樓" : "Fu Jen Catholic University, Cardinal Yu Pin Administration Building"}">
+          <div class="hero-cross" aria-hidden="true"><svg class="fjcu-cross-svg" viewBox="0 0 80 120" aria-hidden="true"><path d="M40 4v112" stroke="#b71939" stroke-width="14" stroke-linecap="square"/><path d="M8 36h64" stroke="#b71939" stroke-width="14" stroke-linecap="square"/></svg></div>
         </div>
         <div class="container hero-content">
           <span class="eyebrow">${t.eyebrow}</span>
