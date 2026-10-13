@@ -769,7 +769,7 @@ main > *:not(.fjcu-cross-bg) {
   font-size: clamp(1.2rem, 2.4vw, 1.65rem);
   line-height: 1.4;
   color: #3d5164;
-  max-width: 38ch;
+  max-width: 56ch;
   margin: 0;
 }
 
