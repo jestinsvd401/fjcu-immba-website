@@ -2,7 +2,10 @@ const LANG_KEY = "immba-lang";
 
 function getLang() {
   const url = new URLSearchParams(location.search).get("lang");
-  if (url === "en" || url === "zh") return url;
+  if (url === "en" || url === "zh") {
+    localStorage.setItem(LANG_KEY, url);
+    return url;
+  }
   return localStorage.getItem(LANG_KEY) || (navigator.language.startsWith("zh") ? "zh" : "en");
 }
 
@@ -14,8 +17,7 @@ function setLang(lang) {
   render();
 }
 
-function withLang(href) {
-  const lang = getLang();
+function withLang(href, lang = getLang()) {
   const [path, hash] = href.split("#");
   const url = new URL(path, location.href);
   url.searchParams.set("lang", lang);
@@ -111,10 +113,7 @@ function layout(inner) {
         <div class="container notice-row">
           <p class="notice-copy">${t.topNotice} <a class="official-link" href="${t.officialUrl}" target="_blank" rel="noopener">${t.topOfficial}</a></p>
           <div class="notice-actions">
-            <div class="lang-switch" role="group" aria-label="${lang === "zh" ? "語言" : "Language"}">
-              <span class="lang-current">${t.langCurrent}</span>
-              <button type="button" data-lang="${t.langSwitchTo}">${t.langSwitch}</button>
-            </div>
+            <button class="lang-switch" id="lang-switch" type="button">${lang === "en" ? "中文版" : "English"}</button>
             <button class="nav-toggle" id="nav-toggle" type="button" aria-expanded="true" aria-controls="notice-nav">${t.menuHide}</button>
           </div>
         </div>
@@ -196,9 +195,6 @@ function render() {
 }
 
 function bind() {
-  document.querySelectorAll("[data-lang]").forEach((btn) => {
-    btn.addEventListener("click", () => setLang(btn.dataset.lang));
-  });
   const notice = document.querySelector(".site-notice");
   const toggle = document.getElementById("nav-toggle");
   const nav = document.getElementById("notice-nav");
@@ -213,6 +209,9 @@ function bind() {
   };
   applyNavState(sessionStorage.getItem("immba-nav-collapsed") === "1");
   toggle?.addEventListener("click", () => applyNavState(!notice.classList.contains("is-collapsed")));
+  document.getElementById("lang-switch")?.addEventListener("click", () => {
+    setLang(getLang() === "en" ? "zh" : "en");
+  });
   const panel = document.getElementById("search-panel");
   document.getElementById("search-toggle")?.addEventListener("click", () => {
     panel.classList.toggle("open");
