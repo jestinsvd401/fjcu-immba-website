@@ -54,14 +54,22 @@ function pageContent(page, lang) {
   const newsSource = () =>
     `<p class="news-source">${I18N[lang].newsSource} · ${externalLink(I18N[lang].newsSourceUrl, zh ? "官方公告頁" : "Official news page", zh)}</p>`;
   const newsList = (limit) =>
-    NEWS.slice(0, limit || NEWS.length)
-      .map(
-        (n) => `<article class="news-card${n.pin ? " pinned" : ""}">
+    getPublishedNews()
+      .slice(0, limit || undefined)
+      .map((n) => {
+        const title = n.title[lang] || n.title.zh;
+        const body = (n.content[lang] || n.content.zh || "").trim();
+        const details = body
+          ? `<a class="text-link" href="${withLang("news.html#" + n.id)}">${I18N[lang].viewDetails}</a>`
+          : n.url
+            ? externalLink(n.url, I18N[lang].viewDetails, zh)
+            : "";
+        return `<article class="news-card${n.order <= 2 ? " pinned" : ""}">
           <time datetime="${n.date}">${n.date.replaceAll("-", "/")}</time>
-          <h3>${n.title[lang]}</h3>
-          ${externalLink(n.url, I18N[lang].viewDetails, zh)}
-        </article>`
-      )
+          <h3>${escapeHtml(title)}</h3>
+          ${details}
+        </article>`;
+      })
       .join("");
 
   const pages = {
@@ -332,11 +340,25 @@ function pageContent(page, lang) {
         <p class="muted" style="margin-top:20px">${zh ? "相片為學程氛圍示意；官方活動紀錄請見原站相片集錦。" : "Images illustrate programme life. Official event albums remain on the university gallery."}</p>
       </div></section>`,
 
-    news: () => `${hero(zh ? "最新公告" : "Announcements", zh ? "招生、課程與學程動態" : "Admissions, courses, and programme notes")}
+    news: () => {
+      const hash = location.hash.replace("#", "");
+      const item = hash ? getNewsById(hash) : null;
+      if (item && item.status === "published") {
+        const title = item.title[lang] || item.title.zh;
+        const body = formatNewsContent(item.content[lang] || item.content.zh);
+        return `${hero(escapeHtml(title), item.date)}
+          <section class="section"><div class="container prose">
+            ${body || `<p class="muted">${zh ? "此則公告尚未填入內文。" : "No article body has been added yet."}</p>`}
+            ${item.url ? `<p>${externalLink(item.url, zh ? "官方原文" : "Official article", zh)}</p>` : ""}
+            <p><a href="${withLang("news.html")}">${zh ? "← 返回公告列表" : "← Back to announcements"}</a></p>
+          </div></section>`;
+      }
+      return `${hero(zh ? "最新公告" : "Announcements", zh ? "招生、課程與學程動態" : "Admissions, courses, and programme notes")}
         <section class="section"><div class="container">
           <div class="news-cards">${newsList()}</div>
           ${newsSource()}
-        </div></section>`,
+        </div></section>`;
+    },
 
     contact: () => `
       ${hero(zh ? "聯絡我們" : "Contact", zh ? "我們會盡快回覆來信" : "Email us and we will reply as soon as we can")}

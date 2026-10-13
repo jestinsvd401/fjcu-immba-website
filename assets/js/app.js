@@ -100,13 +100,13 @@ function layout(inner) {
         </nav>
       </div>
       <div class="container header-brand">
-        <a class="brand" href="${withLang("index.html")}">
-          ${brandLogo()}
-          <span class="brand-text">
+        <div class="brand">
+          <a class="brand-logo-link" href="${withLang("admin.html")}" title="${lang === "zh" ? "後台管理" : "Back office"}">${brandLogo()}</a>
+          <a class="brand-text" href="${withLang("index.html")}">
             <em>${t.brandSchool}</em>
             <strong>${t.brandName}</strong>
-          </span>
-        </a>
+          </a>
+        </div>
         <div class="header-actions">
           <a class="btn btn-action-secondary" href="${withLang("contact.html")}">${t.contactAction}</a>
           <button class="icon-btn" id="search-toggle" aria-label="${t.search}">⌕</button>
@@ -161,11 +161,13 @@ function layout(inner) {
 
 function render() {
   const lang = getLang();
-  document.documentElement.lang = I18N[lang].htmlLang;
-  document.title = I18N[lang].pageTitle;
   const page = document.body.dataset.page;
-  document.getElementById("app").innerHTML = layout(pageContent(page, lang));
+  document.documentElement.lang = I18N[lang].htmlLang;
+  document.title = page === "admin" ? "AdminNews | imMBA" : I18N[lang].pageTitle;
+  const inner = page === "admin" && typeof adminPage === "function" ? adminPage(lang) : pageContent(page, lang);
+  document.getElementById("app").innerHTML = layout(inner);
   bind();
+  if (typeof bindAdmin === "function") bindAdmin();
 }
 
 function bind() {
@@ -198,8 +200,12 @@ function bind() {
     flatNav(I18N[lang].nav).forEach(([href, label]) => {
       if (label.toLowerCase().includes(q) || href.includes(q)) hits.push([withLang(href), label]);
     });
-    NEWS.forEach((n) => {
-      if (n.title[lang].toLowerCase().includes(q)) hits.push([n.url, n.title[lang]]);
+    getPublishedNews().forEach((n) => {
+      const title = n.title[lang] || n.title.zh;
+      if (title.toLowerCase().includes(q)) {
+        const href = n.content[lang] || n.content.zh ? withLang("news.html") + "#" + n.id : n.url || withLang("news.html");
+        hits.push([href, title]);
+      }
     });
     FACULTY.forEach((f) => {
       const name = lang === "zh" ? f.zhName : f.name;

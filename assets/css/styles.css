@@ -257,6 +257,17 @@ select {
   min-width: 0;
 }
 
+.brand-logo-link {
+  display: flex;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.brand-logo-link:focus-visible {
+  outline: 2px solid #00517d;
+  outline-offset: 3px;
+}
+
 .brand-text {
   display: flex;
   flex-direction: column;
@@ -1309,4 +1320,81 @@ select {
   .notice-nav .nav-apply {
     margin-left: 0;
   }
+
+  .admin-shared,
+  .admin-bilingual {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-form {
+  margin-bottom: 48px;
+}
+
+.admin-shared,
+.admin-bilingual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--white);
+  border: 1px solid var(--line);
+}
+
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.admin-table td strong,
+.admin-table td .muted {
+  display: block;
+}
+
+.admin-actions {
+  display: flex;
+  gap: 12px;
+  white-space: nowrap;
+}
+
+.admin-actions button {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: #b71939;
+  cursor: pointer;
+}
+
+.admin-status {
+  display: inline-block;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.admin-status-published {
+  color: #00517d;
+}
+
+.admin-status-draft {
+  color: var(--muted);
+}
+
+.admin-flash {
+  margin: 0;
+  color: #00517d;
+  font-weight: 600;
 }
