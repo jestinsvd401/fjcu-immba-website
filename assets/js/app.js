@@ -31,53 +31,66 @@ function flatNav(nav) {
   return items;
 }
 
+function pageFile(href) {
+  return href.split("#")[0].replace(".html", "");
+}
+
+function linkActive(href, page) {
+  const [path, hash] = href.split("#");
+  const file = path.replace(".html", "");
+  const onPage = page === file || (page === "home" && file === "index");
+  if (!onPage) return false;
+  if (!hash) return !location.hash;
+  return location.hash === "#" + hash;
+}
+
 function navItem(item) {
   const page = document.body.dataset.page;
   if (item.children) {
-    const open = item.children.some(([href]) => href.replace(".html", "") === page);
+    const open = item.children.some(([href]) => pageFile(href) === page);
     return `<div class="drop">
       <button class="nav-link ${open ? "active" : ""}" type="button">${item.label}</button>
       <div class="submenu">${item.children.map(([href, label]) => `<a href="${withLang(href)}">${label}</a>`).join("")}</div>
     </div>`;
   }
-  const file = item.href.replace(".html", "");
-  const active = page === file || (page === "home" && item.href === "index.html");
+  const active = linkActive(item.href, page);
   return `<a class="${active ? "active" : ""}" href="${withLang(item.href)}">${item.label}</a>`;
 }
 
+function mobileItem(item) {
+  if (!item.children) return `<a href="${withLang(item.href)}">${item.label}</a>`;
+  return `<div class="mobile-group"><span>${item.label}</span>${item.children.map(([href, label]) => `<a href="${withLang(href)}">${label}</a>`).join("")}</div>`;
+}
+
 function brandLogo() {
-  return `<svg class="brand-logo" viewBox="0 0 90 96" role="img" aria-label="Fu Jen Catholic University emblem">
+  const star = "0,-2.15 .62,-.66 2.15,-.66 .86,.28 1.32,1.82 0,.86 -1.32,1.82 -.86,.28 -2.15,-.66 -.62,-.66";
+  const stars = [
+    [41.5, 12.4], [58.5, 12.4], [33.4, 17.6], [66.6, 17.6],
+    [26.6, 25.2], [73.4, 25.2], [21.8, 34.4], [78.2, 34.4],
+    [19.6, 44.2], [80.4, 44.2], [21.2, 53.6], [78.8, 53.6]
+  ];
+  const leaf = (x, y, rot, s = 1) =>
+    `<path transform="translate(${x} ${y}) rotate(${rot}) scale(${s})" d="M0 0 C2.2-3.4 6.4-3.6 8.2-.4 C5.2 1.5 2.2 1.4 0 0Z"/>`;
+  const left = [
+    [24, 92, -20], [18, 84, -40], [15, 75, -58], [14, 66, -72], [15, 57, -84],
+    [18, 48, -98], [22, 40, -112], [28, 33, -128], [35, 27, -145], [43, 23, -162]
+  ];
+  const right = left.map(([x, y, rot]) => [100 - x, y, 180 - rot]);
+  return `<svg class="brand-logo" viewBox="0 0 100 118" role="img" aria-label="Fu Jen Catholic University emblem">
     <title>Fu Jen Catholic University</title>
-    <g fill="#2f7a3a">
-      <path d="M22 46c-11 14-9 32 6 42-8-14-6-24 3-32-8 1-10-4-9-10z"/>
-      <path d="M18 54c-2 6 1 14 8 20-7-4-12-12-8-20z"/>
-      <path d="M24 40c-6 8-5 18 2 26-8-6-9-16-2-26z"/>
-      <path d="M68 46c11 14 9 32-6 42 8-14 6-24-3-32 8 1 10-4 9-10z"/>
-      <path d="M72 54c2 6-1 14-8 20 7-4 12-12 8-20z"/>
-      <path d="M66 40c6 8 5 18-2 26 8-6 9-16 2-26z"/>
-    </g>
-    <g fill="#f6ac00">
-      <circle cx="45" cy="20" r="1.8"/>
-      <circle cx="35" cy="22.5" r="1.6"/>
-      <circle cx="55" cy="22.5" r="1.6"/>
-      <circle cx="26.5" cy="28" r="1.5"/>
-      <circle cx="63.5" cy="28" r="1.5"/>
-      <circle cx="20" cy="36" r="1.4"/>
-      <circle cx="70" cy="36" r="1.4"/>
-      <circle cx="16.5" cy="46" r="1.3"/>
-      <circle cx="73.5" cy="46" r="1.3"/>
-      <circle cx="17" cy="57" r="1.2"/>
-      <circle cx="73" cy="57" r="1.2"/>
-      <circle cx="45" cy="16.5" r="1.5"/>
-    </g>
-    <path d="M45 6v11" stroke="#b71939" stroke-width="3.4" stroke-linecap="square"/>
-    <path d="M39.5 10.2h11" stroke="#b71939" stroke-width="3.4" stroke-linecap="square"/>
-    <path d="M29 36.5L45 26l16 10.5-4.2 26.5L45 73 33.2 63Z" fill="#00517d"/>
-    <path d="M45 26l16 10.5-4.2 26.5L45 73Z" fill="#fff"/>
-    <text x="37.4" y="54" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" font-family="Noto Serif TC, serif">輔</text>
-    <text x="52.8" y="54" text-anchor="middle" font-size="12" font-weight="700" fill="#00517d" font-family="Noto Serif TC, serif">仁</text>
-    <rect x="27" y="78" width="36" height="8" rx="1.5" fill="#b71939"/>
-    <text x="45" y="83.8" text-anchor="middle" font-size="4.6" fill="#fff" font-family="Noto Serif TC, serif">真善美聖</text>
+    <g fill="#1f7a34">${[...left, ...right].map(([x, y, rot]) => leaf(x, y, rot)).join("")}</g>
+    <g fill="#f6ac00">${stars.map(([x, y]) => `<polygon points="${star}" transform="translate(${x} ${y})"/>`).join("")}</g>
+    <path d="M50 6.5v28" stroke="#b71939" stroke-width="4.4" stroke-linecap="square"/>
+    <path d="M41.4 15.2h17.2" stroke="#b71939" stroke-width="4.4" stroke-linecap="square"/>
+    <path d="M32 44h18v42C42 78 32 68 32 56Z" fill="#00517d"/>
+    <path d="M50 44h18v12c0 12-8 22-18 30V44Z" fill="#fff"/>
+    <path d="M32 44h36v12c0 14-8 26-18 34-10-8-18-20-18-34V44Z" fill="none" stroke="#00517d" stroke-width="1.15"/>
+    <text x="41" y="67" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" font-family="Noto Serif TC, PMingLiU, serif">輔</text>
+    <text x="59" y="67" text-anchor="middle" font-size="13" font-weight="700" fill="#00517d" font-family="Noto Serif TC, PMingLiU, serif">仁</text>
+    <path d="M26 98c8-3.2 40-3.2 48 0l3.2 6.4c-9-2.4-42-2.4-51.2 0L26 98Z" fill="#b71939"/>
+    <path d="M24 99.2 29.2 96.6v8.8L24 108.2l1.8-4.5Z" fill="#b71939"/>
+    <path d="M76 99.2 70.8 96.6v8.8L76 108.2l-1.8-4.5Z" fill="#b71939"/>
+    <text x="50" y="104.4" text-anchor="middle" font-size="4.8" fill="#fff" font-family="Noto Serif TC, PMingLiU, serif" letter-spacing="1.2">真善美聖</text>
   </svg>`;
 }
 
@@ -115,15 +128,25 @@ function layout(inner) {
             <button type="button" class="${lang === "en" ? "active" : ""}" data-lang="en">EN</button>
           </div>
           <button class="icon-btn" id="search-toggle" aria-label="${t.search}">⌕</button>
-          <a class="btn btn-primary" href="${withLang("admissions.html")}">${t.applyEn}</a>
-          <a class="btn btn-outline apply-zh" href="${withLang("admissions.html")}">${t.applyZh}</a>
           <button class="menu-btn" id="menu-toggle">${t.menu}</button>
         </div>
       </div>
       <nav class="nav-bar">
-        <div class="container nav">${t.nav.map(navItem).join("")}</div>
+        <div class="container nav">
+          ${t.nav.map(navItem).join("")}
+          <div class="nav-apply">
+            <a class="btn btn-primary" href="${withLang("admissions.html")}">${t.applyEn}</a>
+            <a class="btn btn-outline" href="${withLang("admissions.html")}">${t.applyZh}</a>
+          </div>
+        </div>
       </nav>
-      <nav class="mobile-nav container" id="mobile-nav">${flatNav(t.nav).map(([href, label]) => `<a href="${withLang(href)}">${label}</a>`).join("")}</nav>
+      <nav class="mobile-nav container" id="mobile-nav">
+        <div class="nav-apply">
+          <a class="btn btn-primary" href="${withLang("admissions.html")}">${t.applyEn}</a>
+          <a class="btn btn-outline" href="${withLang("admissions.html")}">${t.applyZh}</a>
+        </div>
+        ${t.nav.map(mobileItem).join("")}
+      </nav>
       <div class="search-panel" id="search-panel">
         <input id="search-input" placeholder="${t.searchPlaceholder}">
         <div class="search-results" id="search-results"></div>

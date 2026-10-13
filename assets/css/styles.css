@@ -105,8 +105,8 @@ select {
 }
 
 .brand-logo {
-  width: 72px;
-  height: 82px;
+  width: 68px;
+  height: 80px;
   flex-shrink: 0;
 }
 
@@ -165,13 +165,43 @@ select {
   align-items: center;
   flex-wrap: wrap;
   gap: 2px;
-  min-height: 48px;
+  min-height: 52px;
+}
+
+.nav-apply {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.nav-apply .btn {
+  min-height: 34px;
+  padding: 0 14px;
+  font-size: 0.84rem;
+}
+
+.mobile-group {
+  display: grid;
+  gap: 2px;
+  padding-top: 10px;
+}
+
+.mobile-group span {
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.mobile-group a {
+  padding: 4px 0 4px 8px;
 }
 
 .nav .drop {
   position: relative;
-  padding-bottom: 14px;
-  margin-bottom: -14px;
 }
 
 .nav .drop:hover .submenu,
@@ -182,14 +212,23 @@ select {
 .submenu {
   display: none;
   position: absolute;
-  top: calc(100% - 6px);
+  top: 100%;
   left: 0;
-  min-width: 240px;
+  min-width: 260px;
   background: var(--white);
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
   padding: 8px 0;
   z-index: 20;
+}
+
+.submenu::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -10px;
+  height: 10px;
 }
 
 .submenu a {
@@ -208,9 +247,10 @@ select {
   background: none;
   border: 0;
   cursor: pointer;
-  padding: 10px 9px;
+  padding: 12px 11px;
   color: var(--ink-soft);
-  font-size: 0.84rem;
+  font-size: 0.92rem;
+  letter-spacing: 0.01em;
   position: relative;
 }
 
@@ -335,23 +375,26 @@ select {
 
 .hero {
   position: relative;
-  min-height: 68vh;
+  min-height: 62vh;
   display: grid;
   align-items: end;
-  color: var(--white);
+  color: #12324a;
   overflow: hidden;
+  background: #f4f7f8;
 }
 
 .hero-media {
   position: absolute;
   inset: 0;
-  background: radial-gradient(1200px 600px at 20% 40%, #7a628c 0%, #4a3a5c 55%, #2e2438 100%);
+  background: #e7eef3;
 }
 
 .hero-media img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center 42%;
+  filter: brightness(1.18) saturate(0.92) contrast(0.96);
 }
 
 main {
@@ -385,55 +428,30 @@ main > *:not(.fjcu-cross-bg) {
   position: absolute;
   inset: 0;
   z-index: 2;
-  background:
-    linear-gradient(90deg, rgba(46, 36, 56, 0.42) 0%, rgba(46, 36, 56, 0.18) 55%, rgba(46, 36, 56, 0.08) 100%),
-    linear-gradient(180deg, rgba(46, 36, 56, 0.08), rgba(46, 36, 56, 0.28));
-}
-
-.hero-cross {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  pointer-events: none;
-}
-
-.hero-cross svg {
-  position: absolute;
-  right: 4%;
-  top: 6%;
-  width: min(48vw, 540px);
-  height: auto;
-  opacity: 0.5;
-  filter: drop-shadow(0 0 28px rgba(183, 25, 57, 0.28));
+  background: linear-gradient(180deg, rgba(247, 249, 250, 0.2) 0%, rgba(247, 249, 250, 0.55) 48%, rgba(250, 248, 244, 0.92) 100%);
 }
 
 .hero-content {
   position: relative;
   z-index: 4;
-  padding: 88px 0 56px;
-  max-width: 740px;
+  padding: 72px 0 48px;
+  max-width: 760px;
 }
 
 .hero h1 {
   font-family: var(--serif);
-  font-size: clamp(2.6rem, 6vw, 5rem);
-  line-height: 1.05;
-  font-weight: 600;
-  margin: 14px 0 18px;
-  text-shadow: 0 2px 24px rgba(22, 14, 32, 0.45);
+  font-size: clamp(2.4rem, 4.6vw, 3.7rem);
+  line-height: 1.08;
+  font-weight: 500;
+  margin: 8px 0 12px;
+  color: #0c3d66;
 }
 
 .hero p.lead {
-  font-size: 1.12rem;
-  color: rgba(255, 252, 247, 0.95);
-  max-width: 42ch;
-  text-shadow: 0 1px 16px rgba(22, 14, 32, 0.4);
-}
-
-.hero p.lead {
-  font-size: 1.08rem;
-  color: rgba(255, 252, 247, 0.86);
-  max-width: 58ch;
+  font-size: 1.05rem;
+  color: #3d5164;
+  max-width: 36ch;
+  margin: 0;
 }
 
 .hero ul {
@@ -446,7 +464,26 @@ main > *:not(.fjcu-cross-bg) {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin-top: 28px;
+  margin-top: 22px;
+}
+
+.hero .btn-primary {
+  background: #b71939;
+}
+
+.hero .btn-primary:hover {
+  background: #8e122c;
+}
+
+.hero .btn-outline {
+  background: rgba(255, 252, 247, 0.9);
+  border-color: #00517d;
+  color: #00517d;
+}
+
+.hero .btn-outline:hover {
+  background: #00517d;
+  color: #fff;
 }
 
 .stats {
@@ -487,6 +524,12 @@ main > *:not(.fjcu-cross-bg) {
   align-items: end;
   gap: 24px;
   margin-bottom: 36px;
+}
+
+#regulations,
+#scholarships,
+#structure {
+  scroll-margin-top: 150px;
 }
 
 .section h2,
@@ -823,6 +866,11 @@ select {
     display: grid;
     gap: 8px;
     padding: 8px 0 18px;
+  }
+
+  .mobile-nav .nav-apply {
+    margin-left: 0;
+    padding-top: 4px;
   }
 
   .stats,

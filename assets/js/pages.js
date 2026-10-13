@@ -21,21 +21,14 @@ function pageContent(page, lang) {
       return `
       <section class="hero">
         <div class="hero-media">
-          <img src="https://images.unsplash.com/photo-1541339905340-3667b8303382?auto=format&fit=crop&w=2000&q=80" alt="">
-          <div class="hero-cross" aria-hidden="true">
-            <svg viewBox="0 0 80 120">
-              <path d="M40 4v112" stroke="#b71939" stroke-width="16" stroke-linecap="square"/>
-              <path d="M8 36h64" stroke="#b71939" stroke-width="16" stroke-linecap="square"/>
-            </svg>
-          </div>
+          <img src="assets/images/fju-campus.jpg" alt="${zh ? "輔仁大學野聲樓" : "Fu Jen Catholic University, Cardinal Yu Pin Administration Building"}">
         </div>
         <div class="container hero-content">
+          <span class="eyebrow">${t.eyebrow}</span>
           <h1>${t.title}</h1>
           <p class="lead">${t.lead}</p>
           <div class="hero-actions">
-            <a class="btn btn-primary" href="${q ? "intro.html" + q : "intro.html"}">${t.cta1}</a>
-            <a class="btn btn-ghost" href="${q ? "marketplace.html" + q : "marketplace.html"}">${t.cta2}</a>
-            <a class="btn btn-ghost" href="${q ? "admissions.html" + q : "admissions.html"}">${t.cta3}</a>
+            <a class="btn btn-primary" href="${q ? "admissions.html" + q : "admissions.html"}">${t.cta3}</a>
           </div>
         </div>
       </section>
@@ -113,6 +106,13 @@ function pageContent(page, lang) {
           <article class="card"><span class="eyebrow">Eduniversal 2025</span><h3>${zh ? "遠東亞洲前 20" : "Top 20 in Far East Asia"}</h3><p>${zh ? "同一排名類別中的區域表現。" : "Regional standing in the same ranking category."}</p></article>
           <article class="card"><span class="eyebrow">AACSB</span><h3>${zh ? "全球約 5% 商學院" : "About 5% of business schools"}</h3><p>${zh ? "取得 AACSB 認證，課程對接當代全球經濟挑戰。" : "Hold AACSB accreditation. The curriculum is built for current global-economy challenges."}</p></article>
         </div>
+      </div>
+      <div class="container prose" id="regulations">
+        <h2>${zh ? "本單位規定及辦法" : "Program regulations"}</h2>
+        <p>${zh
+          ? "修業、抵免、英語門檻與畢業離校，一律依學生入學年度之版本辦理。課程結構與離校流程見相關頁面；正式辦法以學程辦公室、教務處與管理學院公告為準。"
+          : "Study rules, course waivers, the English requirement, and leaving-school procedures follow the version in force for a student’s year of entry. Credit structure and the graduation process are outlined on the linked pages. Official regulations are those issued by the program office, the Office of Academic Affairs, and the College of Management."}</p>
+        <p><a href="curriculum.html${q}">${zh ? "課程與修業規則" : "Curriculum and requirements"}</a> · <a href="graduation.html${q}">${zh ? "畢業與離校" : "Graduation"}</a></p>
       </div></section>`,
 
     "learning-environment": () => `
@@ -148,7 +148,7 @@ function pageContent(page, lang) {
           <li>${zh ? "兩封推薦信" : "Two recommendation letters"}</li>
           <li>${zh ? "其他有助審查之資料" : "Other supporting materials"}</li>
         </ul>
-        <h3>${zh ? "學雜費與獎學金（國際生）" : "Tuition and scholarships (international)"}</h3>
+        <h3 id="scholarships">${zh ? "學雜費與獎學金（國際生）" : "Tuition and scholarships (international)"}</h3>
         <ul>
           <li>${zh ? "學雜費每學期 NT$123,000。" : "Tuition and miscellaneous fees: NT$123,000 per semester."}</li>
           <li>${zh ? "領有政府獎學金或輔大新生獎學金者，可適用本地生學雜費 NT$68,660／學期。" : "Holders of government or FJCU new-international-student scholarships may pay the local rate of NT$68,660 per semester."}</li>
@@ -163,7 +163,7 @@ function pageContent(page, lang) {
       ${hero(zh ? "課程資訊" : "Curriculum", zh ? "最低 42 學分，含論文" : "42 credits, including thesis")}
       <section class="section"><div class="container split">
         <div class="prose">
-          <h2>${zh ? "畢業學分結構" : "Credit structure"}</h2>
+          <h2 id="structure">${zh ? "畢業學分結構" : "Credit structure"}</h2>
           <ul>
             <li>${zh ? "必修 23 學分：絕對必修 11 學分（含論文 6 學分）＋選必修 12 學分" : "23 required credits: 11 absolutely required (including 6-credit thesis) + 12 optionally required"}</li>
             <li>${zh ? "選修 19 學分" : "19 elective credits"}</li>

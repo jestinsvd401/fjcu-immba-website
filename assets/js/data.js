@@ -14,21 +14,36 @@ const I18N = {
     apply: "立即申請",
     menu: "選單",
     nav: [
-      { href: "intro.html", label: "簡介" },
       {
-        label: "About",
+        label: "簡介",
         children: [
-          ["about.html", "Overview and Ranking"],
-          ["learning-environment.html", "Our Learning Environment"]
+          ["about.html", "特色與排名"],
+          ["learning-environment.html", "學習環境"]
         ]
       },
-      { href: "admissions.html", label: "招生" },
-      { href: "curriculum.html", label: "課程" },
+      {
+        label: "招生",
+        children: [["admissions.html", "申請輔大 imMBA"]]
+      },
+      {
+        label: "課程",
+        children: [["curriculum.html", "課程與修業規則"]]
+      },
+      {
+        label: "雙碩士",
+        children: [
+          ["dual-degree.html", "跨國雙碩士"],
+          ["exchange.html", "海外交換"]
+        ]
+      },
       { href: "faculty.html", label: "師資" },
-      { href: "guide.html", label: "imMBA Guide" },
-      { href: "dual-degree.html", label: "雙碩士" },
-      { href: "exchange.html", label: "交換學程" },
-      { href: "gallery.html", label: "活動" }
+      {
+        label: "活動",
+        children: [
+          ["gallery.html", "活動集錦"],
+          ["news.html", "最新公告"]
+        ]
+      }
     ],
     footerAbout:
       "輔仁大學國際經營管理碩士班（imMBA）為全英語授課、AACSB 認證之國際化 MBA 學程，培養具備全球視野、跨域整合與數位創新能力的管理人才。",
@@ -87,7 +102,6 @@ const I18N = {
     apply: "Apply now",
     menu: "Menu",
     nav: [
-      { href: "intro.html", label: "Intro" },
       {
         label: "About",
         children: [
@@ -95,13 +109,29 @@ const I18N = {
           ["learning-environment.html", "Our Learning Environment"]
         ]
       },
-      { href: "admissions.html", label: "Admissions" },
-      { href: "curriculum.html", label: "Curriculum" },
+      {
+        label: "Admissions",
+        children: [["admissions.html", "Apply for Fu Jen imMBA"]]
+      },
+      {
+        label: "Courses",
+        children: [["curriculum.html", "Curriculum and Requirements"]]
+      },
+      {
+        label: "Dual Degree",
+        children: [
+          ["dual-degree.html", "Dual Degree"],
+          ["exchange.html", "Exchange"]
+        ]
+      },
       { href: "faculty.html", label: "Faculty" },
-      { href: "guide.html", label: "imMBA Guide" },
-      { href: "dual-degree.html", label: "Dual Degree" },
-      { href: "exchange.html", label: "Exchange Programs" },
-      { href: "gallery.html", label: "Events" }
+      {
+        label: "Highlights",
+        children: [
+          ["gallery.html", "Photo highlights"],
+          ["news.html", "News"]
+        ]
+      }
     ],
     footerAbout:
       "Fu Jen imMBA is an English-taught, AACSB-accredited MBA designed for global mobility, cross-disciplinary integration, and digital innovation.",
