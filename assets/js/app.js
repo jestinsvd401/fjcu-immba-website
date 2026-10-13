@@ -199,7 +199,7 @@ function bind() {
       if (label.toLowerCase().includes(q) || href.includes(q)) hits.push([withLang(href), label]);
     });
     NEWS.forEach((n) => {
-      if (n[lang].title.toLowerCase().includes(q)) hits.push([withLang("news.html") + "#" + n.id, n[lang].title]);
+      if (n.title[lang].toLowerCase().includes(q)) hits.push([n.url, n.title[lang]]);
     });
     FACULTY.forEach((f) => {
       const name = lang === "zh" ? f.zhName : f.name;

@@ -51,16 +51,16 @@ function pageContent(page, lang) {
       ${textLink("faculty.html", "Faculty", "師資介紹")}
       ${textLink("dual-degree.html", "Dual Degree", "跨國雙碩士")}
     </nav>`;
+  const newsSource = () =>
+    `<p class="news-source">${I18N[lang].newsSource} · ${externalLink(I18N[lang].newsSourceUrl, zh ? "官方公告頁" : "Official news page", zh)}</p>`;
   const newsList = (limit) =>
     NEWS.slice(0, limit || NEWS.length)
       .map(
-        (n) => `<a class="news-item ${n.pin ? "pinned" : ""}" href="news.html${q}#${n.id}">
-          <time>${n.date.replaceAll("-", ".")}</time>
-          <div>
-            <h3>${n[lang].title}</h3>
-            <p>${n[lang].excerpt}</p>
-          </div>
-        </a>`
+        (n) => `<article class="news-card${n.pin ? " pinned" : ""}">
+          <time datetime="${n.date}">${n.date.replaceAll("-", "/")}</time>
+          <h3>${n.title[lang]}</h3>
+          ${externalLink(n.url, I18N[lang].viewDetails, zh)}
+        </article>`
       )
       .join("");
 
@@ -95,9 +95,10 @@ function pageContent(page, lang) {
           <div>
             <div class="section-header">
               <div><span class="eyebrow">${t.eyebrowNews}</span><h2>${t.newsTitle}</h2></div>
-              <a href="news.html">${t.newsMore} →</a>
+              <a href="news.html${q}">${t.newsMore} →</a>
             </div>
-            ${newsList(3)}
+            <div class="news-cards">${newsList(3)}</div>
+            ${newsSource()}
           </div>
           <div>
             <div class="section-header">
@@ -330,18 +331,11 @@ function pageContent(page, lang) {
         <p class="muted" style="margin-top:20px">${zh ? "相片為學程氛圍示意；官方活動紀錄請見原站相片集錦。" : "Images illustrate programme life. Official event albums remain on the university gallery."}</p>
       </div></section>`,
 
-    news: () => {
-      const hash = location.hash.replace("#", "");
-      const item = NEWS.find((n) => n.id === hash);
-      if (item) {
-        return `${hero(item[lang].title, item.date)}
-          <section class="section"><div class="container prose">${item[lang].body}
-            <p><a href="news.html">${zh ? "← 返回公告列表" : "← Back to news"}</a></p>
-          </div></section>`;
-      }
-      return `${hero(zh ? "最新公告" : "News", zh ? "招生、課程與學程動態" : "Admissions, courses, and programme notes")}
-        <section class="section"><div class="container">${newsList()}</div></section>`;
-    },
+    news: () => `${hero(zh ? "最新公告" : "Announcements", zh ? "招生、課程與學程動態" : "Admissions, courses, and programme notes")}
+        <section class="section"><div class="container">
+          <div class="news-cards">${newsList()}</div>
+          ${newsSource()}
+        </div></section>`,
 
     contact: () => `
       ${hero(zh ? "聯絡我們" : "Contact", zh ? "我們會盡快回覆來信" : "Email us and we will reply as soon as we can")}

@@ -930,6 +930,49 @@ main > *:not(.fjcu-cross-bg) {
   border-color: var(--gold);
 }
 
+.news-cards {
+  display: grid;
+  gap: 16px;
+}
+
+.news-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  padding: 22px 24px;
+  display: grid;
+  gap: 8px;
+}
+
+.news-card.pinned {
+  border-color: var(--gold);
+}
+
+.news-card time {
+  color: var(--gold);
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+
+.news-card h3 {
+  font-family: var(--serif);
+  font-size: 1.25rem;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.news-card .ext-link {
+  justify-self: start;
+  font-weight: 600;
+}
+
+.news-source {
+  margin-top: 28px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
 .faculty-grid {
   grid-template-columns: repeat(3, 1fr);
 }
