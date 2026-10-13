@@ -109,9 +109,8 @@ function layout(inner) {
     <header class="header">
       <div class="site-notice">
         <div class="container notice-row">
-          <p>${t.topNotice}</p>
+          <p class="notice-copy">${t.topNotice} <a class="official-link" href="${t.officialUrl}" target="_blank" rel="noopener">${t.topOfficial}</a></p>
           <div class="notice-actions">
-            <a class="official-link" href="${t.officialUrl}" target="_blank" rel="noopener">${t.topOfficial}</a>
             <div class="lang-switch" role="group" aria-label="${lang === "zh" ? "語言" : "Language"}">
               <span class="lang-current">${t.langCurrent}</span>
               <button type="button" data-lang="${t.langSwitchTo}">${t.langSwitch}</button>

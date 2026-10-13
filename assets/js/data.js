@@ -91,8 +91,7 @@ const I18N = {
   },
   en: {
     htmlLang: "en",
-    topNotice:
-      "Teaching-site notice: Course Demonstration by Jestin George Vazhayil (Not Official Website)",
+    topNotice: "Course Demonstration by Jestin George Vazhayil (Not Official Website)",
     topOfficial: "Official website",
     officialUrl: "https://www.management.fju.edu.tw/subweb/immba/",
     pageTitle: "imMBA | Fu Jen Catholic University",
