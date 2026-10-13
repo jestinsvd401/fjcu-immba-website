@@ -35,7 +35,7 @@ function pageContent(page, lang) {
       <div class="stats">${t.stats.map(([a, b]) => `<div class="stat"><b>${a}</b><span>${b}</span></div>`).join("")}</div>
       <section class="section">
         <div class="container">
-          <div class="section-header"><div><span class="eyebrow">Program</span><h2>${t.whyTitle}</h2></div></div>
+          <div class="section-header"><div><span class="eyebrow">${t.eyebrowProgram}</span><h2>${t.whyTitle}</h2></div></div>
           <div class="grid-3">${t.why.map(([h, p]) => `<article class="card"><span class="eyebrow">imMBA</span><h3>${h}</h3><p>${p}</p></article>`).join("")}</div>
         </div>
       </section>
@@ -43,14 +43,14 @@ function pageContent(page, lang) {
         <div class="container grid-2">
           <div>
             <div class="section-header">
-              <div><span class="eyebrow">Bulletin</span><h2>${t.newsTitle}</h2></div>
+              <div><span class="eyebrow">${t.eyebrowNews}</span><h2>${t.newsTitle}</h2></div>
               <a href="news.html">${t.newsMore} →</a>
             </div>
             ${newsList(3)}
           </div>
           <div>
             <div class="section-header">
-              <div><span class="eyebrow">Life</span><h2>${t.galleryTitle}</h2></div>
+              <div><span class="eyebrow">${t.eyebrowLife}</span><h2>${t.galleryTitle}</h2></div>
               <a href="gallery.html">${t.galleryMore} →</a>
             </div>
             <div class="gallery-grid" style="grid-template-columns:1fr 1fr">
@@ -61,7 +61,7 @@ function pageContent(page, lang) {
       </section>
       <section class="section cta-band">
         <div class="container">
-          <div><span class="eyebrow">Admissions</span><h2>${t.ctaTitle}</h2><p>${t.ctaText}</p></div>
+          <div><span class="eyebrow">${t.eyebrowAdmissions}</span><h2>${t.ctaTitle}</h2><p>${t.ctaText}</p></div>
           <a class="btn btn-ghost" href="admissions.html">${I18N[lang].apply}</a>
         </div>
       </section>`;
@@ -187,7 +187,7 @@ function pageContent(page, lang) {
       <section class="section"><div class="container">
         <div class="faculty-grid">${FACULTY.map((f) => `
           <article class="faculty-card">
-            <span class="eyebrow">${zh ? "Faculty" : "Faculty"}</span>
+            <span class="eyebrow">${zh ? "師資" : "Faculty"}</span>
             <h3>${zh ? f.zhName : f.name}</h3>
             <p class="role">${f.role[lang]}</p>
             <p>${f.edu[lang]}</p>

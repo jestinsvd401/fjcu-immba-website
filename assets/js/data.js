@@ -1,49 +1,47 @@
 const I18N = {
   zh: {
     htmlLang: "zh-Hant",
-    topNotice:
-      "教學示範網站｜Course Demonstration by Jestin George Vazhayil（非正式官方網站）",
+    topNotice: "教學示範網站｜Jestin George Vazhayil 課程示範（非正式官方網站）",
     topOfficial: "正式官網",
     officialUrl: "https://www.management.fju.edu.tw/subweb/immba/",
-    brandName: "MBA in International Management",
-    brandSchool: "FJCU",
-    applyEn: "Apply Now",
-    applyZh: "立即申請",
+    pageTitle: "國際經營管理碩士班｜輔仁大學",
+    brandName: "國際經營管理碩士班",
+    brandSchool: "輔仁大學",
+    langCurrent: "中文",
+    langSwitch: "English",
+    langSwitchTo: "en",
+    apply: "立即申請",
     search: "搜尋",
     searchPlaceholder: "搜尋課程、招生、師資…",
-    apply: "立即申請",
     menu: "選單",
+    menuShow: "展開選單",
+    menuHide: "收合選單",
     nav: [
       {
         label: "簡介",
         children: [
           ["about.html", "特色與排名"],
+          ["about.html#regulations", "本單位規定及辦法"],
           ["learning-environment.html", "學習環境"]
         ]
       },
       {
-        label: "招生",
-        children: [["admissions.html", "申請輔大 imMBA"]]
+        label: "招生資訊",
+        children: [
+          ["admissions.html", "MBA招生資訊"],
+          ["admissions.html#scholarships", "獎助學金資訊"]
+        ]
       },
       {
-        label: "課程",
+        label: "課程資訊",
         children: [["curriculum.html", "課程與修業規則"]]
       },
-      {
-        label: "雙碩士",
-        children: [
-          ["dual-degree.html", "跨國雙碩士"],
-          ["exchange.html", "海外交換"]
-        ]
-      },
-      { href: "faculty.html", label: "師資" },
-      {
-        label: "活動",
-        children: [
-          ["gallery.html", "活動集錦"],
-          ["news.html", "最新公告"]
-        ]
-      }
+      { href: "faculty.html", label: "師資介紹" },
+      { href: "guide.html", label: "imMBA全攻略" },
+      { href: "graduation.html", label: "畢業與離校" },
+      { href: "dual-degree.html", label: "跨國雙碩士" },
+      { href: "exchange.html", label: "海外交換" },
+      { href: "gallery.html", label: "活動集錦" }
     ],
     footerAbout:
       "輔仁大學國際經營管理碩士班（imMBA）為全英語授課、AACSB 認證之國際化 MBA 學程，培養具備全球視野、跨域整合與數位創新能力的管理人才。",
@@ -53,10 +51,10 @@ const I18N = {
     address: "24205 新北市新莊區中正路 510 號（LM208-1）",
     tel: "電話：+886-2-2905-2750（張小姐）",
     email: "imMBA@mail.fju.edu.tw",
-    copyright: "© Fu Jen Catholic University imMBA. All rights reserved.",
+    copyright: "© 輔仁大學國際經營管理碩士班 版權所有",
     home: {
-      eyebrow: "Fu Jen Catholic University",
-      title: "MBA in International Management",
+      eyebrow: "輔仁大學",
+      title: "國際經營管理碩士班",
       lead: "全英語 MBA｜國際視野 × 跨域整合 × 數位創新",
       cta1: "探索學程",
       cta2: "教材市集",
@@ -73,6 +71,10 @@ const I18N = {
         ["30+", "國家的學生與交換網絡"],
         ["42", "畢業最低學分"]
       ],
+      eyebrowProgram: "學程",
+      eyebrowNews: "公告",
+      eyebrowLife: "校園",
+      eyebrowAdmissions: "招生",
       whyTitle: "為什麼選擇 imMBA",
       why: [
         ["AACSB 認證", "全球約 5% 商學院通過認證。"],
@@ -93,14 +95,18 @@ const I18N = {
       "Teaching-site notice: Course Demonstration by Jestin George Vazhayil (Not Official Website)",
     topOfficial: "Official website",
     officialUrl: "https://www.management.fju.edu.tw/subweb/immba/",
+    pageTitle: "imMBA | Fu Jen Catholic University",
     brandName: "MBA in International Management",
-    brandSchool: "FJCU",
-    applyEn: "Apply Now",
-    applyZh: "立即申請",
+    brandSchool: "Fu Jen Catholic University",
+    langCurrent: "English",
+    langSwitch: "中文",
+    langSwitchTo: "zh",
+    apply: "Apply Now",
     search: "Search",
     searchPlaceholder: "Search admissions, courses, faculty…",
-    apply: "Apply now",
     menu: "Menu",
+    menuShow: "Show menu",
+    menuHide: "Hide menu",
     nav: [
       {
         label: "About",
@@ -117,21 +123,12 @@ const I18N = {
         label: "Courses",
         children: [["curriculum.html", "Curriculum and Requirements"]]
       },
-      {
-        label: "Dual Degree",
-        children: [
-          ["dual-degree.html", "Dual Degree"],
-          ["exchange.html", "Exchange"]
-        ]
-      },
       { href: "faculty.html", label: "Faculty" },
-      {
-        label: "Highlights",
-        children: [
-          ["gallery.html", "Photo highlights"],
-          ["news.html", "News"]
-        ]
-      }
+      { href: "guide.html", label: "imMBA Guide" },
+      { href: "graduation.html", label: "Graduation" },
+      { href: "dual-degree.html", label: "Dual Degree" },
+      { href: "exchange.html", label: "Exchange" },
+      { href: "gallery.html", label: "Highlights" }
     ],
     footerAbout:
       "Fu Jen imMBA is an English-taught, AACSB-accredited MBA designed for global mobility, cross-disciplinary integration, and digital innovation.",
@@ -161,6 +158,10 @@ const I18N = {
         ["30+", "Countries in the student and exchange network"],
         ["42", "Minimum credits for graduation"]
       ],
+      eyebrowProgram: "Program",
+      eyebrowNews: "Bulletin",
+      eyebrowLife: "Campus",
+      eyebrowAdmissions: "Admissions",
       whyTitle: "Why imMBA",
       why: [
         ["AACSB accredited", "Among roughly 5% of business schools worldwide."],

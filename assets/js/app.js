@@ -106,47 +106,40 @@ function layout(inner) {
   const t = I18N[lang];
   const page = document.body.dataset.page;
   return `
-    <div class="site-notice">
-      <div class="container">
-        <p>${t.topNotice}</p>
-        <a class="official-link" href="${t.officialUrl}" target="_blank" rel="noopener">${t.topOfficial}: ${t.officialUrl}</a>
-      </div>
-    </div>
     <header class="header">
+      <div class="site-notice">
+        <div class="container notice-row">
+          <p>${t.topNotice}</p>
+          <div class="notice-actions">
+            <a class="official-link" href="${t.officialUrl}" target="_blank" rel="noopener">${t.topOfficial}</a>
+            <div class="lang-switch" role="group" aria-label="${lang === "zh" ? "語言" : "Language"}">
+              <span class="lang-current">${t.langCurrent}</span>
+              <button type="button" data-lang="${t.langSwitchTo}">${t.langSwitch}</button>
+            </div>
+            <button class="nav-toggle" id="nav-toggle" type="button" aria-expanded="true" aria-controls="notice-nav">${t.menuHide}</button>
+          </div>
+        </div>
+        <nav class="notice-nav" id="notice-nav">
+          <div class="container nav">
+            ${t.nav.map(navItem).join("")}
+            <div class="nav-apply">
+              <a class="btn btn-primary" href="${withLang("admissions.html")}">${t.apply}</a>
+            </div>
+          </div>
+        </nav>
+      </div>
       <div class="container header-brand">
         <a class="brand" href="${withLang("index.html")}">
           ${brandLogo()}
           <span class="brand-text">
-            <em>Fu Jen Catholic University</em>
+            <em>${t.brandSchool}</em>
             <strong>${t.brandName}</strong>
           </span>
         </a>
         <div class="header-actions">
-          <div class="lang-switch" role="group" aria-label="Language">
-            <button type="button" class="${lang === "zh" ? "active" : ""}" data-lang="zh">中</button>
-            <span>|</span>
-            <button type="button" class="${lang === "en" ? "active" : ""}" data-lang="en">EN</button>
-          </div>
           <button class="icon-btn" id="search-toggle" aria-label="${t.search}">⌕</button>
-          <button class="menu-btn" id="menu-toggle">${t.menu}</button>
         </div>
       </div>
-      <nav class="nav-bar">
-        <div class="container nav">
-          ${t.nav.map(navItem).join("")}
-          <div class="nav-apply">
-            <a class="btn btn-primary" href="${withLang("admissions.html")}">${t.applyEn}</a>
-            <a class="btn btn-outline" href="${withLang("admissions.html")}">${t.applyZh}</a>
-          </div>
-        </div>
-      </nav>
-      <nav class="mobile-nav container" id="mobile-nav">
-        <div class="nav-apply">
-          <a class="btn btn-primary" href="${withLang("admissions.html")}">${t.applyEn}</a>
-          <a class="btn btn-outline" href="${withLang("admissions.html")}">${t.applyZh}</a>
-        </div>
-        ${t.nav.map(mobileItem).join("")}
-      </nav>
       <div class="search-panel" id="search-panel">
         <input id="search-input" placeholder="${t.searchPlaceholder}">
         <div class="search-results" id="search-results"></div>
@@ -197,6 +190,7 @@ function layout(inner) {
 function render() {
   const lang = getLang();
   document.documentElement.lang = I18N[lang].htmlLang;
+  document.title = I18N[lang].pageTitle;
   const page = document.body.dataset.page;
   document.getElementById("app").innerHTML = layout(pageContent(page, lang));
   bind();
@@ -206,9 +200,20 @@ function bind() {
   document.querySelectorAll("[data-lang]").forEach((btn) => {
     btn.addEventListener("click", () => setLang(btn.dataset.lang));
   });
-  const menu = document.getElementById("menu-toggle");
-  const mobile = document.getElementById("mobile-nav");
-  menu?.addEventListener("click", () => mobile.classList.toggle("open"));
+  const notice = document.querySelector(".site-notice");
+  const toggle = document.getElementById("nav-toggle");
+  const nav = document.getElementById("notice-nav");
+  const t = I18N[getLang()];
+  const applyNavState = (collapsed) => {
+    notice?.classList.toggle("is-collapsed", collapsed);
+    if (toggle) {
+      toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      toggle.textContent = collapsed ? t.menuShow : t.menuHide;
+    }
+    sessionStorage.setItem("immba-nav-collapsed", collapsed ? "1" : "0");
+  };
+  applyNavState(sessionStorage.getItem("immba-nav-collapsed") === "1");
+  toggle?.addEventListener("click", () => applyNavState(!notice.classList.contains("is-collapsed")));
   const panel = document.getElementById("search-panel");
   document.getElementById("search-toggle")?.addEventListener("click", () => {
     panel.classList.toggle("open");
