@@ -68,6 +68,8 @@ select {
 }
 
 .site-notice {
+  position: relative;
+  z-index: 5;
   background: #c1121f;
   color: #fff;
   font-size: 0.82rem;
@@ -203,17 +205,28 @@ select {
   background: #f6ac00;
 }
 
-.notice-nav .submenu {
-  color: var(--ink);
+.notice-nav .nav .drop .submenu {
+  background: #fff;
+  color: #16141f;
+  border: 1px solid rgba(22, 20, 31, 0.16);
+  box-shadow: 0 16px 36px rgba(22, 20, 31, 0.22);
+  z-index: 60;
 }
 
-.notice-nav .submenu a {
-  color: var(--ink-soft);
+.notice-nav .nav .drop .submenu a {
+  color: #16141f;
+  background: #fff;
+}
+
+.notice-nav .nav .drop .submenu a:hover {
+  background: #efe4cc;
+  color: #4c2a6a;
 }
 
 .brand-logo {
-  width: 68px;
-  height: 80px;
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
   flex-shrink: 0;
 }
 
@@ -221,12 +234,15 @@ select {
   position: sticky;
   top: 0;
   z-index: 40;
+  overflow: visible;
   background: rgba(246, 242, 234, 0.96);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--line);
 }
 
 .header-brand {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -313,11 +329,11 @@ select {
   top: 100%;
   left: 0;
   min-width: 260px;
-  background: var(--white);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
+  background: #fff;
+  border: 1px solid rgba(22, 20, 31, 0.16);
+  box-shadow: 0 16px 36px rgba(22, 20, 31, 0.22);
   padding: 8px 0;
-  z-index: 20;
+  z-index: 60;
 }
 
 .submenu::before {

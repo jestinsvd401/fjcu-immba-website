@@ -66,35 +66,7 @@ function mobileItem(item) {
 }
 
 function brandLogo() {
-  const star = "0,-2.15 .62,-.66 2.15,-.66 .86,.28 1.32,1.82 0,.86 -1.32,1.82 -.86,.28 -2.15,-.66 -.62,-.66";
-  const stars = [
-    [41.5, 12.4], [58.5, 12.4], [33.4, 17.6], [66.6, 17.6],
-    [26.6, 25.2], [73.4, 25.2], [21.8, 34.4], [78.2, 34.4],
-    [19.6, 44.2], [80.4, 44.2], [21.2, 53.6], [78.8, 53.6]
-  ];
-  const leaf = (x, y, rot, s = 1) =>
-    `<path transform="translate(${x} ${y}) rotate(${rot}) scale(${s})" d="M0 0 C2.2-3.4 6.4-3.6 8.2-.4 C5.2 1.5 2.2 1.4 0 0Z"/>`;
-  const left = [
-    [24, 92, -20], [18, 84, -40], [15, 75, -58], [14, 66, -72], [15, 57, -84],
-    [18, 48, -98], [22, 40, -112], [28, 33, -128], [35, 27, -145], [43, 23, -162]
-  ];
-  const right = left.map(([x, y, rot]) => [100 - x, y, 180 - rot]);
-  return `<svg class="brand-logo" viewBox="0 0 100 118" role="img" aria-label="Fu Jen Catholic University emblem">
-    <title>Fu Jen Catholic University</title>
-    <g fill="#1f7a34">${[...left, ...right].map(([x, y, rot]) => leaf(x, y, rot)).join("")}</g>
-    <g fill="#f6ac00">${stars.map(([x, y]) => `<polygon points="${star}" transform="translate(${x} ${y})"/>`).join("")}</g>
-    <path d="M50 6.5v28" stroke="#b71939" stroke-width="4.4" stroke-linecap="square"/>
-    <path d="M41.4 15.2h17.2" stroke="#b71939" stroke-width="4.4" stroke-linecap="square"/>
-    <path d="M32 44h18v42C42 78 32 68 32 56Z" fill="#00517d"/>
-    <path d="M50 44h18v12c0 12-8 22-18 30V44Z" fill="#fff"/>
-    <path d="M32 44h36v12c0 14-8 26-18 34-10-8-18-20-18-34V44Z" fill="none" stroke="#00517d" stroke-width="1.15"/>
-    <text x="41" y="67" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" font-family="Noto Serif TC, PMingLiU, serif">輔</text>
-    <text x="59" y="67" text-anchor="middle" font-size="13" font-weight="700" fill="#00517d" font-family="Noto Serif TC, PMingLiU, serif">仁</text>
-    <path d="M26 98c8-3.2 40-3.2 48 0l3.2 6.4c-9-2.4-42-2.4-51.2 0L26 98Z" fill="#b71939"/>
-    <path d="M24 99.2 29.2 96.6v8.8L24 108.2l1.8-4.5Z" fill="#b71939"/>
-    <path d="M76 99.2 70.8 96.6v8.8L76 108.2l-1.8-4.5Z" fill="#b71939"/>
-    <text x="50" y="104.4" text-anchor="middle" font-size="4.8" fill="#fff" font-family="Noto Serif TC, PMingLiU, serif" letter-spacing="1.2">真善美聖</text>
-  </svg>`;
+  return `<img class="brand-logo" src="assets/images/immba-logo.png" width="88" height="88" alt="Fu Jen Catholic University imMBA Program">`;
 }
 
 function fjcuCross() {
