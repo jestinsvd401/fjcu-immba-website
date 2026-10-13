@@ -1,7 +1,56 @@
+function leaveSiteHint(zh) {
+  return zh ? "另開分頁，將離開本示範網站" : "Opens in a new tab. You will leave this site.";
+}
+
+function extIcon() {
+  return `<svg class="ext-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M7 3h6v6M13 3 7 9M4 5v8h8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"/></svg>`;
+}
+
+function fileIcon() {
+  return `<svg class="file-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4 2h6l3 3v9H4zM10 2v3h3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="miter"/></svg>`;
+}
+
+function externalLink(href, label, zh) {
+  const hint = leaveSiteHint(zh);
+  return `<a class="ext-link" href="${href}" target="_blank" rel="noopener noreferrer" title="${hint}">${label}${extIcon()}<span class="sr-only"> (${hint})</span></a>`;
+}
+
+function resourceLink(href, title) {
+  return `<a class="resource-link" href="${href}">${fileIcon()}<span>${title} <span class="file-type">PDF</span></span></a>`;
+}
+
+function actionLink(href, label, kind = "primary") {
+  const cls = kind === "secondary" ? "btn btn-action-secondary" : "btn btn-action";
+  if (!/^https?:/i.test(href)) return `<a class="${cls}" href="${href}">${label}</a>`;
+  const zh = typeof getLang === "function" && getLang() === "zh";
+  return `<a class="${cls}" href="${href}" target="_blank" rel="noopener noreferrer" title="${leaveSiteHint(zh)}">${label}${extIcon()}<span class="sr-only"> (${leaveSiteHint(zh)})</span></a>`;
+}
+
+function externalCard(href, label, zh) {
+  const host = href.replace(/^https?:\/\//, "").replace(/\/$/, "");
+  const hint = leaveSiteHint(zh);
+  return `<a class="card ext-card" href="${href}" target="_blank" rel="noopener noreferrer">
+    <h3>${label}${extIcon()}</h3>
+    <p class="ext-hint">${hint}</p>
+    <p class="muted">${host}</p>
+  </a>`;
+}
+
 function pageContent(page, lang) {
   const zh = lang === "zh";
   const langQ = new URLSearchParams(location.search).get("lang");
   const q = langQ ? `?lang=${langQ}` : "";
+  const textLink = (href, en, zhLabel) => {
+    const file = href.replace(".html", "");
+    const on = page === file;
+    return `<a class="text-link${on ? " active" : ""}" href="${href}${q}"${on ? ' aria-current="page"' : ""}>${zh ? zhLabel : en}</a>`;
+  };
+  const programLinks = () => `
+    <nav class="inpage-nav" aria-label="${zh ? "學程頁面" : "Program pages"}">
+      ${textLink("admissions.html", "Admissions", "招生資訊")}
+      ${textLink("faculty.html", "Faculty", "師資介紹")}
+      ${textLink("dual-degree.html", "Dual Degree", "跨國雙碩士")}
+    </nav>`;
   const newsList = (limit) =>
     NEWS.slice(0, limit || NEWS.length)
       .map(
@@ -28,7 +77,8 @@ function pageContent(page, lang) {
           <h1>${t.title}</h1>
           <p class="lead">${t.lead}</p>
           <div class="hero-actions">
-            <a class="btn btn-primary" href="${q ? "admissions.html" + q : "admissions.html"}">${t.cta3}</a>
+            ${actionLink(q ? "admissions.html" + q : "admissions.html", I18N[lang].apply)}
+            ${actionLink(q ? "contact.html" + q : "contact.html", I18N[lang].contactAction, "secondary")}
           </div>
         </div>
       </section>
@@ -37,6 +87,7 @@ function pageContent(page, lang) {
         <div class="container">
           <div class="section-header"><div><span class="eyebrow">${t.eyebrowProgram}</span><h2>${t.whyTitle}</h2></div></div>
           <div class="grid-3">${t.why.map(([h, p]) => `<article class="card"><span class="eyebrow">imMBA</span><h3>${h}</h3><p>${p}</p></article>`).join("")}</div>
+          ${programLinks()}
         </div>
       </section>
       <section class="section" style="padding-top:0">
@@ -62,7 +113,10 @@ function pageContent(page, lang) {
       <section class="section cta-band">
         <div class="container">
           <div><span class="eyebrow">${t.eyebrowAdmissions}</span><h2>${t.ctaTitle}</h2><p>${t.ctaText}</p></div>
-          <a class="btn btn-ghost" href="admissions.html">${I18N[lang].apply}</a>
+          <div class="action-row">
+            ${actionLink("admissions.html" + q, I18N[lang].apply)}
+            ${actionLink("contact.html" + q, I18N[lang].contactAction, "secondary")}
+          </div>
         </div>
       </section>`;
     },
@@ -87,6 +141,8 @@ function pageContent(page, lang) {
             <span class="eyebrow">${m.type[lang]}</span>
             <h3>${m.title[lang]}</h3>
             <p>${m.note[lang]}</p>
+            ${m.title.en === "Thesis Format Guide" ? resourceLink("assets/docs/thesis-format-checklist.pdf", zh ? "論文格式檢核表（教學示範）" : "Thesis format checklist (teaching sample)") : ""}
+            ${m.title.en === "Partner School Briefs" ? resourceLink("assets/docs/immba-curriculum-overview.pdf", zh ? "課程與修業一覽（教學示範）" : "Curriculum overview (teaching sample)") : ""}
           </article>`).join("")}</div>
       </div></section>`,
 
@@ -120,7 +176,7 @@ function pageContent(page, lang) {
       <section class="section"><div class="container">
         <div class="grid-3">
           <article class="card"><h3>${zh ? "國際化教室" : "International classroom"}</h3><p>${zh ? "學位生與交換生來自 30 餘國，課堂本地與非本地比例可接近 1:1，讓日常討論即是跨文化協作。" : "Degree-seeking and exchange students come from 30+ countries. Local to non-local ratios can approach 1:1, so seminar discussion is already cross-cultural work."}</p></article>
-          <article class="card"><h3>${zh ? "雙碩士選擇" : "Dual master's"}</h3><p>${zh ? "與美國 UM-Flint、法國 KEDGE、西班牙 IQS 合作，第一年在輔大、第二年出國，兩年取得兩碩士。" : "Partners in the USA, France, and Spain. Year one at Fu Jen and year two abroad, with two master's degrees if both requirements are met."}</p></article>
+          <article class="card"><h3>${textLink("dual-degree.html", "Dual Degree", "跨國雙碩士")}</h3><p>${zh ? "與美國 UM-Flint、法國 KEDGE、西班牙 IQS 合作，第一年在輔大、第二年出國，兩年取得兩碩士。" : "Partners in the USA, France, and Spain. Year one at Fu Jen and year two abroad, with two master's degrees if both requirements are met."}</p></article>
           <article class="card"><h3>${zh ? "免學費交換" : "Tuition-free exchange"}</h3><p>${zh ? "未走雙碩士者，可申請輔大全球姊妹校免學費交換，拓展國際視野與跨文化經驗。" : "Students not on a dual-degree track are encouraged to join Fu Jen’s global tuition-free exchange for international and cross-cultural experience."}</p></article>
         </div>
         <div class="prose" style="margin-top:48px">
@@ -139,7 +195,12 @@ function pageContent(page, lang) {
         <h2>${zh ? "國際生" : "International students"}</h2>
         <p>${zh ? "提供春季與秋季入學。春季約 10 月中至 12 月底；秋季約 1 月至 6 月。此國際生管道僅供國際學生。" : "Spring and fall intake. Spring applications are typically mid-October to late December; fall from January to June. This track is for international students only."}</p>
         <p><strong>Spring 2027：</strong> ${zh ? "2026/09/14–10/14" : "14 Sep–14 Oct 2026"}</p>
-        <p>${zh ? "線上申請：" : "Apply online:"} <a href="http://idsasys.oie.fju.edu.tw/" target="_blank" rel="noopener">idsasys.oie.fju.edu.tw</a></p>
+        <div class="action-row">
+          ${actionLink("http://idsasys.oie.fju.edu.tw/", I18N[lang].apply)}
+          ${actionLink("contact.html" + q, I18N[lang].contactAction, "secondary")}
+        </div>
+        <p>${zh ? "線上申請系統：" : "Application system:"} ${externalLink("http://idsasys.oie.fju.edu.tw/", zh ? "輔大國際生申請系統" : "FJCU international application system", zh)}</p>
+        <p>${resourceLink("assets/docs/immba-admissions-guide.pdf", zh ? "imMBA 招生說明（教學示範）" : "imMBA admissions guide (teaching sample)")}</p>
         <h3>${zh ? "繳交文件" : "Required documents"}</h3>
         <ul>
           <li>${zh ? "英文自傳" : "Autobiography (English)"}</li>
@@ -179,6 +240,7 @@ function pageContent(page, lang) {
           <h3>${zh ? "英語門檻" : "English requirement"}</h3>
           <p>TOEIC 785 / TOEFL iBT 72 / IELTS 6.0 / OPT 61</p>
           <p>${zh ? "成績須於畢業前兩年內有效。未達標者須依規定補測並修習加強課程（不計畢業學分）。特定英語系國家全日制學位得申請免試。" : "Scores are valid within two years before graduation. Students below the standard follow the office’s make-up and enhancement-course rules (not graduation credits). Waivers may apply after full-time study in designated English-speaking countries."}</p>
+          <p>${resourceLink("assets/docs/immba-curriculum-overview.pdf", zh ? "課程與修業一覽（教學示範）" : "Curriculum overview (teaching sample)")}</p>
         </aside>
       </div></section>`,
 
@@ -192,7 +254,7 @@ function pageContent(page, lang) {
             <p class="role">${f.role[lang]}</p>
             <p>${f.edu[lang]}</p>
             <p>${f.spec[lang]}</p>
-            <p class="muted">${f.tel}<br><a href="mailto:${f.email}">${f.email}</a>${f.site ? `<br><a href="${f.site}" target="_blank" rel="noopener">Website</a>` : ""}</p>
+            <p class="muted">${f.tel}<br><a href="mailto:${f.email}">${f.email}</a>${f.site ? `<br>${externalLink(f.site, zh ? `${f.zhName}教師網頁` : `${f.name} faculty page`, zh)}` : ""}</p>
           </article>`).join("")}</div>
       </div></section>`,
 
@@ -219,6 +281,7 @@ function pageContent(page, lang) {
           <li>${zh ? "圖書館提供論文資源與格式支援。" : "FJCU Library provides thesis resources and formatting support."}</li>
         </ul>
         <div class="notice">${zh ? "本站提供流程說明；正式表格與學則以學程辦公室與教務處公告為準。" : "This site outlines the process. Official forms and regulations are those issued by the program office and academic affairs."}</div>
+        <p>${resourceLink("assets/docs/thesis-format-checklist.pdf", zh ? "論文格式檢核表（教學示範）" : "Thesis format checklist (teaching sample)")}</p>
       </div></section>`,
 
     "dual-degree": () => `
@@ -257,7 +320,7 @@ function pageContent(page, lang) {
       <section class="section"><div class="container prose">
         <p>${zh ? "輔大擁有豐富的國際學術網絡與免學費交換名額。未選擇雙碩士的 imMBA 學生，特別鼓勵透過交換拓展國際視野與跨文化經驗。" : "Fu Jen maintains a wide academic network and a tuition-free exchange programme. imMBA students who are not on a dual-degree track are encouraged to use it for international and cross-cultural experience."}</p>
         <p>${zh ? "申請程序、資格、截止日期與學校名單，請至輔仁大學國際學生中心（ISC）查詢。" : "Procedures, requirements, deadlines, and partner lists are published by the Fu Jen International Student Center."}</p>
-        <p><a class="btn btn-outline" href="https://www.oie.fju.edu.tw/" target="_blank" rel="noopener">${zh ? "前往國際處／ISC" : "Office of International Education"}</a></p>
+        <p>${externalLink("https://www.oie.fju.edu.tw/", zh ? "輔仁大學國際處／國際學生中心" : "Fu Jen Office of International Education", zh)}</p>
       </div></section>`,
 
     gallery: () => `
@@ -288,7 +351,7 @@ function pageContent(page, lang) {
           <p>${I18N[lang].address}</p>
           <p>${I18N[lang].tel}</p>
           <p><a href="mailto:imMBA@mail.fju.edu.tw">imMBA@mail.fju.edu.tw</a></p>
-          <p><a href="https://www.management.fju.edu.tw/" target="_blank" rel="noopener">${zh ? "輔大管理學院" : "College of Management"}</a></p>
+          <p>${externalLink("https://www.management.fju.edu.tw/", zh ? "輔仁大學管理學院" : "College of Management, Fu Jen Catholic University", zh)}</p>
         </div>
         <form id="contact-form">
           <label>${zh ? "姓名" : "Name"}<input name="name" required></label>
@@ -302,21 +365,33 @@ function pageContent(page, lang) {
             </select>
           </label>
           <label>${zh ? "內容" : "Message"}<textarea name="message" rows="6" required></textarea></label>
-          <button class="btn btn-primary" type="submit">${zh ? "開啟郵件送出" : "Open email to send"}</button>
+          <button class="btn btn-action" type="submit">${I18N[lang].submit}</button>
         </form>
       </div></section>`,
 
     links: () => `
-      ${hero(zh ? "相關連結" : "Related links", "")}
-      <section class="section"><div class="container grid-3">
+      ${hero(zh ? "相關連結" : "Related links", zh ? "站內頁面與外部資源" : "Pages on this site and external resources")}
+      <section class="section"><div class="container">
+        <div class="section-header"><div><span class="eyebrow">${zh ? "站內" : "On this site"}</span><h2>${zh ? "內部連結" : "Internal links"}</h2></div></div>
+        ${programLinks()}
+        <div class="section-header" style="margin-top:56px"><div><span class="eyebrow">${zh ? "站外" : "Off this site"}</span><h2>${zh ? "外部連結" : "External links"}</h2></div></div>
+        <p class="muted">${zh ? "下列連結會另開分頁並離開本示範網站。" : "These links open in a new tab and take you away from this teaching site."}</p>
+        <div class="grid-3">
         ${[
-          ["https://www.fju.edu.tw/", zh ? "輔仁大學" : "Fu Jen Catholic University"],
-          ["https://www.management.fju.edu.tw/", zh ? "管理學院" : "College of Management"],
-          ["http://idsasys.oie.fju.edu.tw/", zh ? "國際生申請系統" : "International application system"],
-          ["https://www.oie.fju.edu.tw/", zh ? "國際處" : "Office of International Education"],
+          ["https://www.fju.edu.tw/", zh ? "輔仁大學全球資訊網" : "Fu Jen Catholic University"],
+          ["https://www.management.fju.edu.tw/", zh ? "輔仁大學管理學院" : "College of Management, FJCU"],
+          ["http://idsasys.oie.fju.edu.tw/", zh ? "輔大國際生申請系統" : "FJCU international application system"],
+          ["https://www.oie.fju.edu.tw/", zh ? "輔仁大學國際處" : "Office of International Education"],
           ["https://www.aacsb.edu/", "AACSB"],
-          ["https://www.management.fju.edu.tw/subweb/immba/", zh ? "原官方網站" : "Original programme site"]
-        ].map(([href, label]) => `<a class="card" href="${href}" target="_blank" rel="noopener"><h3>${label}</h3><p>${href.replace("https://", "")}</p></a>`).join("")}
+          ["https://www.management.fju.edu.tw/subweb/immba/", zh ? "imMBA 正式官網" : "Official imMBA website"]
+        ].map(([href, label]) => externalCard(href, label, zh)).join("")}
+        </div>
+        <div class="section-header" style="margin-top:56px"><div><span class="eyebrow">${zh ? "文件" : "Documents"}</span><h2>${zh ? "資源連結" : "Resource links"}</h2></div></div>
+        <ul class="resource-list">
+          <li>${resourceLink("assets/docs/immba-admissions-guide.pdf", zh ? "imMBA 招生說明（教學示範）" : "imMBA admissions guide (teaching sample)")}</li>
+          <li>${resourceLink("assets/docs/immba-curriculum-overview.pdf", zh ? "課程與修業一覽（教學示範）" : "Curriculum overview (teaching sample)")}</li>
+          <li>${resourceLink("assets/docs/thesis-format-checklist.pdf", zh ? "論文格式檢核表（教學示範）" : "Thesis format checklist (teaching sample)")}</li>
+        </ul>
       </div></section>`
   };
 

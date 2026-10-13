@@ -50,8 +50,9 @@ function navItem(item) {
   const page = document.body.dataset.page;
   if (item.children) {
     const open = item.children.some(([href]) => pageFile(href) === page);
+    const parentHref = item.href || item.children[0][0].split("#")[0];
     return `<div class="drop">
-      <button class="nav-link ${open ? "active" : ""}" type="button">${item.label}</button>
+      <a class="nav-link ${open ? "active" : ""}" href="${withLang(parentHref)}">${item.label}</a>
       <div class="submenu">${item.children.map(([href, label]) => `<a href="${withLang(href)}">${label}</a>`).join("")}</div>
     </div>`;
   }
@@ -111,7 +112,7 @@ function layout(inner) {
     <header class="header">
       <div class="site-notice">
         <div class="container notice-row">
-          <p class="notice-copy">${t.topNotice} <a class="official-link" href="${t.officialUrl}" target="_blank" rel="noopener">${t.topOfficial}</a></p>
+          <p class="notice-copy">${t.topNotice} <a class="official-link ext-link" href="${t.officialUrl}" target="_blank" rel="noopener noreferrer" title="${leaveSiteHint(lang === "zh")}">${t.topOfficial}${extIcon()}<span class="sr-only"> (${leaveSiteHint(lang === "zh")})</span></a></p>
           <div class="notice-actions">
             <button class="lang-switch" id="lang-switch" type="button">${lang === "en" ? "中文版" : "English"}</button>
             <button class="nav-toggle" id="nav-toggle" type="button" aria-expanded="true" aria-controls="notice-nav">${t.menuHide}</button>
@@ -121,7 +122,7 @@ function layout(inner) {
           <div class="container nav">
             ${t.nav.map(navItem).join("")}
             <div class="nav-apply">
-              <a class="btn btn-primary" href="${withLang("admissions.html")}">${t.apply}</a>
+              <a class="btn btn-action" href="${withLang("admissions.html")}">${t.apply}</a>
             </div>
           </div>
         </nav>
@@ -135,6 +136,7 @@ function layout(inner) {
           </span>
         </a>
         <div class="header-actions">
+          <a class="btn btn-action-secondary" href="${withLang("contact.html")}">${t.contactAction}</a>
           <button class="icon-btn" id="search-toggle" aria-label="${t.search}">⌕</button>
         </div>
       </div>
@@ -179,7 +181,7 @@ function layout(inner) {
         </div>
         <div class="footer-bottom">
           <span>${t.copyright}</span>
-          <a href="https://www.management.fju.edu.tw/subweb/immba/" target="_blank" rel="noopener">${lang === "zh" ? "原站" : "Original site"}</a>
+          ${externalLink("https://www.management.fju.edu.tw/subweb/immba/", lang === "zh" ? "imMBA 正式官網" : "Official imMBA website", lang === "zh")}
         </div>
       </div>
     </footer>`;

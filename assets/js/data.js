@@ -11,6 +11,8 @@ const I18N = {
     langSwitch: "English",
     langSwitchTo: "en",
     apply: "立即申請",
+    contactAction: "聯絡我們",
+    submit: "送出諮詢",
     search: "搜尋",
     searchPlaceholder: "搜尋課程、招生、師資…",
     menu: "選單",
@@ -19,6 +21,7 @@ const I18N = {
     nav: [
       {
         label: "簡介",
+        href: "about.html",
         children: [
           ["about.html", "特色與排名"],
           ["about.html#regulations", "本單位規定及辦法"],
@@ -27,6 +30,7 @@ const I18N = {
       },
       {
         label: "招生資訊",
+        href: "admissions.html",
         children: [
           ["admissions.html", "MBA招生資訊"],
           ["admissions.html#scholarships", "獎助學金資訊"]
@@ -34,6 +38,7 @@ const I18N = {
       },
       {
         label: "課程資訊",
+        href: "curriculum.html",
         children: [["curriculum.html", "課程與修業規則"]]
       },
       { href: "faculty.html", label: "師資介紹" },
@@ -101,6 +106,8 @@ const I18N = {
     langSwitch: "中文",
     langSwitchTo: "zh",
     apply: "Apply Now",
+    contactAction: "Contact Us",
+    submit: "Submit enquiry",
     search: "Search",
     searchPlaceholder: "Search admissions, courses, faculty…",
     menu: "Menu",
@@ -109,6 +116,7 @@ const I18N = {
     nav: [
       {
         label: "About",
+        href: "about.html",
         children: [
           ["about.html", "Overview and Ranking"],
           ["learning-environment.html", "Our Learning Environment"]
@@ -116,10 +124,12 @@ const I18N = {
       },
       {
         label: "Admissions",
+        href: "admissions.html",
         children: [["admissions.html", "Apply for Fu Jen imMBA"]]
       },
       {
         label: "Courses",
+        href: "curriculum.html",
         children: [["curriculum.html", "Curriculum and Requirements"]]
       },
       { href: "faculty.html", label: "Faculty" },
