@@ -24,10 +24,16 @@ function withLang(href, lang = getLang()) {
   return url.pathname.split("/").pop() + url.search + (hash ? "#" + hash : "");
 }
 
+function childPageHref(child) {
+  if (Array.isArray(child)) return child[0];
+  if (child.type === "important") return child.internal.href;
+  return child.href;
+}
+
 function flatNav(nav) {
   const items = [];
   nav.forEach((item) => {
-    if (item.children) item.children.forEach((c) => items.push(c));
+    if (item.children) item.children.forEach((c) => items.push([childPageHref(c), c.label || c.title]));
     else items.push([item.href, item.label]);
   });
   return items;
@@ -46,14 +52,38 @@ function linkActive(href, page) {
   return location.hash === "#" + hash;
 }
 
+function submenuChild(child) {
+  const lang = getLang();
+  const zh = lang === "zh";
+  const t = I18N[lang];
+  if (Array.isArray(child)) {
+    return `<a class="submenu-page" href="${withLang(child[0])}">${child[1]}</a>`;
+  }
+  if (child.type !== "important") {
+    return `<a class="submenu-page" href="${withLang(child.href)}">${child.label}</a>`;
+  }
+  const hint = leaveSiteHint(zh);
+  const actionLocal = !/^https?:/i.test(child.action.href);
+  const actionHref = actionLocal ? withLang(child.action.href) : child.action.href;
+  const actionAttrs = actionLocal ? "" : ` target="_blank" rel="noopener noreferrer" title="${hint}"`;
+  const actionIcon = actionLocal ? "" : `${extIcon()}<span class="sr-only"> (${hint})</span>`;
+  return `<div class="submenu-important">
+    <p class="submenu-important-title">${child.title}</p>
+    <a class="submenu-internal" href="${withLang(child.internal.href)}"><span class="submenu-kind">${t.linkInternal}</span>${child.internal.label}</a>
+    <a class="ext-link submenu-external" href="${child.external.href}" target="_blank" rel="noopener noreferrer" title="${hint}"><span class="submenu-kind">${t.linkExternal}</span>${child.external.label}${extIcon()}<span class="sr-only"> (${hint})</span></a>
+    <a class="btn btn-action submenu-action" href="${actionHref}"${actionAttrs}><span class="submenu-kind">${t.linkAction}</span>${child.action.label}${actionIcon}</a>
+    <a class="resource-link submenu-resource" href="${child.resource.href}"><span class="submenu-kind">${t.linkResource}</span>${fileIcon()}<span>${child.resource.label} <span class="file-type">PDF</span></span></a>
+  </div>`;
+}
+
 function navItem(item) {
   const page = document.body.dataset.page;
   if (item.children) {
-    const open = item.children.some(([href]) => pageFile(href) === page);
-    const parentHref = item.href || item.children[0][0].split("#")[0];
+    const open = item.children.some((child) => pageFile(childPageHref(child)) === page);
+    const parentHref = item.href || childPageHref(item.children[0]).split("#")[0];
     return `<div class="drop">
       <a class="nav-link ${open ? "active" : ""}" href="${withLang(parentHref)}">${item.label}</a>
-      <div class="submenu">${item.children.map(([href, label]) => `<a href="${withLang(href)}">${label}</a>`).join("")}</div>
+      <div class="submenu">${item.children.map(submenuChild).join("")}</div>
     </div>`;
   }
   const active = linkActive(item.href, page);
@@ -62,11 +92,11 @@ function navItem(item) {
 
 function mobileItem(item) {
   if (!item.children) return `<a href="${withLang(item.href)}">${item.label}</a>`;
-  return `<div class="mobile-group"><span>${item.label}</span>${item.children.map(([href, label]) => `<a href="${withLang(href)}">${label}</a>`).join("")}</div>`;
+  return `<div class="mobile-group"><span>${item.label}</span>${item.children.map(submenuChild).join("")}</div>`;
 }
 
 function brandLogo() {
-  return `<img class="brand-logo" src="assets/images/immba-logo.png?v=37" width="148" height="148" alt="Fu Jen Catholic University imMBA Program">`;
+  return `<img class="brand-logo" src="assets/images/immba-logo.png?v=38" width="148" height="148" alt="Fu Jen Catholic University imMBA Program">`;
 }
 
 function fjcuCross() {
