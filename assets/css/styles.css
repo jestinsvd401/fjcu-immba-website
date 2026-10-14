@@ -224,33 +224,12 @@ select {
 
 .notice-nav .nav .drop .submenu a {
   color: #16141f;
-  background: #fff;
+  background: transparent;
 }
 
-.notice-nav .nav .drop .submenu a:hover {
+.notice-nav .nav .drop .submenu .submenu-card:hover {
   background: #efe4cc;
-}
-
-.notice-nav .nav .drop .submenu .submenu-internal {
   color: #00517d;
-}
-
-.notice-nav .nav .drop .submenu .submenu-external {
-  color: #b8860b;
-}
-
-.notice-nav .nav .drop .submenu .submenu-resource {
-  color: #4c2a6a;
-}
-
-.notice-nav .nav .drop .submenu .submenu-action {
-  background: #b71939;
-  color: #fff;
-}
-
-.notice-nav .nav .drop .submenu .submenu-action:hover {
-  background: #8e122c;
-  color: #fff;
 }
 
 .brand-logo {
@@ -362,104 +341,49 @@ select {
   position: relative;
 }
 
-.nav .drop:hover .submenu,
-.nav .drop:focus-within .submenu {
-  display: grid;
-}
-
 .submenu {
   display: none;
   position: absolute;
   top: 100%;
   left: 0;
-  min-width: 320px;
+  min-width: 340px;
   background: #fff;
   border: 1px solid rgba(22, 20, 31, 0.16);
   box-shadow: 0 16px 36px rgba(22, 20, 31, 0.22);
-  padding: 8px 0;
+  padding: 10px;
+  gap: 8px;
   z-index: 60;
 }
 
-.submenu::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: -10px;
-  height: 10px;
+.drop.is-open .submenu {
+  display: grid;
 }
 
-.submenu a {
+.submenu-card {
+  display: grid;
+  grid-template-columns: 108px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 8px;
+  color: #16141f;
+  font-weight: 600;
+}
+
+.submenu-card img {
+  width: 108px;
+  height: 76px;
+  object-fit: cover;
+}
+
+.submenu-card:hover {
+  background: #f6f2ea;
+  color: #00517d;
+}
+
+.submenu-page {
   display: block;
   padding: 8px 14px;
   font-size: 0.88rem;
-}
-
-.submenu a:hover {
-  background: var(--paper-2);
-}
-
-.submenu-important {
-  margin: 6px 10px 10px;
-  padding: 10px 8px 12px;
-  display: grid;
-  gap: 4px;
-  border-top: 1px solid var(--line);
-}
-
-.submenu-important-title {
-  margin: 0 6px 4px;
-  font-size: 0.68rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  font-weight: 600;
-  color: var(--muted);
-}
-
-.submenu-kind {
-  display: inline-block;
-  min-width: 5.6em;
-  margin-right: 8px;
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-weight: 700;
-}
-
-.submenu-internal {
-  color: #00517d;
-  font-weight: 600;
-}
-
-.submenu-external {
-  color: #b8860b;
-  font-weight: 600;
-}
-
-.submenu-action {
-  width: fit-content;
-  min-height: 36px;
-  margin: 4px 8px;
-  padding: 0 12px;
-  font-size: 0.8rem;
-  background: #b71939;
-  color: #fff;
-}
-
-.submenu-action:hover {
-  background: #8e122c;
-  color: #fff;
-}
-
-.submenu-resource {
-  color: #4c2a6a;
-  font-weight: 600;
-}
-
-.submenu-internal:hover,
-.submenu-external:hover,
-.submenu-resource:hover {
-  background: #f6f2ea;
 }
 
 .nav a:not(.btn),
@@ -1506,49 +1430,30 @@ select {
   }
 
   .nav .drop .submenu,
-  .nav .drop:hover .submenu,
-  .nav .drop:focus-within .submenu,
   .notice-nav .nav .drop .submenu {
-    display: grid;
+    display: none;
     position: static;
     min-width: 0;
     box-shadow: none;
     border: 0;
     background: transparent;
-    padding: 0 0 6px 12px;
+    padding: 0 0 8px 4px;
   }
 
-  .notice-nav .nav .drop .submenu a {
-    min-height: 40px;
+  .nav .drop.is-open .submenu,
+  .notice-nav .nav .drop.is-open .submenu {
+    display: grid;
   }
 
-  .notice-nav .nav .drop .submenu .submenu-page {
+  .notice-nav .nav .drop .submenu .submenu-card {
+    background: rgba(255, 255, 255, 0.1);
     color: #fff;
+    min-height: 76px;
   }
 
-  .notice-nav .nav .drop .submenu .submenu-internal {
-    color: #9bd4ff;
-  }
-
-  .notice-nav .nav .drop .submenu .submenu-external {
-    color: #ffd45e;
-  }
-
-  .notice-nav .nav .drop .submenu .submenu-resource {
-    color: #e4c8ff;
-  }
-
-  .notice-nav .nav .drop .submenu .submenu-important-title {
-    color: rgba(255, 252, 247, 0.7);
-  }
-
-  .notice-nav .nav .drop .submenu a:hover {
-    background: rgba(255, 255, 255, 0.12);
-  }
-
-  .submenu-important {
-    margin: 4px 0 10px;
-    border-top-color: rgba(255, 255, 255, 0.18);
+  .notice-nav .nav .drop .submenu .submenu-card:hover {
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
   }
 
   .notice-nav .nav-apply {

@@ -26,14 +26,13 @@ function withLang(href, lang = getLang()) {
 
 function childPageHref(child) {
   if (Array.isArray(child)) return child[0];
-  if (child.type === "important") return child.internal.href;
   return child.href;
 }
 
 function flatNav(nav) {
   const items = [];
   nav.forEach((item) => {
-    if (item.children) item.children.forEach((c) => items.push([childPageHref(c), c.label || c.title]));
+    if (item.children) item.children.forEach((c) => items.push([childPageHref(c), c.label]));
     else items.push([item.href, item.label]);
   });
   return items;
@@ -53,37 +52,23 @@ function linkActive(href, page) {
 }
 
 function submenuChild(child) {
-  const lang = getLang();
-  const zh = lang === "zh";
-  const t = I18N[lang];
-  if (Array.isArray(child)) {
-    return `<a class="submenu-page" href="${withLang(child[0])}">${child[1]}</a>`;
-  }
-  if (child.type !== "important") {
-    return `<a class="submenu-page" href="${withLang(child.href)}">${child.label}</a>`;
-  }
-  const hint = leaveSiteHint(zh);
-  const actionLocal = !/^https?:/i.test(child.action.href);
-  const actionHref = actionLocal ? withLang(child.action.href) : child.action.href;
-  const actionAttrs = actionLocal ? "" : ` target="_blank" rel="noopener noreferrer" title="${hint}"`;
-  const actionIcon = actionLocal ? "" : `${extIcon()}<span class="sr-only"> (${hint})</span>`;
-  return `<div class="submenu-important">
-    <p class="submenu-important-title">${child.title}</p>
-    <a class="submenu-internal" href="${withLang(child.internal.href)}"><span class="submenu-kind">${t.linkInternal}</span>${child.internal.label}</a>
-    <a class="ext-link submenu-external" href="${child.external.href}" target="_blank" rel="noopener noreferrer" title="${hint}"><span class="submenu-kind">${t.linkExternal}</span>${child.external.label}${extIcon()}<span class="sr-only"> (${hint})</span></a>
-    <a class="btn btn-action submenu-action" href="${actionHref}"${actionAttrs}><span class="submenu-kind">${t.linkAction}</span>${child.action.label}${actionIcon}</a>
-    <a class="resource-link submenu-resource" href="${child.resource.href}"><span class="submenu-kind">${t.linkResource}</span>${fileIcon()}<span>${child.resource.label} <span class="file-type">PDF</span></span></a>
-  </div>`;
+  const href = Array.isArray(child) ? child[0] : child.href;
+  const label = Array.isArray(child) ? child[1] : child.label;
+  const photo = child.photo;
+  if (!photo) return `<a class="submenu-page" href="${withLang(href)}">${label}</a>`;
+  return `<a class="submenu-card" href="${withLang(href)}">
+    <img src="${photo}" alt="" width="160" height="120">
+    <span>${label}</span>
+  </a>`;
 }
 
 function navItem(item) {
   const page = document.body.dataset.page;
   if (item.children) {
     const open = item.children.some((child) => pageFile(childPageHref(child)) === page);
-    const parentHref = item.href || childPageHref(item.children[0]).split("#")[0];
     return `<div class="drop">
-      <a class="nav-link ${open ? "active" : ""}" href="${withLang(parentHref)}">${item.label}</a>
-      <div class="submenu">${item.children.map(submenuChild).join("")}</div>
+      <button class="nav-link ${open ? "active" : ""}" type="button" aria-expanded="false" aria-haspopup="true">${item.label}</button>
+      <div class="submenu" role="menu">${item.children.map(submenuChild).join("")}</div>
     </div>`;
   }
   const active = linkActive(item.href, page);
@@ -96,7 +81,7 @@ function mobileItem(item) {
 }
 
 function brandLogo() {
-  return `<img class="brand-logo" src="assets/images/immba-logo.png?v=38" width="148" height="148" alt="Fu Jen Catholic University imMBA Program">`;
+  return `<img class="brand-logo" src="assets/images/immba-logo.png?v=39" width="148" height="148" alt="Fu Jen Catholic University imMBA Program">`;
 }
 
 function fjcuCross() {
@@ -209,6 +194,35 @@ function bind() {
   const preferCollapsed = window.matchMedia("(max-width: 760px)").matches;
   applyNavState(savedNav === "1" || (savedNav === null && preferCollapsed));
   toggle?.addEventListener("click", () => applyNavState(!notice.classList.contains("is-collapsed")));
+  const closeDrops = () => {
+    document.querySelectorAll(".drop.is-open").forEach((drop) => {
+      drop.classList.remove("is-open");
+      drop.querySelector(".nav-link")?.setAttribute("aria-expanded", "false");
+    });
+  };
+  document.querySelectorAll(".drop > .nav-link").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const drop = btn.closest(".drop");
+      const wasOpen = drop.classList.contains("is-open");
+      closeDrops();
+      if (!wasOpen) {
+        drop.classList.add("is-open");
+        btn.setAttribute("aria-expanded", "true");
+      }
+    });
+  });
+  document.querySelectorAll(".drop").forEach((drop) => {
+    drop.addEventListener("click", (e) => e.stopPropagation());
+  });
+  if (!bind.dropDocBound) {
+    document.addEventListener("click", closeDrops);
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeDrops();
+    });
+    bind.dropDocBound = true;
+  }
   document.getElementById("lang-switch")?.addEventListener("click", () => {
     setLang(getLang() === "en" ? "zh" : "en");
   });

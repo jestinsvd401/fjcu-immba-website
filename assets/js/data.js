@@ -21,57 +21,29 @@ const I18N = {
     menu: "選單",
     menuShow: "展開選單",
     menuHide: "收合選單",
-    linkInternal: "內部連結",
-    linkExternal: "外部連結",
-    linkAction: "行動連結",
-    linkResource: "資源連結",
     nav: [
       {
         label: "簡介",
         href: "about.html",
         children: [
-          { type: "page", href: "about.html", label: "特色與排名" },
-          { type: "page", href: "about.html#regulations", label: "本單位規定及辦法" },
-          { type: "page", href: "learning-environment.html", label: "學習環境" },
-          {
-            type: "important",
-            title: "跨國雙碩士",
-            internal: { href: "dual-degree.html", label: "跨國雙碩士" },
-            external: { href: "https://www.management.fju.edu.tw/subweb/immba/", label: "正式官網" },
-            action: { href: "contact.html", label: "聯絡我們" },
-            resource: { href: "assets/docs/immba-curriculum-overview.pdf", label: "課程與修業一覽（教學示範）" }
-          }
+          { href: "about.html", label: "特色與排名", photo: "assets/images/gallery/campus-cross.jpg" },
+          { href: "learning-environment.html", label: "學習環境", photo: "assets/images/gallery/classroom.jpg" }
         ]
       },
       {
         label: "招生資訊",
         href: "admissions.html",
         children: [
-          { type: "page", href: "admissions.html", label: "MBA招生資訊" },
-          { type: "page", href: "admissions.html#scholarships", label: "獎助學金資訊" },
-          {
-            type: "important",
-            title: "師資介紹",
-            internal: { href: "faculty.html", label: "師資介紹" },
-            external: { href: "http://idsasys.oie.fju.edu.tw/", label: "輔大國際生申請系統" },
-            action: { href: "admissions.html", label: "立即申請" },
-            resource: { href: "assets/docs/immba-admissions-guide.pdf", label: "imMBA 招生說明（教學示範）" }
-          }
+          { href: "admissions.html", label: "MBA招生資訊", photo: "assets/images/gallery/students-ice-cream.jpg" },
+          { href: "admissions.html#scholarships", label: "獎助學金資訊", photo: "assets/images/gallery/centennial-celebration.jpg" }
         ]
       },
       {
         label: "課程資訊",
         href: "curriculum.html",
         children: [
-          { type: "page", href: "curriculum.html", label: "課程與修業規則" },
-          {
-            type: "important",
-            title: "招生資訊",
-            internal: { href: "admissions.html", label: "招生資訊" },
-            external: { href: "https://www.management.fju.edu.tw/", label: "輔仁大學管理學院" },
-            action: { href: "admissions.html", label: "立即申請" },
-            resource: { href: "assets/docs/immba-curriculum-overview.pdf", label: "課程與修業一覽（教學示範）" }
-          }
+          { href: "curriculum.html", label: "課程與修業規則", photo: "assets/images/gallery/tech-exhibition.jpg" },
+          { href: "curriculum.html#structure", label: "畢業學分結構", photo: "assets/images/gallery/research-display.jpg" }
         ]
       },
       { href: "faculty.html", label: "師資介紹" },
@@ -149,56 +121,29 @@ const I18N = {
     menu: "Menu",
     menuShow: "Show menu",
     menuHide: "Hide menu",
-    linkInternal: "Internal",
-    linkExternal: "External",
-    linkAction: "Action",
-    linkResource: "Resource",
     nav: [
       {
         label: "About",
         href: "about.html",
         children: [
-          { type: "page", href: "about.html", label: "Overview and Ranking" },
-          { type: "page", href: "learning-environment.html", label: "Our Learning Environment" },
-          {
-            type: "important",
-            title: "Dual Degree",
-            internal: { href: "dual-degree.html", label: "Dual Degree" },
-            external: { href: "https://www.management.fju.edu.tw/subweb/immba/", label: "Official website" },
-            action: { href: "contact.html", label: "Contact Us" },
-            resource: { href: "assets/docs/immba-curriculum-overview.pdf", label: "Curriculum overview (teaching sample)" }
-          }
+          { href: "about.html", label: "Overview and Ranking", photo: "assets/images/gallery/campus-cross.jpg" },
+          { href: "learning-environment.html", label: "Our Learning Environment", photo: "assets/images/gallery/classroom.jpg" }
         ]
       },
       {
         label: "Admissions",
         href: "admissions.html",
         children: [
-          { type: "page", href: "admissions.html", label: "Apply for Fu Jen imMBA" },
-          { type: "page", href: "admissions.html#scholarships", label: "Scholarships" },
-          {
-            type: "important",
-            title: "Faculty",
-            internal: { href: "faculty.html", label: "Faculty" },
-            external: { href: "http://idsasys.oie.fju.edu.tw/", label: "FJCU international application system" },
-            action: { href: "admissions.html", label: "Apply Now" },
-            resource: { href: "assets/docs/immba-admissions-guide.pdf", label: "imMBA admissions guide (teaching sample)" }
-          }
+          { href: "admissions.html", label: "Apply for Fu Jen imMBA", photo: "assets/images/gallery/students-ice-cream.jpg" },
+          { href: "admissions.html#scholarships", label: "Scholarships", photo: "assets/images/gallery/centennial-celebration.jpg" }
         ]
       },
       {
         label: "Courses",
         href: "curriculum.html",
         children: [
-          { type: "page", href: "curriculum.html", label: "Curriculum and Requirements" },
-          {
-            type: "important",
-            title: "Admissions",
-            internal: { href: "admissions.html", label: "Admissions" },
-            external: { href: "https://www.management.fju.edu.tw/", label: "College of Management" },
-            action: { href: "admissions.html", label: "Apply Now" },
-            resource: { href: "assets/docs/immba-curriculum-overview.pdf", label: "Curriculum overview (teaching sample)" }
-          }
+          { href: "curriculum.html", label: "Curriculum and Requirements", photo: "assets/images/gallery/tech-exhibition.jpg" },
+          { href: "curriculum.html#structure", label: "Credit structure", photo: "assets/images/gallery/research-display.jpg" }
         ]
       },
       { href: "faculty.html", label: "Faculty" },
