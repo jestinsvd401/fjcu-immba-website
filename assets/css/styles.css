@@ -300,27 +300,28 @@ select {
 .brand-name-wrap::before {
   content: "";
   position: absolute;
-  left: 4%;
-  right: 4%;
-  top: -12%;
-  height: 18%;
+  left: 2%;
+  right: 2%;
+  top: -85%;
+  bottom: 48%;
   z-index: 0;
   pointer-events: none;
-  background: linear-gradient(180deg, transparent, rgba(255, 150, 40, 0.28));
-  filter: blur(4px);
+  background:
+    radial-gradient(ellipse at 22% 88%, rgba(255, 210, 80, 0.36), transparent 52%),
+    radial-gradient(ellipse at 50% 100%, rgba(255, 140, 30, 0.3), transparent 58%),
+    radial-gradient(ellipse at 78% 86%, rgba(183, 25, 57, 0.24), transparent 54%);
+  filter: blur(10px);
+  animation: brand-ember 1.15s ease-in-out infinite alternate;
 }
 
 .brand-fire {
   position: absolute;
-  left: -1%;
-  top: -125%;
-  width: 102%;
-  height: 150%;
+  left: -2%;
+  top: -110%;
+  width: 104%;
+  height: 155%;
   pointer-events: none;
   z-index: 0;
-  image-rendering: auto;
-  filter: blur(0.6px) saturate(1.2);
-  opacity: 0.92;
 }
 
 .brand-text em {
@@ -334,7 +335,24 @@ select {
   font-weight: 700;
   line-height: 1.1;
   white-space: nowrap;
-  text-shadow: 0 -3px 8px rgba(255, 170, 50, 0.3), 0 0 2px rgba(255, 255, 255, 0.18);
+  text-shadow: 0 -4px 10px rgba(255, 190, 60, 0.22), 0 0 2px rgba(255, 255, 255, 0.16);
+}
+
+@keyframes brand-ember {
+  from {
+    opacity: 0.32;
+    transform: scaleX(0.92) translateY(2px);
+  }
+  to {
+    opacity: 0.68;
+    transform: scaleX(1.08) translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-name-wrap::before {
+    animation: none;
+  }
 }
 
 .brand-text strong {
