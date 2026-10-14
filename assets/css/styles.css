@@ -227,7 +227,7 @@ select {
   background: transparent;
 }
 
-.notice-nav .nav .drop .submenu .submenu-card:hover {
+.notice-nav .nav .drop .submenu .submenu-page:hover {
   background: #efe4cc;
   color: #00517d;
 }
@@ -346,12 +346,11 @@ select {
   position: absolute;
   top: 100%;
   left: 0;
-  min-width: 340px;
+  min-width: 260px;
   background: #fff;
   border: 1px solid rgba(22, 20, 31, 0.16);
   box-shadow: 0 16px 36px rgba(22, 20, 31, 0.22);
-  padding: 10px;
-  gap: 8px;
+  padding: 8px 0;
   z-index: 60;
 }
 
@@ -359,31 +358,15 @@ select {
   display: grid;
 }
 
-.submenu-card {
-  display: grid;
-  grid-template-columns: 108px 1fr;
-  gap: 12px;
-  align-items: center;
-  padding: 8px;
-  color: #16141f;
-  font-weight: 600;
-}
-
-.submenu-card img {
-  width: 108px;
-  height: 76px;
-  object-fit: cover;
-}
-
-.submenu-card:hover {
-  background: #f6f2ea;
-  color: #00517d;
-}
-
 .submenu-page {
   display: block;
-  padding: 8px 14px;
+  padding: 10px 16px;
   font-size: 0.88rem;
+}
+
+.submenu-page:hover {
+  background: #f6f2ea;
+  color: #00517d;
 }
 
 .nav a:not(.btn),
@@ -1034,6 +1017,24 @@ body[data-page="home"] .card {
   margin: 10px 0 12px;
 }
 
+.page-photo {
+  margin: 0 0 36px;
+}
+
+.page-photo img {
+  width: 100%;
+  height: min(420px, 52vw);
+  object-fit: cover;
+}
+
+.prose .page-photo {
+  margin: 8px 0 24px;
+}
+
+.prose .page-photo img {
+  height: min(280px, 48vw);
+}
+
 .breadcrumbs {
   color: var(--muted);
   font-size: 0.85rem;
@@ -1445,14 +1446,15 @@ select {
     display: grid;
   }
 
-  .notice-nav .nav .drop .submenu .submenu-card {
-    background: rgba(255, 255, 255, 0.1);
+  .notice-nav .nav .drop .submenu .submenu-page {
     color: #fff;
-    min-height: 76px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
   }
 
-  .notice-nav .nav .drop .submenu .submenu-card:hover {
-    background: rgba(255, 255, 255, 0.18);
+  .notice-nav .nav .drop .submenu .submenu-page:hover {
+    background: rgba(255, 255, 255, 0.12);
     color: #fff;
   }
 

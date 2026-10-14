@@ -158,7 +158,9 @@ function pageContent(page, lang) {
 
     about: () => `
       ${hero(zh ? "學程概況與排名" : "Overview and Ranking", zh ? "AACSB 認證的全英語國際 MBA" : "An AACSB-accredited, English-taught international MBA")}
-      <section class="section"><div class="container split">
+      <section class="section"><div class="container">
+        ${pagePhoto("assets/images/gallery/campus-cross.jpg", zh ? "輔仁大學校園十字架" : "Campus cross at Fu Jen Catholic University")}
+        <div class="split">
         <div class="prose">
           <p>${zh
             ? "輔仁大學國際經營管理碩士班（imMBA）以全球觀點培養務實的商管能力，提升學生的國際移動力。課程協助學生理解行銷、營運、財務、人資、科技與策略如何在全球經濟中相互連結。"
@@ -173,17 +175,19 @@ function pageContent(page, lang) {
           <article class="card"><span class="eyebrow">AACSB</span><h3>${zh ? "全球約 5% 商學院" : "About 5% of business schools"}</h3><p>${zh ? "取得 AACSB 認證，課程對接當代全球經濟挑戰。" : "Hold AACSB accreditation. The curriculum is built for current global-economy challenges."}</p></article>
         </div>
       </div>
-      <div class="container prose" id="regulations">
+      <div class="prose" id="regulations">
         <h2>${zh ? "本單位規定及辦法" : "Program regulations"}</h2>
         <p>${zh
           ? "修業、抵免、英語門檻與畢業離校，一律依學生入學年度之版本辦理。課程結構與離校流程見相關頁面；正式辦法以學程辦公室、教務處與管理學院公告為準。"
           : "Study rules, course waivers, the English requirement, and leaving-school procedures follow the version in force for a student’s year of entry. Credit structure and the graduation process are outlined on the linked pages. Official regulations are those issued by the program office, the Office of Academic Affairs, and the College of Management."}</p>
         <p><a href="curriculum.html${q}">${zh ? "課程與修業規則" : "Curriculum and requirements"}</a> · <a href="graduation.html${q}">${zh ? "畢業與離校" : "Graduation"}</a></p>
+      </div>
       </div></section>`,
 
     "learning-environment": () => `
       ${hero(zh ? "學習環境" : "Our Learning Environment", zh ? "國際化教室、雙碩士與全球交換" : "An international classroom, dual degrees, and global exchange")}
       <section class="section"><div class="container">
+        ${pagePhoto("assets/images/gallery/classroom.jpg", zh ? "imMBA 課堂" : "imMBA classroom")}
         <div class="grid-3">
           <article class="card"><h3>${zh ? "國際化教室" : "International classroom"}</h3><p>${zh ? "學位生與交換生來自 30 餘國，課堂本地與非本地比例可接近 1:1，讓日常討論即是跨文化協作。" : "Degree-seeking and exchange students come from 30+ countries. Local to non-local ratios can approach 1:1, so seminar discussion is already cross-cultural work."}</p></article>
           <article class="card"><h3>${textLink("dual-degree.html", "Dual Degree", "跨國雙碩士")}</h3><p>${zh ? "與美國 UM-Flint、法國 KEDGE、西班牙 IQS 合作，第一年在輔大、第二年出國，兩年取得兩碩士。" : "Partners in the USA, France, and Spain. Year one at Fu Jen and year two abroad, with two master's degrees if both requirements are met."}</p></article>
@@ -199,6 +203,7 @@ function pageContent(page, lang) {
     admissions: () => `
       ${hero(zh ? "招生資訊" : "Admissions", zh ? "本地生與國際生雙軌申請" : "Local and international tracks")}
       <section class="section"><div class="container prose">
+        ${pagePhoto("assets/images/gallery/students-ice-cream.jpg", zh ? "imMBA 學生活動" : "imMBA students on campus")}
         <div class="notice">${zh
           ? "所有課程以英語進行。學位選擇：兩年制輔大 imMBA；或第一年在輔大、第二年赴合作校之雙碩士。"
           : "All courses are taught in English. Options: the two-year Fu Jen imMBA, or a dual master's (M1 at FJCU, M2 abroad)."}</div>
@@ -220,6 +225,7 @@ function pageContent(page, lang) {
           <li>${zh ? "其他有助審查之資料" : "Other supporting materials"}</li>
         </ul>
         <h3 id="scholarships">${zh ? "學雜費與獎學金（國際生）" : "Tuition and scholarships (international)"}</h3>
+        ${pagePhoto("assets/images/gallery/centennial-celebration.jpg", zh ? "輔仁大學百年慶祝" : "Fu Jen centennial celebration")}
         <ul>
           <li>${zh ? "學雜費每學期 NT$123,000。" : "Tuition and miscellaneous fees: NT$123,000 per semester."}</li>
           <li>${zh ? "領有政府獎學金或輔大新生獎學金者，可適用本地生學雜費 NT$68,660／學期。" : "Holders of government or FJCU new-international-student scholarships may pay the local rate of NT$68,660 per semester."}</li>
@@ -232,9 +238,12 @@ function pageContent(page, lang) {
 
     curriculum: () => `
       ${hero(zh ? "課程資訊" : "Curriculum", zh ? "最低 42 學分，含論文" : "42 credits, including thesis")}
-      <section class="section"><div class="container split">
+      <section class="section"><div class="container">
+        ${pagePhoto("assets/images/gallery/tech-exhibition.jpg", zh ? "imMBA 科技與產業參訪" : "imMBA technology exhibition visit")}
+        <div class="split">
         <div class="prose">
           <h2 id="structure">${zh ? "畢業學分結構" : "Credit structure"}</h2>
+          ${pagePhoto("assets/images/gallery/research-display.jpg", zh ? "研究成果展示" : "Student research display")}
           <ul>
             <li>${zh ? "必修 23 學分：絕對必修 11 學分（含論文 6 學分）＋選必修 12 學分" : "23 required credits: 11 absolutely required (including 6-credit thesis) + 12 optionally required"}</li>
             <li>${zh ? "選修 19 學分" : "19 elective credits"}</li>
@@ -252,6 +261,7 @@ function pageContent(page, lang) {
           <p>${zh ? "成績須於畢業前兩年內有效。未達標者須依規定補測並修習加強課程（不計畢業學分）。特定英語系國家全日制學位得申請免試。" : "Scores are valid within two years before graduation. Students below the standard follow the office’s make-up and enhancement-course rules (not graduation credits). Waivers may apply after full-time study in designated English-speaking countries."}</p>
           <p>${resourceLink("assets/docs/immba-curriculum-overview.pdf", zh ? "課程與修業一覽（教學示範）" : "Curriculum overview (teaching sample)")}</p>
         </aside>
+        </div>
       </div></section>`,
 
     faculty: () => `
@@ -421,4 +431,8 @@ function hero(title, subtitle) {
     <h1>${title}</h1>
     <p class="lead muted">${subtitle || ""}</p>
   </div></section>`;
+}
+
+function pagePhoto(src, alt) {
+  return `<figure class="page-photo"><img src="${src}" alt="${alt}"></figure>`;
 }

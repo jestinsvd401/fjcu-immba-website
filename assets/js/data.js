@@ -26,24 +26,24 @@ const I18N = {
         label: "簡介",
         href: "about.html",
         children: [
-          { href: "about.html", label: "特色與排名", photo: "assets/images/gallery/campus-cross.jpg" },
-          { href: "learning-environment.html", label: "學習環境", photo: "assets/images/gallery/classroom.jpg" }
+          { href: "about.html", label: "特色與排名" },
+          { href: "learning-environment.html", label: "學習環境" }
         ]
       },
       {
         label: "招生資訊",
         href: "admissions.html",
         children: [
-          { href: "admissions.html", label: "MBA招生資訊", photo: "assets/images/gallery/students-ice-cream.jpg" },
-          { href: "admissions.html#scholarships", label: "獎助學金資訊", photo: "assets/images/gallery/centennial-celebration.jpg" }
+          { href: "admissions.html", label: "MBA招生資訊" },
+          { href: "admissions.html#scholarships", label: "獎助學金資訊" }
         ]
       },
       {
         label: "課程資訊",
         href: "curriculum.html",
         children: [
-          { href: "curriculum.html", label: "課程與修業規則", photo: "assets/images/gallery/tech-exhibition.jpg" },
-          { href: "curriculum.html#structure", label: "畢業學分結構", photo: "assets/images/gallery/research-display.jpg" }
+          { href: "curriculum.html", label: "課程與修業規則" },
+          { href: "curriculum.html#structure", label: "畢業學分結構" }
         ]
       },
       { href: "faculty.html", label: "師資介紹" },
@@ -126,24 +126,24 @@ const I18N = {
         label: "About",
         href: "about.html",
         children: [
-          { href: "about.html", label: "Overview and Ranking", photo: "assets/images/gallery/campus-cross.jpg" },
-          { href: "learning-environment.html", label: "Our Learning Environment", photo: "assets/images/gallery/classroom.jpg" }
+          { href: "about.html", label: "Overview and Ranking" },
+          { href: "learning-environment.html", label: "Our Learning Environment" }
         ]
       },
       {
         label: "Admissions",
         href: "admissions.html",
         children: [
-          { href: "admissions.html", label: "Apply for Fu Jen imMBA", photo: "assets/images/gallery/students-ice-cream.jpg" },
-          { href: "admissions.html#scholarships", label: "Scholarships", photo: "assets/images/gallery/centennial-celebration.jpg" }
+          { href: "admissions.html", label: "Apply for Fu Jen imMBA" },
+          { href: "admissions.html#scholarships", label: "Scholarships" }
         ]
       },
       {
         label: "Courses",
         href: "curriculum.html",
         children: [
-          { href: "curriculum.html", label: "Curriculum and Requirements", photo: "assets/images/gallery/tech-exhibition.jpg" },
-          { href: "curriculum.html#structure", label: "Credit structure", photo: "assets/images/gallery/research-display.jpg" }
+          { href: "curriculum.html", label: "Curriculum and Requirements" },
+          { href: "curriculum.html#structure", label: "Credit structure" }
         ]
       },
       { href: "faculty.html", label: "Faculty" },

@@ -54,12 +54,7 @@ function linkActive(href, page) {
 function submenuChild(child) {
   const href = Array.isArray(child) ? child[0] : child.href;
   const label = Array.isArray(child) ? child[1] : child.label;
-  const photo = child.photo;
-  if (!photo) return `<a class="submenu-page" href="${withLang(href)}">${label}</a>`;
-  return `<a class="submenu-card" href="${withLang(href)}">
-    <img src="${photo}" alt="" width="160" height="120">
-    <span>${label}</span>
-  </a>`;
+  return `<a class="submenu-page" href="${withLang(href)}">${label}</a>`;
 }
 
 function navItem(item) {
@@ -81,7 +76,7 @@ function mobileItem(item) {
 }
 
 function brandLogo() {
-  return `<img class="brand-logo" src="assets/images/immba-logo.png?v=39" width="148" height="148" alt="Fu Jen Catholic University imMBA Program">`;
+  return `<img class="brand-logo" src="assets/images/immba-logo.png?v=40" width="148" height="148" alt="Fu Jen Catholic University imMBA Program">`;
 }
 
 function fjcuCross() {
