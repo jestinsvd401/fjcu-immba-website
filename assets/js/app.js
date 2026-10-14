@@ -76,7 +76,7 @@ function mobileItem(item) {
 }
 
 function brandLogo() {
-  return `<img class="brand-logo" src="assets/images/immba-logo.png?v=41" width="148" height="148" alt="Fu Jen Catholic University imMBA Program">`;
+  return `<img class="brand-logo" src="assets/images/immba-logo.png?v=42" width="148" height="148" alt="Fu Jen Catholic University imMBA Program">`;
 }
 
 function fjcuCross() {
@@ -113,7 +113,10 @@ function layout(inner) {
         <div class="brand">
           <a class="brand-logo-link" href="${withLang("admin.html")}" title="${lang === "zh" ? "後台管理" : "Back office"}">${brandLogo()}</a>
           <a class="brand-text" href="${withLang("index.html")}">
-            <em>${t.brandSchool}</em>
+            <span class="brand-name-wrap">
+              <canvas class="brand-fire" aria-hidden="true"></canvas>
+              <em>${t.brandSchool}</em>
+            </span>
             <strong>${t.brandName}</strong>
           </a>
         </div>
@@ -172,6 +175,94 @@ function render() {
   if (typeof bindAdmin === "function") bindAdmin();
 }
 
+let brandFireStop = null;
+
+function startBrandFire() {
+  if (brandFireStop) {
+    brandFireStop();
+    brandFireStop = null;
+  }
+  const canvas = document.querySelector(".brand-fire");
+  const wrap = document.querySelector(".brand-name-wrap");
+  if (!canvas || !wrap) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    canvas.remove();
+    return;
+  }
+
+  const ctx = canvas.getContext("2d", { alpha: true });
+  if (!ctx) return;
+
+  let raf = 0;
+  let width = 0;
+  let height = 0;
+  const particles = [];
+
+  function sizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    width = Math.max(1, Math.round(rect.width));
+    height = Math.max(1, Math.round(rect.height));
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function spawn() {
+    const count = width > 420 ? 9 : 6;
+    for (let i = 0; i < count; i += 1) {
+      particles.push({
+        x: width * 0.04 + Math.random() * width * 0.92,
+        y: height * 0.55 + Math.random() * height * 0.38,
+        vx: (Math.random() - 0.5) * 0.55,
+        vy: -0.5 - Math.random() * 1.35,
+        life: 0.75 + Math.random() * 0.35,
+        decay: 0.012 + Math.random() * 0.016,
+        r: 8 + Math.random() * 14
+      });
+    }
+  }
+
+  function tick() {
+    ctx.clearRect(0, 0, width, height);
+    ctx.globalCompositeOperation = "lighter";
+    spawn();
+    for (let i = particles.length - 1; i >= 0; i -= 1) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= p.decay;
+      p.r *= 0.985;
+      if (p.life <= 0 || p.r < 1) {
+        particles.splice(i, 1);
+        continue;
+      }
+      const a = p.life;
+      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
+      g.addColorStop(0, `rgba(255, 236, 140, ${0.7 * a})`);
+      g.addColorStop(0.28, `rgba(255, 170, 40, ${0.5 * a})`);
+      g.addColorStop(0.58, `rgba(255, 72, 10, ${0.38 * a})`);
+      g.addColorStop(1, `rgba(183, 25, 57, 0)`);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    raf = requestAnimationFrame(tick);
+  }
+
+  sizeCanvas();
+  spawn();
+  raf = requestAnimationFrame(tick);
+  const ro = new ResizeObserver(sizeCanvas);
+  ro.observe(wrap);
+
+  brandFireStop = () => {
+    cancelAnimationFrame(raf);
+    ro.disconnect();
+  };
+}
+
 function bind() {
   const notice = document.querySelector(".site-notice");
   const toggle = document.getElementById("nav-toggle");
@@ -221,6 +312,7 @@ function bind() {
   document.getElementById("lang-switch")?.addEventListener("click", () => {
     setLang(getLang() === "en" ? "zh" : "en");
   });
+  startBrandFire();
   const form = document.getElementById("contact-form");
   form?.addEventListener("submit", (e) => {
     e.preventDefault();
