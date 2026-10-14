@@ -86,7 +86,6 @@ function layout(inner) {
         <div class="container notice-row">
           <p class="notice-copy">${t.topNotice} <a class="official-link ext-link" href="${t.officialUrl}" target="_blank" rel="noopener noreferrer" title="${leaveSiteHint(lang === "zh")}">${t.topOfficial}${extIcon()}<span class="sr-only"> (${leaveSiteHint(lang === "zh")})</span></a></p>
           <div class="notice-actions">
-            <button class="lang-switch" id="lang-switch" type="button">${lang === "en" ? "中文版" : "English"}</button>
             <button class="nav-toggle" id="nav-toggle" type="button" aria-expanded="true" aria-controls="notice-nav">${t.menuHide}</button>
           </div>
         </div>
@@ -94,6 +93,7 @@ function layout(inner) {
           <div class="container nav">
             ${t.nav.map(navItem).join("")}
             <div class="nav-apply">
+              <button class="lang-switch" id="lang-switch" type="button">${lang === "en" ? "中文版" : "English"}</button>
               <a class="btn btn-action" href="${withLang("admissions.html")}">${t.apply}</a>
             </div>
           </div>
@@ -107,14 +107,6 @@ function layout(inner) {
             <strong>${t.brandName}</strong>
           </a>
         </div>
-        <div class="header-actions">
-          <a class="btn btn-action-secondary" href="${withLang("contact.html")}">${t.contactAction}</a>
-          <button class="icon-btn" id="search-toggle" aria-label="${t.search}">⌕</button>
-        </div>
-      </div>
-      <div class="search-panel" id="search-panel">
-        <input id="search-input" placeholder="${t.searchPlaceholder}">
-        <div class="search-results" id="search-results"></div>
       </div>
     </header>
     <main>
@@ -187,35 +179,6 @@ function bind() {
   toggle?.addEventListener("click", () => applyNavState(!notice.classList.contains("is-collapsed")));
   document.getElementById("lang-switch")?.addEventListener("click", () => {
     setLang(getLang() === "en" ? "zh" : "en");
-  });
-  const panel = document.getElementById("search-panel");
-  document.getElementById("search-toggle")?.addEventListener("click", () => {
-    panel.classList.toggle("open");
-    document.getElementById("search-input")?.focus();
-  });
-  document.getElementById("search-input")?.addEventListener("input", (e) => {
-    const q = e.target.value.trim().toLowerCase();
-    const lang = getLang();
-    const hits = [];
-    flatNav(I18N[lang].nav).forEach(([href, label]) => {
-      if (label.toLowerCase().includes(q) || href.includes(q)) hits.push([withLang(href), label]);
-    });
-    getPublishedNews().forEach((n) => {
-      const title = n.title[lang] || n.title.zh;
-      if (title.toLowerCase().includes(q)) {
-        const href = n.content[lang] || n.content.zh ? withLang("news.html") + "#" + n.id : n.url || withLang("news.html");
-        hits.push([href, title]);
-      }
-    });
-    FACULTY.forEach((f) => {
-      const name = lang === "zh" ? f.zhName : f.name;
-      if (name.toLowerCase().includes(q) || f.spec[lang].toLowerCase().includes(q)) {
-        hits.push([withLang("faculty.html"), name]);
-      }
-    });
-    document.getElementById("search-results").innerHTML = q
-      ? hits.slice(0, 8).map(([href, label]) => `<a href="${href}">${label}</a>`).join("") || `<p>${lang === "zh" ? "沒有符合的結果" : "No matches"}</p>`
-      : "";
   });
   const form = document.getElementById("contact-form");
   form?.addEventListener("submit", (e) => {

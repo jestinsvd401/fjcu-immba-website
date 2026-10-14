@@ -70,7 +70,7 @@ select {
 .site-notice {
   position: relative;
   z-index: 5;
-  background: #c1121f;
+  background: #b71939;
   color: #fff;
   font-size: 0.82rem;
   font-weight: 500;
@@ -110,7 +110,7 @@ select {
 
 .site-notice .official-link:hover {
   background: #fff;
-  color: #c1121f;
+  color: #b71939;
 }
 
 .notice-actions {
@@ -118,22 +118,6 @@ select {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-}
-
-.site-notice .lang-switch {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: #fff;
-  cursor: pointer;
-  font: inherit;
-  font-weight: 600;
-  padding: 4px 2px;
-  white-space: nowrap;
-}
-
-.site-notice .lang-switch:hover {
-  text-decoration: underline;
 }
 
 .nav-toggle {
@@ -148,11 +132,12 @@ select {
 
 .nav-toggle:hover {
   background: #fff;
-  color: #c1121f;
+  color: #b71939;
 }
 
 .notice-nav {
-  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  background: #00517d;
+  border-top: 0;
 }
 
 .site-notice.is-collapsed .notice-nav {
@@ -190,14 +175,32 @@ select {
   padding: 6px 0;
 }
 
-.notice-nav .btn-action {
+.notice-nav .lang-switch {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  min-height: 34px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.notice-nav .lang-switch:hover {
   background: #fff;
-  color: #c1121f;
+  color: #00517d;
+}
+
+.notice-nav .btn-action {
+  background: #b71939;
+  color: #fff;
 }
 
 .notice-nav .btn-action:hover {
-  background: #f6e8ea;
-  color: #8e122c;
+  background: #8e122c;
+  color: #fff;
 }
 
 .notice-nav .nav a.active::after,
