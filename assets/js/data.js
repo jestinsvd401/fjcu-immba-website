@@ -157,7 +157,7 @@ const I18N = {
     home: {
       eyebrow: "Fu Jen Catholic University",
       title: "MBA in International Management",
-      lead: "An English-taught World class MBA in Taipei,<br>Global, Digital and Innovative",
+      lead: "An English-taught World class MBA in Taipei<br>Global, Digital and Innovative",
       cta1: "Explore the Program",
       cta2: "Books & Materials Marketplace",
       cta3: "Apply Now",

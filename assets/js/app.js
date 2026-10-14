@@ -66,7 +66,7 @@ function mobileItem(item) {
 }
 
 function brandLogo() {
-  return `<img class="brand-logo" src="assets/images/immba-logo.png?v=36" width="148" height="148" alt="Fu Jen Catholic University imMBA Program">`;
+  return `<img class="brand-logo" src="assets/images/immba-logo.png?v=37" width="148" height="148" alt="Fu Jen Catholic University imMBA Program">`;
 }
 
 function fjcuCross() {
@@ -175,7 +175,9 @@ function bind() {
     }
     sessionStorage.setItem("immba-nav-collapsed", collapsed ? "1" : "0");
   };
-  applyNavState(sessionStorage.getItem("immba-nav-collapsed") === "1");
+  const savedNav = sessionStorage.getItem("immba-nav-collapsed");
+  const preferCollapsed = window.matchMedia("(max-width: 760px)").matches;
+  applyNavState(savedNav === "1" || (savedNav === null && preferCollapsed));
   toggle?.addEventListener("click", () => applyNavState(!notice.classList.contains("is-collapsed")));
   document.getElementById("lang-switch")?.addEventListener("click", () => {
     setLang(getLang() === "en" ? "zh" : "en");

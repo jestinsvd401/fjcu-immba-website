@@ -24,6 +24,9 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -34,6 +37,8 @@ body {
   font-weight: 400;
   line-height: 1.65;
   letter-spacing: 0.01em;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: rgba(183, 25, 57, 0.16);
 }
 
 img {
@@ -74,6 +79,7 @@ select {
   color: #fff;
   font-size: 0.82rem;
   font-weight: 500;
+  padding-top: env(safe-area-inset-top);
 }
 
 .site-notice .notice-row {
@@ -240,6 +246,7 @@ select {
   overflow: visible;
   background: rgba(246, 242, 234, 0.96);
   backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--line);
 }
 
@@ -281,10 +288,10 @@ select {
 
 .brand-text em {
   font-style: normal;
-  font-size: clamp(0.82rem, 1.4vw, 1rem);
-  letter-spacing: 0.18em;
+  font-size: clamp(1.08rem, 2.2vw, 1.35rem);
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--gold);
+  color: #b71939;
   font-weight: 600;
 }
 
@@ -582,6 +589,13 @@ a.text-link.active:hover {
 .icon-btn {
   width: 36px;
   padding: 0;
+}
+
+.btn,
+.nav-toggle,
+.lang-switch,
+.filter-bar button {
+  touch-action: manipulation;
 }
 
 .btn {
@@ -950,15 +964,17 @@ body[data-page="home"] .card {
   transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
 }
 
-.card:hover,
-.news-card:hover,
-.news-item:hover,
-.faculty-card:hover,
-.partner-card:hover,
-.ext-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 28px 56px rgba(0, 81, 125, 0.2);
-  border-color: #00517d;
+@media (hover: hover) and (pointer: fine) {
+  .card:hover,
+  .news-card:hover,
+  .news-item:hover,
+  .faculty-card:hover,
+  .partner-card:hover,
+  .ext-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 28px 56px rgba(0, 81, 125, 0.2);
+    border-color: #00517d;
+  }
 }
 
 .news-card.pinned:hover {
@@ -1271,7 +1287,7 @@ select {
 .footer {
   background: #120e18;
   color: rgba(255, 252, 247, 0.78);
-  padding: 64px 0 28px;
+  padding: 64px 0 calc(28px + env(safe-area-inset-bottom));
 }
 
 .footer-grid {
@@ -1379,6 +1395,137 @@ select {
   .admin-shared,
   .admin-bilingual {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .container {
+    width: min(var(--max), calc(100% - 24px));
+  }
+
+  .notice-nav .nav {
+    flex-direction: column;
+    align-items: stretch;
+    min-height: 0;
+    padding: 6px 0 10px;
+  }
+
+  .notice-nav .nav a:not(.btn),
+  .notice-nav .nav button.nav-link {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    padding: 10px 4px;
+  }
+
+  .nav .drop {
+    width: 100%;
+  }
+
+  .nav .drop .submenu,
+  .nav .drop:hover .submenu,
+  .nav .drop:focus-within .submenu,
+  .notice-nav .nav .drop .submenu {
+    display: grid;
+    position: static;
+    min-width: 0;
+    box-shadow: none;
+    border: 0;
+    background: transparent;
+    padding: 0 0 6px 12px;
+  }
+
+  .notice-nav .nav .drop .submenu a {
+    color: #fff;
+    min-height: 40px;
+  }
+
+  .notice-nav .nav .drop .submenu a:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+
+  .notice-nav .nav-apply {
+    width: 100%;
+    justify-content: stretch;
+    gap: 10px;
+    padding: 4px 0 12px;
+  }
+
+  .notice-nav .lang-switch,
+  .notice-nav .btn-action {
+    min-height: 44px;
+    flex: 1;
+  }
+
+  .nav-toggle {
+    min-height: 44px;
+  }
+
+  .hero {
+    min-height: 0;
+  }
+
+  .hero-content {
+    padding: 56px 0 40px;
+  }
+
+  .hero h1 {
+    font-size: clamp(2.4rem, 13vw, 3.6rem);
+    max-width: 12ch;
+  }
+
+  .hero p.lead {
+    font-size: 1.1rem;
+  }
+
+  .hero-actions,
+  .action-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hero-actions .btn,
+  .action-row .btn,
+  .cta-band .btn {
+    width: 100%;
+  }
+
+  .section {
+    padding: 56px 0;
+  }
+
+  .cta-band h2 {
+    font-size: 1.8rem;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+    max-width: 100%;
+  }
+
+  form {
+    padding: 20px;
+  }
+
+  .brand {
+    align-items: center;
+    min-width: 0;
+  }
+
+  .brand-text {
+    min-width: 0;
+  }
+
+  .brand-text em,
+  .brand-text strong {
+    overflow-wrap: anywhere;
   }
 }
 
