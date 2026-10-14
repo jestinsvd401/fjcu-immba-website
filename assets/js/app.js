@@ -76,7 +76,7 @@ function mobileItem(item) {
 }
 
 function brandLogo() {
-  return `<img class="brand-logo" src="assets/images/immba-logo.png?v=44" width="148" height="148" alt="Fu Jen Catholic University imMBA Program">`;
+  return `<img class="brand-logo" src="assets/images/immba-logo.png?v=45" width="148" height="148" alt="Fu Jen Catholic University imMBA Program">`;
 }
 
 function fjcuCross() {
@@ -193,66 +193,77 @@ function startBrandFire() {
   const ctx = canvas.getContext("2d", { alpha: true });
   if (!ctx) return;
 
+  const maxHeat = 36;
   let raf = 0;
-  let width = 0;
-  let height = 0;
-  const particles = [];
+  let cols = 0;
+  let rows = 0;
+  let fire = new Uint8Array(0);
+  let pixels = null;
+  let time = 0;
+
+  function heatColor(h) {
+    const t = h / maxHeat;
+    if (t <= 0) return [0, 0, 0, 0];
+    if (t < 0.22) {
+      const k = t / 0.22;
+      return [183, 25, 57, Math.round(70 * k)];
+    }
+    if (t < 0.48) {
+      const k = (t - 0.22) / 0.26;
+      return [Math.round(183 + 72 * k), Math.round(25 + 65 * k), Math.round(57 - 42 * k), Math.round(90 + 80 * k)];
+    }
+    if (t < 0.74) {
+      const k = (t - 0.48) / 0.26;
+      return [255, Math.round(90 + 90 * k), Math.round(15 + 25 * k), Math.round(170 + 40 * k)];
+    }
+    const k = (t - 0.74) / 0.26;
+    return [255, Math.round(180 + 60 * k), Math.round(40 + 150 * k), Math.round(210 + 30 * k)];
+  }
 
   function sizeCanvas() {
     const rect = canvas.getBoundingClientRect();
-    width = Math.max(1, Math.round(rect.width));
-    height = Math.max(1, Math.round(rect.height));
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.round(width * dpr);
-    canvas.height = Math.round(height * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }
-
-  function spawn() {
-    const count = width > 420 ? 8 : 5;
-    for (let i = 0; i < count; i += 1) {
-      particles.push({
-        x: width * 0.04 + Math.random() * width * 0.92,
-        y: height * 0.62 + Math.random() * height * 0.2,
-        vx: (Math.random() - 0.5) * 0.42,
-        vy: -0.35 - Math.random() * 0.85,
-        life: 0.72 + Math.random() * 0.28,
-        decay: 0.012 + Math.random() * 0.014,
-        r: 7 + Math.random() * 13
-      });
-    }
+    const cssW = Math.max(1, Math.round(rect.width));
+    const cssH = Math.max(1, Math.round(rect.height));
+    cols = Math.max(48, Math.floor(cssW / 4));
+    rows = Math.max(18, Math.floor(cssH / 3));
+    fire = new Uint8Array(cols * rows);
+    canvas.width = cols;
+    canvas.height = rows;
+    pixels = ctx.createImageData(cols, rows);
   }
 
   function tick() {
-    ctx.clearRect(0, 0, width, height);
-    ctx.globalCompositeOperation = "lighter";
-    spawn();
-    for (let i = particles.length - 1; i >= 0; i -= 1) {
-      const p = particles[i];
-      p.x += p.vx;
-      p.y += p.vy;
-      p.life -= p.decay;
-      p.r *= 0.985;
-      if (p.life <= 0 || p.r < 1) {
-        particles.splice(i, 1);
-        continue;
-      }
-      const a = p.life;
-      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
-      g.addColorStop(0, `rgba(255, 236, 140, ${0.55 * a})`);
-      g.addColorStop(0.28, `rgba(255, 170, 40, ${0.38 * a})`);
-      g.addColorStop(0.58, `rgba(255, 72, 10, ${0.24 * a})`);
-      g.addColorStop(1, `rgba(183, 25, 57, 0)`);
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fill();
+    time += 0.09;
+    const last = (rows - 1) * cols;
+    for (let x = 0; x < cols; x += 1) {
+      const edge = Math.min(x, cols - 1 - x) / (cols * 0.18);
+      const envelope = Math.max(0.25, Math.min(1, edge));
+      const wave = 0.5 + 0.5 * Math.sin(time * 2.1 + x * 0.22) * Math.sin(time * 1.15 + x * 0.08);
+      fire[last + x] = Math.min(maxHeat, Math.floor((20 + wave * 14 + Math.random() * 8) * envelope));
     }
+    for (let y = 0; y < rows - 1; y += 1) {
+      for (let x = 0; x < cols; x += 1) {
+        const below = fire[(y + 1) * cols + x];
+        const drift = (Math.random() * 3 | 0) - 1;
+        const nx = Math.min(cols - 1, Math.max(0, x + drift));
+        const cool = (Math.random() * 3 | 0);
+        fire[y * cols + nx] = Math.max(0, below - cool);
+      }
+    }
+    const data = pixels.data;
+    for (let i = 0; i < fire.length; i += 1) {
+      const c = heatColor(fire[i]);
+      const o = i * 4;
+      data[o] = c[0];
+      data[o + 1] = c[1];
+      data[o + 2] = c[2];
+      data[o + 3] = c[3];
+    }
+    ctx.putImageData(pixels, 0, 0);
     raf = requestAnimationFrame(tick);
   }
 
   sizeCanvas();
-  spawn();
   raf = requestAnimationFrame(tick);
   const ro = new ResizeObserver(sizeCanvas);
   ro.observe(wrap);
