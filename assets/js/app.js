@@ -76,7 +76,7 @@ function mobileItem(item) {
 }
 
 function brandLogo() {
-  return `<img class="brand-logo" src="assets/images/immba-logo.png?v=42" width="148" height="148" alt="Fu Jen Catholic University imMBA Program">`;
+  return `<img class="brand-logo" src="assets/images/immba-logo.png?v=43" width="148" height="148" alt="Fu Jen Catholic University imMBA Program">`;
 }
 
 function fjcuCross() {
@@ -209,16 +209,16 @@ function startBrandFire() {
   }
 
   function spawn() {
-    const count = width > 420 ? 9 : 6;
+    const count = width > 420 ? 4 : 3;
     for (let i = 0; i < count; i += 1) {
       particles.push({
         x: width * 0.04 + Math.random() * width * 0.92,
         y: height * 0.55 + Math.random() * height * 0.38,
-        vx: (Math.random() - 0.5) * 0.55,
-        vy: -0.5 - Math.random() * 1.35,
-        life: 0.75 + Math.random() * 0.35,
-        decay: 0.012 + Math.random() * 0.016,
-        r: 8 + Math.random() * 14
+        vx: (Math.random() - 0.5) * 0.45,
+        vy: -0.4 - Math.random() * 1.1,
+        life: 0.55 + Math.random() * 0.28,
+        decay: 0.018 + Math.random() * 0.02,
+        r: 5 + Math.random() * 9
       });
     }
   }
@@ -239,9 +239,9 @@ function startBrandFire() {
       }
       const a = p.life;
       const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
-      g.addColorStop(0, `rgba(255, 236, 140, ${0.7 * a})`);
-      g.addColorStop(0.28, `rgba(255, 170, 40, ${0.5 * a})`);
-      g.addColorStop(0.58, `rgba(255, 72, 10, ${0.38 * a})`);
+      g.addColorStop(0, `rgba(255, 236, 140, ${0.28 * a})`);
+      g.addColorStop(0.28, `rgba(255, 170, 40, ${0.18 * a})`);
+      g.addColorStop(0.58, `rgba(255, 72, 10, ${0.12 * a})`);
       g.addColorStop(1, `rgba(183, 25, 57, 0)`);
       ctx.fillStyle = g;
       ctx.beginPath();
