@@ -66,7 +66,7 @@ function mobileItem(item) {
 }
 
 function brandLogo() {
-  return `<img class="brand-logo" src="assets/images/immba-logo.png" width="120" height="120" alt="Fu Jen Catholic University imMBA Program">`;
+  return `<img class="brand-logo" src="assets/images/immba-logo.png?v=36" width="148" height="148" alt="Fu Jen Catholic University imMBA Program">`;
 }
 
 function fjcuCross() {

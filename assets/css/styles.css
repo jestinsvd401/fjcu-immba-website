@@ -227,8 +227,8 @@ select {
 }
 
 .brand-logo {
-  width: 120px;
-  height: 120px;
+  width: 148px;
+  height: 148px;
   object-fit: contain;
   flex-shrink: 0;
 }
@@ -250,9 +250,9 @@ select {
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  min-height: 132px;
-  padding-top: 10px;
-  padding-bottom: 10px;
+  min-height: 164px;
+  padding-top: 8px;
+  padding-bottom: 8px;
 }
 
 .brand {
@@ -1368,12 +1368,12 @@ select {
   }
 
   .brand-logo {
-    width: 96px;
-    height: 96px;
+    width: 118px;
+    height: 118px;
   }
 
   .header-brand {
-    min-height: 112px;
+    min-height: 134px;
   }
 
   .admin-shared,
