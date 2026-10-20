@@ -1,4 +1,6 @@
 const NEWS_STORE_KEY = "immba-admin-news";
+const NEWS_STORE_VERSION_KEY = "immba-admin-news-v";
+const NEWS_STORE_VERSION = "3";
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
@@ -46,7 +48,7 @@ function seedNewsRecords() {
         id: item.id,
         date: item.date,
         url: item.url || "",
-        order: item.pin ? index + 1 : index + 10,
+        order: item.pin || index < 3 ? index + 1 : index + 10,
         status: "published",
         title: item.title,
         content: item.content || { zh: "", en: "" }
@@ -56,19 +58,46 @@ function seedNewsRecords() {
   );
 }
 
+function publishFirstThree(records) {
+  const featured = NEWS.slice(0, 3).map((item) => item.id);
+  return records.map((record) => {
+    const rank = featured.indexOf(record.id);
+    if (rank >= 0) {
+      return normalizeNewsRecord({
+        ...record,
+        status: "published",
+        order: rank + 1
+      });
+    }
+    const order = Number(record.order);
+    if (Number.isFinite(order) && order <= 3) {
+      return normalizeNewsRecord({ ...record, order: order + 10 });
+    }
+    return record;
+  });
+}
+
 function loadNewsRecords() {
+  let records = null;
   try {
     const raw = localStorage.getItem(NEWS_STORE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length) return parsed.map(normalizeNewsRecord);
+      if (Array.isArray(parsed) && parsed.length) records = parsed.map(normalizeNewsRecord);
     }
   } catch (err) {
-    /* fall back to seed */
+    records = null;
   }
-  const seeded = seedNewsRecords();
-  saveNewsRecords(seeded);
-  return seeded;
+  if (!records) {
+    records = seedNewsRecords();
+    saveNewsRecords(records);
+  }
+  if (localStorage.getItem(NEWS_STORE_VERSION_KEY) !== NEWS_STORE_VERSION) {
+    records = publishFirstThree(records);
+    saveNewsRecords(records);
+    localStorage.setItem(NEWS_STORE_VERSION_KEY, NEWS_STORE_VERSION);
+  }
+  return records;
 }
 
 function saveNewsRecords(records) {

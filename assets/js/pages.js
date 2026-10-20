@@ -53,6 +53,16 @@ function pageContent(page, lang) {
     </nav>`;
   const newsSource = () =>
     `<p class="news-source">${I18N[lang].newsSource} · ${externalLink(I18N[lang].newsSourceUrl, zh ? "官方公告頁" : "Official news page", zh)}</p>`;
+  const newsGlyph = (n) => {
+    const id = String(n.id);
+    if (id === "2905") {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6v3h5v15H4V6h5V3zm2 2v1h2V5h-2zM6 8v11h12V8H6z"/></svg>`;
+    }
+    if (id === "3417") {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm7.5 9h-3.1a15 15 0 0 0-1.4-5.2A8 8 0 0 1 19.5 11zM12 4a13 13 0 0 1 1.8 7H10.2A13 13 0 0 1 12 4zM4.5 13h3.1a15 15 0 0 0 1.4 5.2A8 8 0 0 1 4.5 13zm3.1-2H4.5A8 8 0 0 1 9 5.8 15 15 0 0 0 7.6 11zM12 20a13 13 0 0 1-1.8-7h3.6A13 13 0 0 1 12 20zm3-3.8A15 15 0 0 0 16.4 13h3.1A8 8 0 0 1 15 16.2z"/></svg>`;
+    }
+    return `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 10v4h2l6 4V6L5 10H3zm14.5 1.5a3.5 3.5 0 0 0 0-3l1.7-1a5.5 5.5 0 0 1 0 5l-1.7-1z"/></svg>`;
+  };
   const newsList = (limit) =>
     getPublishedNews()
       .slice(0, limit || undefined)
@@ -64,7 +74,8 @@ function pageContent(page, lang) {
           : n.url
             ? externalLink(n.url, I18N[lang].viewDetails, zh)
             : "";
-        return `<article class="news-card${n.order <= 2 ? " pinned" : ""}">
+        return `<article class="news-card${n.order <= 3 ? " pinned" : ""}">
+          <span class="news-icon" aria-hidden="true">${newsGlyph(n)}</span>
           <time datetime="${n.date}">${n.date.replaceAll("-", "/")}</time>
           <h3>${escapeHtml(title)}</h3>
           ${details}
@@ -91,6 +102,16 @@ function pageContent(page, lang) {
           </div>
         </div>
       </section>
+      <section class="section home-news">
+        <div class="container">
+          <div class="section-header">
+            <div><span class="eyebrow">${t.eyebrowNews}</span><h2>${t.newsTitle}</h2></div>
+            <a href="news.html${q}">${t.newsMore} →</a>
+          </div>
+          <div class="news-cards news-cards-home">${newsList(3)}</div>
+          ${newsSource()}
+        </div>
+      </section>
       <div class="stats">${t.stats.map(([a, b]) => `<div class="stat"><b>${a}</b><span>${b}</span></div>`).join("")}</div>
       <section class="section">
         <div class="container">
@@ -100,23 +121,13 @@ function pageContent(page, lang) {
         </div>
       </section>
       <section class="section" style="padding-top:0">
-        <div class="container grid-2">
-          <div>
-            <div class="section-header">
-              <div><span class="eyebrow">${t.eyebrowNews}</span><h2>${t.newsTitle}</h2></div>
-              <a href="news.html${q}">${t.newsMore} →</a>
-            </div>
-            <div class="news-cards">${newsList(3)}</div>
-            ${newsSource()}
+        <div class="container">
+          <div class="section-header">
+            <div><span class="eyebrow">${t.eyebrowLife}</span><h2>${t.galleryTitle}</h2></div>
+            <a href="gallery.html">${t.galleryMore} →</a>
           </div>
-          <div>
-            <div class="section-header">
-              <div><span class="eyebrow">${t.eyebrowLife}</span><h2>${t.galleryTitle}</h2></div>
-              <a href="gallery.html">${t.galleryMore} →</a>
-            </div>
-            <div class="gallery-grid" style="grid-template-columns:1fr 1fr">
-              ${GALLERY.slice(0, 4).map((item) => `<a href="gallery.html"><img src="${item.src}" alt="${item.alt[lang]}"></a>`).join("")}
-            </div>
+          <div class="gallery-grid" style="grid-template-columns:1fr 1fr 1fr 1fr">
+            ${GALLERY.slice(0, 4).map((item) => `<a href="gallery.html"><img src="${item.src}" alt="${item.alt[lang]}"></a>`).join("")}
           </div>
         </div>
       </section>
