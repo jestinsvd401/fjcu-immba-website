@@ -76,7 +76,7 @@ function mobileItem(item) {
 }
 
 function brandLogo() {
-  return `<img class="brand-logo" src="assets/images/immba-logo.png?v=52" width="148" height="148" alt="Fu Jen Catholic University imMBA Program">`;
+  return `<img class="brand-logo" src="assets/images/immba-logo.png?v=53" width="148" height="148" alt="Fu Jen Catholic University imMBA Program">`;
 }
 
 function fjcuCross() {
@@ -178,14 +178,40 @@ function layout(inner) {
     ${whatsappButton(lang)}`;
 }
 
-function render() {
+async function render() {
   const lang = getLang();
   const page = document.body.dataset.page;
   document.documentElement.lang = I18N[lang].htmlLang;
-  document.title = page === "admin" ? (lang === "zh" ? "後台管理 | imMBA" : "Back office | imMBA") : I18N[lang].pageTitle;
-  const inner = page === "admin" && typeof adminPage === "function" ? adminPage(lang) : pageContent(page, lang);
+  if (page === "admin") document.title = lang === "zh" ? "後台管理 | imMBA" : "Back office | imMBA";
+  else if (page === "auth") document.title = lang === "zh" ? "後台登入 | imMBA" : "Back office sign-in | imMBA";
+  else document.title = I18N[lang].pageTitle;
+
+  let inner;
+  if (page === "auth" && typeof authPage === "function") {
+    inner = authPage(lang);
+  } else if (page === "admin" && typeof adminPage === "function") {
+    const state = window.immbaAuthState || {};
+    if (!state.user) {
+      location.replace(withLang("auth.html"));
+      inner = `<p class="muted" style="padding:48px 0;text-align:center">${lang === "zh" ? "請先登入。" : "Please sign in."}</p>`;
+    } else if (state.missingTable) {
+      inner = authStatusPage(lang, "sql");
+    } else if (!state.emailConfirmed) {
+      inner = authStatusPage(lang, "verify");
+    } else if (state.role === "rejected") {
+      inner = authStatusPage(lang, "rejected");
+    } else if (state.role !== "admin" && state.role !== "super_admin") {
+      inner = authStatusPage(lang, "pending");
+    } else {
+      inner = adminPage(lang);
+    }
+  } else {
+    inner = pageContent(page, lang);
+  }
+
   document.getElementById("app").innerHTML = layout(inner);
   bind();
+  if (page === "auth" && typeof bindAuthForms === "function") bindAuthForms();
   if (typeof bindAdmin === "function") bindAdmin();
   if (typeof bindFacultyPage === "function") bindFacultyPage();
 }
@@ -338,4 +364,9 @@ function bind() {
 }
 
 window.addEventListener("hashchange", render);
-document.addEventListener("DOMContentLoaded", render);
+document.addEventListener("DOMContentLoaded", async () => {
+  if (typeof initAuth === "function" && (document.body.dataset.page === "admin" || document.body.dataset.page === "auth")) {
+    await initAuth();
+  }
+  render();
+});

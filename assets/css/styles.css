@@ -1752,6 +1752,41 @@ select {
   }
 }
 
+.auth-card {
+  max-width: 520px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  padding: 28px;
+}
+
+.auth-card .admin-form {
+  margin-bottom: 16px;
+}
+
+.auth-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin: 0;
+}
+
+.admin-session {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  background: #fffdf6;
+}
+
+.admin-session p {
+  margin: 0;
+}
+
 .admin-tabs {
   display: flex;
   gap: 8px;

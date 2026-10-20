@@ -4,10 +4,11 @@ const FACULTY_CATEGORIES = ["Full-time", "Adjunct"];
 let facultySeedAttempted = false;
 
 function facultyHeaders(extra) {
+  const token = (typeof getAuthAccessToken === "function" && getAuthAccessToken()) || SUPABASE_ANON_KEY;
   return Object.assign(
     {
       apikey: SUPABASE_ANON_KEY,
-      Authorization: "Bearer " + SUPABASE_ANON_KEY,
+      Authorization: "Bearer " + token,
       "Content-Type": "application/json",
       Prefer: "return=representation"
     },

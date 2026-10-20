@@ -6,6 +6,8 @@ function adminCopy(lang) {
     lead: zh ? "一則公告同時保存中文與英文。公開網站只顯示已發布項目。" : "One announcement holds Chinese and English in the same record. The public site shows published items only.",
     tabNews: zh ? "公告管理" : "News",
     tabFaculty: zh ? "師資管理" : "Faculty",
+    tabAccess: zh ? "權限核准" : "Access",
+    signOut: zh ? "登出" : "Sign out",
     facultyTitle: zh ? "師資管理" : "Faculty management",
     facultyLead: zh ? "師資資料存在雲端（Supabase）。儲存後會同步到公開師資頁。" : "Faculty records live in the cloud (Supabase). Saves sync to the public Faculty page.",
     add: zh ? "新增公告" : "New announcement",
@@ -62,11 +64,26 @@ function adminCopy(lang) {
   };
 }
 
+function adminSessionBar(lang) {
+  const t = adminCopy(lang);
+  const a = authCopy(lang);
+  const state = window.immbaAuthState || {};
+  const email = (state.user && state.user.email) || "";
+  return `<div class="admin-session">
+    <p>${a.signedInAs}: <strong>${escapeHtml(email)}</strong> · ${a.roleLabel}: <strong>${escapeHtml(state.role || "")}</strong></p>
+    <button class="btn btn-action-secondary" type="button" id="auth-signout">${t.signOut}</button>
+  </div>`;
+}
+
 function adminTabs(lang, tab) {
   const t = adminCopy(lang);
+  const access = typeof isSuperAdmin === "function" && isSuperAdmin()
+    ? `<a class="${tab === "access" ? "active" : ""}" href="${withLang("admin.html")}&tab=access">${t.tabAccess}</a>`
+    : "";
   return `<nav class="admin-tabs" aria-label="${t.eyebrow}">
     <a class="${tab === "news" ? "active" : ""}" href="${withLang("admin.html")}">${t.tabNews}</a>
     <a class="${tab === "faculty" ? "active" : ""}" href="${withLang("admin.html")}&tab=faculty">${t.tabFaculty}</a>
+    ${access}
   </nav>`;
 }
 
@@ -152,6 +169,7 @@ function adminNewsPage(lang) {
     ${hero(t.title, t.lead)}
     <section class="section"><div class="container">
       ${adminTabs(lang, "news")}
+      ${adminSessionBar(lang)}
       <div class="section-header">
         <div><span class="eyebrow">${t.eyebrow}</span><h2>AdminNews</h2></div>
         <div class="action-row">
@@ -184,12 +202,16 @@ function adminNewsPage(lang) {
 
 function adminPage(lang) {
   const tab = new URLSearchParams(location.search).get("tab") || "news";
+  if (tab === "access" && typeof isSuperAdmin === "function" && isSuperAdmin()) {
+    return adminAccessPage(lang);
+  }
   if (tab === "faculty") {
     const t = adminCopy(lang);
     return `
       ${hero(t.facultyTitle, t.facultyLead)}
       <section class="section"><div class="container">
         ${adminTabs(lang, "faculty")}
+        ${adminSessionBar(lang)}
         <div id="admin-faculty-root"><p class="muted">${lang === "zh" ? "載入師資…" : "Loading faculty…"}</p></div>
       </div></section>`;
   }
@@ -336,11 +358,21 @@ async function renderAdminFaculty() {
 
 function bindAdmin() {
   if (document.body.dataset.page !== "admin") return;
+  if (typeof canEditContent === "function" && !canEditContent()) {
+    bindAuthForms();
+    return;
+  }
   const lang = getLang();
   const t = adminCopy(lang);
   const tab = new URLSearchParams(location.search).get("tab") || "news";
+  if (tab === "access") {
+    renderAdminAccess();
+    bindAuthForms();
+    return;
+  }
   if (tab === "faculty") {
     renderAdminFaculty();
+    bindAuthForms();
     return;
   }
   const form = document.getElementById("admin-news-form");
@@ -379,6 +411,7 @@ function bindAdmin() {
     });
   });
   bindNewsImagePicker();
+  bindAuthForms();
 }
 
 function setNewsImageValue(value) {
