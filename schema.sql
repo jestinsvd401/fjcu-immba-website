@@ -1,6 +1,10 @@
 -- schema.sql
 -- Step 4: Build the Faculty Table
+-- Copied from the official imMBA faculty page:
+-- https://www.management.fju.edu.tw/subweb/immba/teacher.php
+--
 -- Field            | Purpose
+-- -----------------+------------------------
 -- id               | Unique faculty ID
 -- name             | Faculty name
 -- title            | Academic title
@@ -13,7 +17,7 @@
 -- category         | Full-time / Adjunct
 -- sort_order       | Display order
 --
--- Data is arranged in two sections: Full-time and Adjunct.
+-- Data is arranged in two columns/sections: Full-time and Adjunct.
 
 create table if not exists public.faculty (
   id text primary key,                          -- Unique faculty ID

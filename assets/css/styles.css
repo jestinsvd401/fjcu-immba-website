@@ -1330,8 +1330,8 @@ body[data-page="home"] .card {
 .faculty-row {
   position: relative;
   display: grid;
-  grid-template-columns: min(160px, 34%) minmax(0, 1fr);
-  gap: 16px 20px;
+  grid-template-columns: min(140px, 30%) minmax(0, 1fr);
+  gap: 16px 18px;
   align-items: start;
   padding: 18px;
   border: 1px solid var(--line);
@@ -1341,6 +1341,39 @@ body[data-page="home"] .card {
 
 .faculty-row:first-child {
   padding-top: 18px;
+}
+
+.faculty-schema-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  background: var(--white);
+}
+
+.faculty-schema-table th,
+.faculty-schema-table td {
+  border: 1px solid #f0d48a;
+  padding: 7px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.faculty-schema-table thead th {
+  background: #f6ac00;
+  color: #fff;
+  font-weight: 600;
+}
+
+.faculty-schema-table tbody th {
+  width: 38%;
+  background: #fff8e8;
+  font-family: var(--sans);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.faculty-details h3 {
+  margin-top: 0;
 }
 
 .faculty-details h3 {

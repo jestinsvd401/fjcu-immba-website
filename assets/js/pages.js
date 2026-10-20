@@ -437,21 +437,41 @@ function pageContent(page, lang) {
 
 function facultyRowHtml(f, lang) {
   const zh = lang === "zh";
-  const name = typeof facultyLangText === "function" ? facultyLangText(f.name, lang) : f.name;
-  const title = typeof facultyLangText === "function" ? facultyLangText(f.title, lang) : f.title;
-  const education = typeof facultyLangText === "function" ? facultyLangText(f.education, lang) : f.education;
-  const research = typeof facultyLangText === "function" ? facultyLangText(f.research_fields, lang) : f.research_fields;
+  const text = (value) => (typeof facultyLangText === "function" ? facultyLangText(value, lang) : value);
+  const name = text(f.name);
+  const title = text(f.title);
+  const education = text(f.education);
+  const research = text(f.research_fields);
   const photo = f.image_url || "";
+  const website = f.website
+    ? externalLink(f.website, zh ? `${name}教師網頁` : `${name} faculty page`, zh)
+    : "—";
+  const email = f.email ? `<a href="mailto:${escapeHtml(f.email)}">${escapeHtml(f.email)}</a>` : "—";
+  const rows = [
+    ["id", escapeHtml(f.id || "—")],
+    ["name", escapeHtml(name || "—")],
+    ["title", escapeHtml(title || "—")],
+    ["education", escapeHtml(education || "—")],
+    ["research_fields", escapeHtml(research || "—")],
+    ["email", email],
+    ["phone", escapeHtml(f.phone || "—")],
+    ["website", website],
+    ["image_url", escapeHtml(photo || "—")],
+    ["category", escapeHtml(f.category || "—")],
+    ["sort_order", escapeHtml(String(f.sort_order ?? "—"))]
+  ]
+    .map(([field, value]) => `<tr><th scope="row">${field}</th><td>${value}</td></tr>`)
+    .join("");
   return `<article class="faculty-row">
     <figure class="faculty-photo-wrap">
       ${photo ? `<img class="faculty-photo" src="${escapeHtml(photo)}" alt="${escapeHtml(name)}">` : `<div class="faculty-photo faculty-photo-empty" aria-hidden="true"></div>`}
     </figure>
     <div class="faculty-details">
       <h3>${escapeHtml(name)}</h3>
-      <p class="role">${escapeHtml(title)}</p>
-      <p>${escapeHtml(education)}</p>
-      <p>${escapeHtml(research)}</p>
-      <p class="muted">${escapeHtml(f.phone || "—")}${f.email ? `<br><a href="mailto:${escapeHtml(f.email)}">${escapeHtml(f.email)}</a>` : ""}${f.website ? `<br>${externalLink(f.website, zh ? `${name}教師網頁` : `${name} faculty page`, zh)}` : ""}</p>
+      <table class="faculty-schema-table">
+        <thead><tr><th>Field</th><th>${zh ? "內容" : "Purpose"}</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
     </div>
   </article>`;
 }
