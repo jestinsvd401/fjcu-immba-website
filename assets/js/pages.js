@@ -75,9 +75,7 @@ function pageContent(page, lang) {
             ? externalLink(n.url, I18N[lang].viewDetails, zh)
             : "";
         return `<article class="news-card${n.order <= 3 ? " pinned" : ""}">
-          ${n.image
-            ? `<img class="news-card-photo" src="${escapeHtml(n.image)}" alt="">`
-            : `<span class="news-icon" aria-hidden="true">${newsGlyph(n)}</span>`}
+          <span class="news-icon" aria-hidden="true">${newsGlyph(n)}</span>
           <time datetime="${n.date}">${n.date.replaceAll("-", "/")}</time>
           <h3>${escapeHtml(title)}</h3>
           ${details}
