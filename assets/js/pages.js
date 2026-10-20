@@ -455,10 +455,7 @@ function facultyRowHtml(f, lang) {
     ["research_fields", escapeHtml(research || "—")],
     ["email", email],
     ["phone", escapeHtml(f.phone || "—")],
-    ["website", website],
-    ["image_url", escapeHtml(photo || "—")],
-    ["category", escapeHtml(f.category || "—")],
-    ["sort_order", escapeHtml(String(f.sort_order ?? "—"))]
+    ["website", website]
   ]
     .map(([field, value]) => `<tr><th scope="row">${field}</th><td>${value}</td></tr>`)
     .join("");

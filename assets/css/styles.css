@@ -1330,10 +1330,10 @@ body[data-page="home"] .card {
 .faculty-row {
   position: relative;
   display: grid;
-  grid-template-columns: min(140px, 30%) minmax(0, 1fr);
-  gap: 16px 18px;
+  grid-template-columns: min(260px, 46%) minmax(0, 1fr);
+  gap: 14px 16px;
   align-items: start;
-  padding: 18px;
+  padding: 16px;
   border: 1px solid var(--line);
   background: #fffdf6;
   box-shadow: none;
@@ -1346,16 +1346,18 @@ body[data-page="home"] .card {
 .faculty-schema-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.82rem;
+  font-size: 0.7rem;
+  line-height: 1.35;
   background: var(--white);
 }
 
 .faculty-schema-table th,
 .faculty-schema-table td {
   border: 1px solid #f0d48a;
-  padding: 7px 10px;
+  padding: 4px 7px;
   text-align: left;
   vertical-align: top;
+  word-break: break-word;
 }
 
 .faculty-schema-table thead th {
@@ -1365,7 +1367,8 @@ body[data-page="home"] .card {
 }
 
 .faculty-schema-table tbody th {
-  width: 38%;
+  width: 1%;
+  white-space: nowrap;
   background: #fff8e8;
   font-family: var(--sans);
   font-weight: 600;
@@ -1378,8 +1381,8 @@ body[data-page="home"] .card {
 
 .faculty-details h3 {
   font-family: var(--serif);
-  font-size: clamp(1.6rem, 3vw, 2.1rem);
-  margin: 8px 0 6px;
+  font-size: clamp(1.15rem, 2vw, 1.4rem);
+  margin: 0 0 6px;
 }
 
 .faculty-details .role {
@@ -1785,12 +1788,12 @@ select {
   }
 
   .faculty-row {
-    grid-template-columns: min(160px, 38%) minmax(0, 1fr);
-    gap: 16px 18px;
+    grid-template-columns: min(200px, 42%) minmax(0, 1fr);
+    gap: 12px 14px;
   }
 
   .faculty-photo-wrap {
-    max-width: 160px;
+    max-width: 200px;
     justify-self: start;
   }
 
