@@ -17,6 +17,11 @@ function adminCopy(lang) {
     date: zh ? "日期" : "Date",
     url: zh ? "連結網址" : "Link URL",
     photo: zh ? "照片網址" : "image_url",
+    newsImage: zh ? "公告圖片" : "Announcement image",
+    insertImage: zh ? "插入圖片" : "Insert image",
+    imageUrl: zh ? "圖片網址" : "Image URL",
+    imageHint: zh ? "可貼上網址，或從電腦選擇圖片。儲存後會顯示在首頁與公告頁。" : "Paste a URL or choose a file. After saving it appears on the home and announcements pages.",
+    removeImage: zh ? "移除圖片" : "Remove image",
     order: zh ? "顯示順序" : "sort_order",
     facultyName: zh ? "姓名" : "name",
     academicTitle: zh ? "職稱" : "title",
@@ -74,6 +79,7 @@ function adminNewsPage(lang) {
     id: `n-${Date.now()}`,
     date: new Date().toISOString().slice(0, 10),
     url: "",
+    image: "",
     order: records.length + 1,
     status: "draft",
     title: { zh: "", en: "" },
@@ -86,6 +92,9 @@ function adminNewsPage(lang) {
         <td>${escapeHtml(item.date)}</td>
         <td>${item.order}</td>
         <td><span class="admin-status admin-status-${item.status}">${item.status === "draft" ? t.draft : t.published}</span></td>
+        <td>
+          ${item.image ? `<img class="admin-news-thumb" src="${escapeHtml(item.image)}" alt="">` : `<span class="muted">—</span>`}
+        </td>
         <td>
           <strong>${escapeHtml(item.title.zh || "—")}</strong>
           <span class="muted">${escapeHtml(item.title.en || "—")}</span>
@@ -112,6 +121,17 @@ function adminNewsPage(lang) {
               <option value="draft"${current.status === "draft" ? " selected" : ""}>${t.draft}</option>
             </select>
           </label>
+        </div>
+        <div class="section-header"><div><span class="eyebrow">${t.newsImage}</span><h2>${t.insertImage}</h2></div></div>
+        <div class="admin-image-picker">
+          <input type="hidden" name="image" id="news-image-value" value="${escapeHtml(current.image)}">
+          <label>${t.imageUrl}<input type="url" name="imageUrl" id="news-image-url" placeholder="https:// or assets/images/..." value="${current.image && !String(current.image).startsWith("data:") ? escapeHtml(current.image) : ""}"></label>
+          <label>${t.insertImage}<input type="file" id="news-image-file" accept="image/*"></label>
+          <p class="muted">${t.imageHint}</p>
+          <figure class="admin-image-preview" id="news-image-preview"${current.image ? "" : " hidden"}>
+            <img src="${escapeHtml(current.image)}" alt="">
+          </figure>
+          <button class="text-link" type="button" id="news-image-clear"${current.image ? "" : " hidden"}>${t.removeImage}</button>
         </div>
         <div class="section-header"><div><span class="eyebrow">${t.bilingual}</span><h2>${t.titleZh}</h2></div></div>
         <div class="admin-bilingual">
@@ -149,6 +169,7 @@ function adminNewsPage(lang) {
                     <th>${t.date}</th>
                     <th>${t.order}</th>
                     <th>${t.status}</th>
+                    <th>${t.newsImage}</th>
                     <th>${t.titleZh} / ${t.titleEn}</th>
                     <th></th>
                   </tr>
@@ -330,6 +351,7 @@ function bindAdmin() {
       id: data.get("id"),
       date: data.get("date"),
       url: data.get("url"),
+      image: data.get("image") || data.get("imageUrl") || "",
       order: Number(data.get("order")),
       status: data.get("status"),
       title: { zh: data.get("titleZh"), en: data.get("titleEn") },
@@ -355,5 +377,60 @@ function bindAdmin() {
       deleteNewsRecord(btn.dataset.id);
       location.href = withLang("admin.html");
     });
+  });
+  bindNewsImagePicker();
+}
+
+function setNewsImageValue(value) {
+  const hidden = document.getElementById("news-image-value");
+  const preview = document.getElementById("news-image-preview");
+  const img = preview?.querySelector("img");
+  const clear = document.getElementById("news-image-clear");
+  if (hidden) hidden.value = value || "";
+  if (preview) preview.hidden = !value;
+  if (img) img.src = value || "";
+  if (clear) clear.hidden = !value;
+}
+
+function compressNewsImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("read"));
+    reader.onload = () => {
+      const image = new Image();
+      image.onload = () => {
+        const max = 1400;
+        const scale = Math.min(1, max / Math.max(image.width, image.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      image.onerror = () => resolve(String(reader.result || ""));
+      image.src = String(reader.result || "");
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function bindNewsImagePicker() {
+  const file = document.getElementById("news-image-file");
+  const url = document.getElementById("news-image-url");
+  document.getElementById("news-image-clear")?.addEventListener("click", () => {
+    if (file) file.value = "";
+    if (url) url.value = "";
+    setNewsImageValue("");
+  });
+  url?.addEventListener("input", () => {
+    setNewsImageValue(url.value.trim());
+  });
+  file?.addEventListener("change", async () => {
+    const chosen = file.files && file.files[0];
+    if (!chosen) return;
+    const dataUrl = await compressNewsImage(chosen);
+    if (url) url.value = "";
+    setNewsImageValue(dataUrl);
   });
 }

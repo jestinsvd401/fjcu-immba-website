@@ -1,6 +1,6 @@
 const NEWS_STORE_KEY = "immba-admin-news";
 const NEWS_STORE_VERSION_KEY = "immba-admin-news-v";
-const NEWS_STORE_VERSION = "3";
+const NEWS_STORE_VERSION = "4";
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
@@ -28,6 +28,7 @@ function normalizeNewsRecord(record, index = 0) {
     id: String(record.id || `n-${Date.now()}-${index}`),
     date: record.date || new Date().toISOString().slice(0, 10),
     url: record.url || "",
+    image: record.image || record.image_url || "",
     order: Number.isFinite(Number(record.order)) ? Number(record.order) : index + 1,
     status: record.status === "draft" ? "draft" : "published",
     title: {

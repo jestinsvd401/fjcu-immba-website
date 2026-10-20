@@ -75,7 +75,9 @@ function pageContent(page, lang) {
             ? externalLink(n.url, I18N[lang].viewDetails, zh)
             : "";
         return `<article class="news-card${n.order <= 3 ? " pinned" : ""}">
-          <span class="news-icon" aria-hidden="true">${newsGlyph(n)}</span>
+          ${n.image
+            ? `<img class="news-card-photo" src="${escapeHtml(n.image)}" alt="">`
+            : `<span class="news-icon" aria-hidden="true">${newsGlyph(n)}</span>`}
           <time datetime="${n.date}">${n.date.replaceAll("-", "/")}</time>
           <h3>${escapeHtml(title)}</h3>
           ${details}
@@ -361,6 +363,7 @@ function pageContent(page, lang) {
         const body = formatNewsContent(item.content[lang] || item.content.zh);
         return `${hero(escapeHtml(title), item.date)}
           <section class="section"><div class="container prose">
+            ${item.image ? `<figure class="news-article-image"><img src="${escapeHtml(item.image)}" alt="${escapeHtml(title)}"></figure>` : ""}
             ${body || `<p class="muted">${zh ? "此則公告尚未填入內文。" : "No article body has been added yet."}</p>`}
             ${item.url ? `<p>${externalLink(item.url, zh ? "官方原文" : "Official article", zh)}</p>` : ""}
             <p><a href="${withLang("news.html")}">${zh ? "← 返回公告列表" : "← Back to announcements"}</a></p>
