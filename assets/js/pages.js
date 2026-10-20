@@ -55,6 +55,12 @@ function pageContent(page, lang) {
     `<p class="news-source">${I18N[lang].newsSource} · ${externalLink(I18N[lang].newsSourceUrl, zh ? "官方公告頁" : "Official news page", zh)}</p>`;
   const newsGlyph = (n) => {
     const id = String(n.id);
+    if (id === "class-supabase") {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 5h16v3H4V5zm0 5h16v9H4v-9zm3 2v5h2v-5H7zm4 0v5h6v-5h-6z"/></svg>`;
+    }
+    if (id === "semester-kickoff") {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 2h2v2h6V2h2v2h3v18H4V4h3V2zm13 8H4v10h16V10zM6 6v2h12V6H6z"/></svg>`;
+    }
     if (id === "2905") {
       return `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6v3h5v15H4V6h5V3zm2 2v1h2V5h-2zM6 8v11h12V8H6z"/></svg>`;
     }

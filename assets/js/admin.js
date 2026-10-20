@@ -118,7 +118,7 @@ function adminNewsPage(lang) {
         </td>
         <td class="admin-actions">
           <a class="text-link" href="${withLang("admin.html")}&edit=${encodeURIComponent(item.id)}">${t.edit}</a>
-          <button class="text-link admin-delete" type="button" data-id="${escapeHtml(item.id)}">${t.remove}</button>
+          ${typeof isPinnedNews === "function" && isPinnedNews(item.id) ? "" : `<button class="text-link admin-delete" type="button" data-id="${escapeHtml(item.id)}">${t.remove}</button>`}
         </td>
       </tr>`
     )

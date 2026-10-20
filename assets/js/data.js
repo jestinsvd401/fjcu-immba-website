@@ -203,8 +203,28 @@ const I18N = {
 
 const NEWS_BASE = "https://www.management.fju.edu.tw/subweb/immba/";
 const NEWS = [
-  { id: "2689", date: "2026-08-19", pin: true, url: NEWS_BASE + "news-detail.php?NID=2689", title: { zh: "TOP (國際經管-全英MBA) 116甄試招生報名：2026/09/30-10/13", en: "TOP (imMBA) 2027 screening applications: 30 Sep–13 Oct 2026" } },
-  { id: "2905", date: "2025-01-30", pin: true, url: NEWS_BASE + "news-detail.php?NID=2905", title: { zh: "TOP 管理學院職涯平台-工作職缺", en: "TOP College of Management career platform — job openings" } },
+  {
+    id: "class-supabase",
+    date: "2026-10-20",
+    pin: true,
+    title: { zh: "Supabase 課程", en: "Class on Supabase" },
+    content: {
+      zh: "本週課程聚焦 Supabase：資料表、身分驗證，以及如何把後台公告與師資同步到雲端。請先完成註冊與信箱驗證。",
+      en: "This class focuses on Supabase: tables, authentication, and syncing back-office announcements and faculty to the cloud. Please register and verify your email first."
+    }
+  },
+  {
+    id: "semester-kickoff",
+    date: "2026-10-16",
+    pin: true,
+    title: { zh: "學期開學", en: "Semester Kickoff" },
+    content: {
+      zh: "歡迎回到 imMBA 新學期。請留意加退選時程、課程公告與學程活動，開學週如有問題請洽辦公室。",
+      en: "Welcome back to the new imMBA term. Please note add/drop dates, course notices, and programme events. Contact the office in week one if you need help."
+    }
+  },
+  { id: "2689", date: "2026-08-19", url: NEWS_BASE + "news-detail.php?NID=2689", title: { zh: "TOP (國際經管-全英MBA) 116甄試招生報名：2026/09/30-10/13", en: "TOP (imMBA) 2027 screening applications: 30 Sep–13 Oct 2026" } },
+  { id: "2905", date: "2025-01-30", url: NEWS_BASE + "news-detail.php?NID=2905", title: { zh: "TOP 管理學院職涯平台-工作職缺", en: "TOP College of Management career platform — job openings" } },
   { id: "3417", date: "2026-10-13", url: NEWS_BASE + "news-detail.php?NID=3417", title: { zh: "【下一站，澳洲黃金海岸？｜國際經管imMBA 與 Bond University 洽談 1+1 雙碩士合作】", en: "Next stop, Gold Coast? imMBA discusses a 1+1 dual master's with Bond University" } },
   { id: "3415", date: "2026-10-06", url: NEWS_BASE + "news-detail.php?NID=3415", title: { zh: "【國際經管 imMBA × UT Dallas｜雙碩士合作持續推進中】", en: "imMBA × UT Dallas: dual-degree partnership continues" } },
   { id: "3412", date: "2026-09-29", url: NEWS_BASE + "news-detail.php?NID=3412", title: { zh: "【9/29 招生說明會重點回顧｜明天開始報名！】", en: "Recap of the 29 Sep admissions briefing — applications open tomorrow" } },
