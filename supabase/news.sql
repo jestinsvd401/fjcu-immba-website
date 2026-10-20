@@ -1,7 +1,5 @@
--- Pinned announcements for the home page and news list.
--- 1. Class on Supabase
--- 2. Semester Kickoff
--- These two stay at the top even when newer items are added.
+-- Shift the announcements at sort_order 11 and 12
+-- (Class on Supabase, Semester Kickoff) to the top and keep them there.
 
 create table if not exists public.news (
   id text primary key,
@@ -38,7 +36,7 @@ values
     '2026-10-20',
     '',
     '',
-    1,
+    11,
     'published',
     'Supabase 課程',
     'Class on Supabase',
@@ -50,7 +48,7 @@ values
     '2026-10-16',
     '',
     '',
-    2,
+    12,
     'published',
     '學期開學',
     'Semester Kickoff',
@@ -66,3 +64,18 @@ set
   title_en = excluded.title_en,
   content_zh = excluded.content_zh,
   content_en = excluded.content_en;
+
+update public.news
+set sort_order = sort_order + 20
+where sort_order in (1, 2)
+  and id not in ('class-supabase', 'semester-kickoff');
+
+update public.news
+set sort_order = 1, status = 'published'
+where id = 'class-supabase'
+   or (sort_order = 11 and title_en ilike '%Class on Supabase%');
+
+update public.news
+set sort_order = 2, status = 'published'
+where id = 'semester-kickoff'
+   or (sort_order = 12 and title_en ilike '%Semester Kickoff%');

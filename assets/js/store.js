@@ -1,7 +1,8 @@
 const NEWS_STORE_KEY = "immba-admin-news";
 const NEWS_STORE_VERSION_KEY = "immba-admin-news-v";
-const NEWS_STORE_VERSION = "6";
-const PINNED_NEWS_IDS = ["class-supabase", "semester-kickoff"];
+const NEWS_STORE_VERSION = "7";
+const PINNED_NEWS_IDS_KEY = "immba-pinned-news-ids";
+const PINNED_SOURCE_ORDERS = [11, 12];
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
@@ -51,7 +52,7 @@ function seedNewsRecords() {
           id: item.id,
           date: item.date,
           url: item.url || "",
-          order: index < 2 ? index + 1 : index + 10,
+          order: index + 11,
           status: "published",
           title: item.title,
           content: item.content || { zh: "", en: "" }
@@ -62,13 +63,69 @@ function seedNewsRecords() {
   );
 }
 
+function newsTitleBlob(record) {
+  const title = record.title || {};
+  return `${title.en || ""} ${title.zh || ""}`.toLowerCase();
+}
+
+function resolvePinnedNewsIds(records) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PINNED_NEWS_IDS_KEY) || "[]");
+    if (Array.isArray(saved) && saved.length === 2 && saved.every((id) => records.some((record) => String(record.id) === String(id)))) {
+      return saved.map(String);
+    }
+  } catch (err) {
+    /* ignore */
+  }
+  const byTitle = [
+    records.find((record) => /class on supabase|supabase 課程/.test(newsTitleBlob(record))),
+    records.find((record) => /semester kickoff|學期開學/.test(newsTitleBlob(record)))
+  ];
+  const ids = PINNED_SOURCE_ORDERS.map((order, index) => {
+    if (byTitle[index]) return String(byTitle[index].id);
+    const match = records.find((record) => Number(record.order) === order);
+    return match ? String(match.id) : "";
+  }).filter(Boolean);
+  if (ids.length === 2) localStorage.setItem(PINNED_NEWS_IDS_KEY, JSON.stringify(ids));
+  return ids;
+}
+
 function isPinnedNews(id) {
-  return PINNED_NEWS_IDS.includes(String(id));
+  try {
+    const saved = JSON.parse(localStorage.getItem(PINNED_NEWS_IDS_KEY) || "[]");
+    if (Array.isArray(saved) && saved.includes(String(id))) return true;
+  } catch (err) {
+    /* ignore */
+  }
+  return ["class-supabase", "semester-kickoff"].includes(String(id));
 }
 
 function pinTopNews(records) {
-  const next = records.map((record) => {
-    const rank = PINNED_NEWS_IDS.indexOf(String(record.id));
+  const list = records.map((record) => normalizeNewsRecord(record));
+  NEWS.slice(0, 2).forEach((item, index) => {
+    const exists = list.some(
+      (record) =>
+        String(record.id) === String(item.id) ||
+        (index === 0 && /class on supabase|supabase 課程/.test(newsTitleBlob(record))) ||
+        (index === 1 && /semester kickoff|學期開學/.test(newsTitleBlob(record)))
+    );
+    if (exists) return;
+    list.push(
+      normalizeNewsRecord({
+        id: item.id,
+        date: item.date,
+        url: item.url || "",
+        image: item.image || "",
+        order: PINNED_SOURCE_ORDERS[index],
+        status: "published",
+        title: item.title,
+        content: item.content || { zh: "", en: "" }
+      })
+    );
+  });
+  const pinnedIds = resolvePinnedNewsIds(list);
+  return list.map((record) => {
+    const rank = pinnedIds.indexOf(String(record.id));
     if (rank >= 0) {
       return normalizeNewsRecord({
         ...record,
@@ -77,31 +134,10 @@ function pinTopNews(records) {
       });
     }
     const order = Number(record.order);
-    if (Number.isFinite(order) && order <= 2) {
+    if (Number.isFinite(order) && order <= pinnedIds.length) {
       return normalizeNewsRecord({ ...record, order: order + 10 });
     }
     return record;
-  });
-  PINNED_NEWS_IDS.forEach((id) => {
-    if (next.some((record) => String(record.id) === id)) return;
-    const item = NEWS.find((entry) => String(entry.id) === id);
-    if (!item) return;
-    next.push(
-      normalizeNewsRecord({
-        id: item.id,
-        date: item.date,
-        url: item.url || "",
-        image: item.image || "",
-        status: "published",
-        title: item.title,
-        content: item.content || { zh: "", en: "" }
-      })
-    );
-  });
-  return next.map((record) => {
-    const rank = PINNED_NEWS_IDS.indexOf(String(record.id));
-    if (rank < 0) return record;
-    return normalizeNewsRecord({ ...record, status: "published", order: rank + 1 });
   });
 }
 
@@ -133,9 +169,10 @@ function saveNewsRecords(records) {
 }
 
 function sortNewsRecords(records) {
+  const pinnedIds = resolvePinnedNewsIds(records);
   return [...records].sort((a, b) => {
-    const ap = PINNED_NEWS_IDS.indexOf(String(a.id));
-    const bp = PINNED_NEWS_IDS.indexOf(String(b.id));
+    const ap = pinnedIds.indexOf(String(a.id));
+    const bp = pinnedIds.indexOf(String(b.id));
     if (ap !== -1 || bp !== -1) {
       if (ap === -1) return 1;
       if (bp === -1) return -1;
