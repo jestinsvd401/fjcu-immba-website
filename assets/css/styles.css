@@ -1008,6 +1008,8 @@ body[data-page="home"] .card {
 .news-card,
 .news-item,
 .faculty-card,
+.faculty-row,
+.faculty-section,
 .partner-card,
 .ext-card {
   cursor: pointer;
@@ -1019,11 +1021,21 @@ body[data-page="home"] .card {
   .news-card:hover,
   .news-item:hover,
   .faculty-card:hover,
+  .faculty-row:hover,
   .partner-card:hover,
   .ext-card:hover {
     transform: translateY(-8px);
     box-shadow: 0 28px 56px rgba(0, 81, 125, 0.2);
     border-color: #00517d;
+  }
+
+  .faculty-section:hover {
+    border-color: #f6ac00;
+  }
+
+  .faculty-row:hover {
+    z-index: 2;
+    transform: translateY(-12px);
   }
 }
 
@@ -1036,6 +1048,8 @@ body[data-page="home"] .card {
   .news-card,
   .news-item,
   .faculty-card,
+  .faculty-row,
+  .faculty-section,
   .partner-card,
   .ext-card {
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -1045,6 +1059,7 @@ body[data-page="home"] .card {
   .news-card:hover,
   .news-item:hover,
   .faculty-card:hover,
+  .faculty-row:hover,
   .partner-card:hover,
   .ext-card:hover {
     transform: none;
@@ -1294,20 +1309,38 @@ body[data-page="home"] .card {
 
 .faculty-list {
   display: grid;
-  gap: 0;
+  gap: 48px;
+}
+
+.faculty-section {
+  padding: 28px 24px 32px;
+  border: 1px solid var(--line);
+  background: var(--white);
+  box-shadow: var(--shadow);
+}
+
+.faculty-section-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+  padding-top: 8px;
+  overflow: visible;
 }
 
 .faculty-row {
+  position: relative;
   display: grid;
-  grid-template-columns: min(280px, 32%) minmax(0, 1fr);
-  gap: 28px 40px;
+  grid-template-columns: min(160px, 34%) minmax(0, 1fr);
+  gap: 16px 20px;
   align-items: start;
-  padding: 28px 0;
-  border-bottom: 1px solid var(--line);
+  padding: 18px;
+  border: 1px solid var(--line);
+  background: #fffdf6;
+  box-shadow: none;
 }
 
 .faculty-row:first-child {
-  padding-top: 0;
+  padding-top: 18px;
 }
 
 .faculty-details h3 {
@@ -1572,6 +1605,7 @@ select {
   .news-cards-home,
   .split,
   .faculty-grid,
+  .faculty-section-grid,
   .gallery-grid,
   .contact-grid,
   .footer-grid,

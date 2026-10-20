@@ -442,13 +442,11 @@ function facultyRowHtml(f, lang) {
   const education = typeof facultyLangText === "function" ? facultyLangText(f.education, lang) : f.education;
   const research = typeof facultyLangText === "function" ? facultyLangText(f.research_fields, lang) : f.research_fields;
   const photo = f.image_url || "";
-  const categoryLabel = f.category === "Adjunct" ? (zh ? "兼任" : "Adjunct") : (zh ? "專任" : "Full-time");
   return `<article class="faculty-row">
     <figure class="faculty-photo-wrap">
       ${photo ? `<img class="faculty-photo" src="${escapeHtml(photo)}" alt="${escapeHtml(name)}">` : `<div class="faculty-photo faculty-photo-empty" aria-hidden="true"></div>`}
     </figure>
     <div class="faculty-details">
-      <span class="eyebrow">${escapeHtml(categoryLabel)}</span>
       <h3>${escapeHtml(name)}</h3>
       <p class="role">${escapeHtml(title)}</p>
       <p>${escapeHtml(education)}</p>
@@ -458,6 +456,16 @@ function facultyRowHtml(f, lang) {
   </article>`;
 }
 
+function facultySectionHtml(records, lang, category) {
+  const zh = lang === "zh";
+  const title = category === "Adjunct" ? (zh ? "兼任教師" : "Adjunct") : (zh ? "專任教師" : "Full-time");
+  if (!records.length) return "";
+  return `<section class="faculty-section">
+    <div class="section-header"><div><span class="eyebrow">faculty</span><h2>${title}</h2></div></div>
+    <div class="faculty-section-grid">${records.map((item) => facultyRowHtml(item, lang)).join("")}</div>
+  </section>`;
+}
+
 async function bindFacultyPage() {
   const root = document.getElementById("faculty-list");
   if (!root || typeof listPublishedFaculty !== "function") return;
@@ -465,8 +473,10 @@ async function bindFacultyPage() {
   const zh = lang === "zh";
   try {
     const records = await listPublishedFaculty();
+    const fullTime = records.filter((item) => item.category !== "Adjunct");
+    const adjunct = records.filter((item) => item.category === "Adjunct");
     root.innerHTML = records.length
-      ? records.map((item) => facultyRowHtml(item, lang)).join("")
+      ? facultySectionHtml(fullTime, lang, "Full-time") + facultySectionHtml(adjunct, lang, "Adjunct")
       : `<p class="muted">${zh ? "目前沒有已發布的師資。" : "No published faculty yet."}</p>`;
   } catch (err) {
     root.innerHTML = `<p class="muted">${zh ? "師資資料載入失敗。" : "Could not load faculty."}</p>`;
