@@ -437,6 +437,9 @@ function facultyRowHtml(f, lang) {
   const photo = f.image_url || "";
   const categoryLabel = f.category === "Adjunct" ? (zh ? "兼任" : "Adjunct") : (zh ? "專任" : "Full-time");
   return `<article class="faculty-row">
+    <figure class="faculty-photo-wrap">
+      ${photo ? `<img class="faculty-photo" src="${escapeHtml(photo)}" alt="${escapeHtml(name)}">` : `<div class="faculty-photo faculty-photo-empty" aria-hidden="true"></div>`}
+    </figure>
     <div class="faculty-details">
       <span class="eyebrow">${escapeHtml(categoryLabel)}</span>
       <h3>${escapeHtml(name)}</h3>
@@ -445,9 +448,6 @@ function facultyRowHtml(f, lang) {
       <p>${escapeHtml(research)}</p>
       <p class="muted">${escapeHtml(f.phone || "—")}${f.email ? `<br><a href="mailto:${escapeHtml(f.email)}">${escapeHtml(f.email)}</a>` : ""}${f.website ? `<br>${externalLink(f.website, zh ? `${name}教師網頁` : `${name} faculty page`, zh)}` : ""}</p>
     </div>
-    <figure class="faculty-photo-wrap">
-      ${photo ? `<img class="faculty-photo" src="${escapeHtml(photo)}" alt="${escapeHtml(name)}">` : `<div class="faculty-photo faculty-photo-empty" aria-hidden="true"></div>`}
-    </figure>
   </article>`;
 }
 
