@@ -278,15 +278,7 @@ function pageContent(page, lang) {
     faculty: () => `
       ${hero(zh ? "師資介紹" : "Faculty", zh ? "專任與兼任教師" : "Full-time and adjunct faculty")}
       <section class="section"><div class="container">
-        <div class="faculty-grid">${FACULTY.map((f) => `
-          <article class="faculty-card">
-            <span class="eyebrow">${zh ? "師資" : "Faculty"}</span>
-            <h3>${zh ? f.zhName : f.name}</h3>
-            <p class="role">${f.role[lang]}</p>
-            <p>${f.edu[lang]}</p>
-            <p>${f.spec[lang]}</p>
-            <p class="muted">${f.tel}<br><a href="mailto:${f.email}">${f.email}</a>${f.site ? `<br>${externalLink(f.site, zh ? `${f.zhName}教師網頁` : `${f.name} faculty page`, zh)}` : ""}</p>
-          </article>`).join("")}</div>
+        <div id="faculty-list" class="faculty-list"><p class="muted">${zh ? "載入師資…" : "Loading faculty…"}</p></div>
       </div></section>`,
 
     guide: () => `
@@ -434,6 +426,44 @@ function pageContent(page, lang) {
   };
 
   return (pages[page] || pages.home)();
+}
+
+function facultyRowHtml(f, lang) {
+  const zh = lang === "zh";
+  const name = typeof facultyLangText === "function" ? facultyLangText(f.name, lang) : f.name;
+  const title = typeof facultyLangText === "function" ? facultyLangText(f.title, lang) : f.title;
+  const education = typeof facultyLangText === "function" ? facultyLangText(f.education, lang) : f.education;
+  const research = typeof facultyLangText === "function" ? facultyLangText(f.research_fields, lang) : f.research_fields;
+  const photo = f.image_url || "";
+  const categoryLabel = f.category === "Adjunct" ? (zh ? "兼任" : "Adjunct") : (zh ? "專任" : "Full-time");
+  return `<article class="faculty-row">
+    <div class="faculty-details">
+      <span class="eyebrow">${escapeHtml(categoryLabel)}</span>
+      <h3>${escapeHtml(name)}</h3>
+      <p class="role">${escapeHtml(title)}</p>
+      <p>${escapeHtml(education)}</p>
+      <p>${escapeHtml(research)}</p>
+      <p class="muted">${escapeHtml(f.phone || "—")}${f.email ? `<br><a href="mailto:${escapeHtml(f.email)}">${escapeHtml(f.email)}</a>` : ""}${f.website ? `<br>${externalLink(f.website, zh ? `${name}教師網頁` : `${name} faculty page`, zh)}` : ""}</p>
+    </div>
+    <figure class="faculty-photo-wrap">
+      ${photo ? `<img class="faculty-photo" src="${escapeHtml(photo)}" alt="${escapeHtml(name)}">` : `<div class="faculty-photo faculty-photo-empty" aria-hidden="true"></div>`}
+    </figure>
+  </article>`;
+}
+
+async function bindFacultyPage() {
+  const root = document.getElementById("faculty-list");
+  if (!root || typeof listPublishedFaculty !== "function") return;
+  const lang = getLang();
+  const zh = lang === "zh";
+  try {
+    const records = await listPublishedFaculty();
+    root.innerHTML = records.length
+      ? records.map((item) => facultyRowHtml(item, lang)).join("")
+      : `<p class="muted">${zh ? "目前沒有已發布的師資。" : "No published faculty yet."}</p>`;
+  } catch (err) {
+    root.innerHTML = `<p class="muted">${zh ? "師資資料載入失敗。" : "Could not load faculty."}</p>`;
+  }
 }
 
 function hero(title, subtitle) {

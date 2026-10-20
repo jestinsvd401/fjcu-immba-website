@@ -76,7 +76,7 @@ function mobileItem(item) {
 }
 
 function brandLogo() {
-  return `<img class="brand-logo" src="assets/images/immba-logo.png?v=48" width="148" height="148" alt="Fu Jen Catholic University imMBA Program">`;
+  return `<img class="brand-logo" src="assets/images/immba-logo.png?v=50" width="148" height="148" alt="Fu Jen Catholic University imMBA Program">`;
 }
 
 function fjcuCross() {
@@ -182,11 +182,12 @@ function render() {
   const lang = getLang();
   const page = document.body.dataset.page;
   document.documentElement.lang = I18N[lang].htmlLang;
-  document.title = page === "admin" ? "AdminNews | imMBA" : I18N[lang].pageTitle;
+  document.title = page === "admin" ? (lang === "zh" ? "後台管理 | imMBA" : "Back office | imMBA") : I18N[lang].pageTitle;
   const inner = page === "admin" && typeof adminPage === "function" ? adminPage(lang) : pageContent(page, lang);
   document.getElementById("app").innerHTML = layout(inner);
   bind();
   if (typeof bindAdmin === "function") bindAdmin();
+  if (typeof bindFacultyPage === "function") bindFacultyPage();
 }
 
 let brandFireStop = null;
