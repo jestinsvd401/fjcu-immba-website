@@ -1149,14 +1149,19 @@ body[data-page="home"] .card {
 .news-cards {
   display: grid;
   gap: 16px;
+  padding-top: 12px;
+  overflow: visible;
 }
 
 .news-cards-home {
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 22px;
+  padding: 18px 8px 12px;
+  overflow: visible;
 }
 
 .news-card {
+  position: relative;
   background: var(--white);
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
@@ -1235,6 +1240,15 @@ body[data-page="home"] .card {
 }
 
 @media (hover: hover) and (pointer: fine) {
+  .news-card:hover {
+    z-index: 2;
+  }
+
+  .news-card.pinned:hover {
+    transform: translateY(-14px);
+    box-shadow: 0 32px 60px rgba(0, 81, 125, 0.22);
+  }
+
   .news-card:hover .news-icon {
     transform: translateY(-8px) scale(1.14);
     box-shadow: 0 12px 22px rgba(183, 25, 57, 0.18);

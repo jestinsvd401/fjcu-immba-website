@@ -1,6 +1,7 @@
 const NEWS_STORE_KEY = "immba-admin-news";
 const NEWS_STORE_VERSION_KEY = "immba-admin-news-v";
-const NEWS_STORE_VERSION = "4";
+const NEWS_STORE_VERSION = "5";
+const PINNED_NEWS_IDS = NEWS.slice(0, 2).map((item) => String(item.id));
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
@@ -43,26 +44,31 @@ function normalizeNewsRecord(record, index = 0) {
 }
 
 function seedNewsRecords() {
-  return NEWS.map((item, index) =>
-    normalizeNewsRecord(
-      {
-        id: item.id,
-        date: item.date,
-        url: item.url || "",
-        order: item.pin || index < 3 ? index + 1 : index + 10,
-        status: "published",
-        title: item.title,
-        content: item.content || { zh: "", en: "" }
-      },
-      index
+  return pinTopNews(
+    NEWS.map((item, index) =>
+      normalizeNewsRecord(
+        {
+          id: item.id,
+          date: item.date,
+          url: item.url || "",
+          order: index < 2 ? index + 1 : index + 10,
+          status: "published",
+          title: item.title,
+          content: item.content || { zh: "", en: "" }
+        },
+        index
+      )
     )
   );
 }
 
-function publishFirstThree(records) {
-  const featured = NEWS.slice(0, 3).map((item) => item.id);
+function isPinnedNews(id) {
+  return PINNED_NEWS_IDS.includes(String(id));
+}
+
+function pinTopNews(records) {
   return records.map((record) => {
-    const rank = featured.indexOf(record.id);
+    const rank = PINNED_NEWS_IDS.indexOf(String(record.id));
     if (rank >= 0) {
       return normalizeNewsRecord({
         ...record,
@@ -71,7 +77,7 @@ function publishFirstThree(records) {
       });
     }
     const order = Number(record.order);
-    if (Number.isFinite(order) && order <= 3) {
+    if (Number.isFinite(order) && order <= 2) {
       return normalizeNewsRecord({ ...record, order: order + 10 });
     }
     return record;
@@ -93,8 +99,8 @@ function loadNewsRecords() {
     records = seedNewsRecords();
     saveNewsRecords(records);
   }
+  records = pinTopNews(records);
   if (localStorage.getItem(NEWS_STORE_VERSION_KEY) !== NEWS_STORE_VERSION) {
-    records = publishFirstThree(records);
     saveNewsRecords(records);
     localStorage.setItem(NEWS_STORE_VERSION_KEY, NEWS_STORE_VERSION);
   }
@@ -102,11 +108,20 @@ function loadNewsRecords() {
 }
 
 function saveNewsRecords(records) {
-  localStorage.setItem(NEWS_STORE_KEY, JSON.stringify(records.map(normalizeNewsRecord)));
+  localStorage.setItem(NEWS_STORE_KEY, JSON.stringify(pinTopNews(records.map(normalizeNewsRecord))));
 }
 
 function sortNewsRecords(records) {
-  return [...records].sort((a, b) => a.order - b.order || b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
+  return [...records].sort((a, b) => {
+    const ap = PINNED_NEWS_IDS.indexOf(String(a.id));
+    const bp = PINNED_NEWS_IDS.indexOf(String(b.id));
+    if (ap !== -1 || bp !== -1) {
+      if (ap === -1) return 1;
+      if (bp === -1) return -1;
+      return ap - bp;
+    }
+    return a.order - b.order || b.date.localeCompare(a.date) || a.id.localeCompare(b.id);
+  });
 }
 
 function getPublishedNews() {

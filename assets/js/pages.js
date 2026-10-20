@@ -74,7 +74,7 @@ function pageContent(page, lang) {
           : n.url
             ? externalLink(n.url, I18N[lang].viewDetails, zh)
             : "";
-        return `<article class="news-card${n.order <= 3 ? " pinned" : ""}">
+        return `<article class="news-card${typeof isPinnedNews === "function" && isPinnedNews(n.id) ? " pinned" : ""}">
           <span class="news-icon" aria-hidden="true">${newsGlyph(n)}</span>
           <time datetime="${n.date}">${n.date.replaceAll("-", "/")}</time>
           <h3>${escapeHtml(title)}</h3>
@@ -108,7 +108,7 @@ function pageContent(page, lang) {
             <div><span class="eyebrow">${t.eyebrowNews}</span><h2>${t.newsTitle}</h2></div>
             <a href="news.html${q}">${t.newsMore} →</a>
           </div>
-          <div class="news-cards news-cards-home">${newsList(3)}</div>
+          <div class="news-cards news-cards-home">${newsList(2)}</div>
           ${newsSource()}
         </div>
       </section>
