@@ -1950,6 +1950,41 @@ select {
   cursor: pointer;
 }
 
+.access-icon-btn {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: #0b7a3b;
+}
+
+.access-icon-btn svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.access-icon-btn.access-reject {
+  color: #b71939;
+}
+
+.access-icon-btn:hover:not(:disabled) {
+  border-color: currentColor;
+  background: #fff8e8;
+}
+
+.access-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.admin-flash.is-error {
+  color: #b71939;
+}
+
 .admin-status {
   display: inline-block;
   font-size: 0.75rem;

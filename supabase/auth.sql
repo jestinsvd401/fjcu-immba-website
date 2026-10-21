@@ -87,6 +87,44 @@ grant select, update on public.profiles to authenticated;
 grant execute on function public.is_staff() to authenticated;
 grant execute on function public.is_super_admin() to authenticated;
 
+create or replace function public.ensure_own_profile()
+returns public.profiles
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  result public.profiles;
+  admin_count integer;
+begin
+  if auth.uid() is null then
+    raise exception 'not authenticated';
+  end if;
+
+  select * into result from public.profiles where id = auth.uid();
+  select count(*) into admin_count from public.profiles where role = 'super_admin';
+
+  if result.id is null then
+    insert into public.profiles (id, email, role)
+    values (
+      auth.uid(),
+      coalesce(auth.jwt() ->> 'email', ''),
+      case when admin_count = 0 then 'super_admin' else 'pending' end
+    )
+    returning * into result;
+  elsif admin_count = 0 and result.role is distinct from 'super_admin' then
+    update public.profiles
+      set role = 'super_admin'
+      where id = auth.uid()
+    returning * into result;
+  end if;
+
+  return result;
+end;
+$$;
+
+grant execute on function public.ensure_own_profile() to authenticated;
+
 drop policy if exists faculty_write on public.faculty;
 create policy faculty_write on public.faculty
   for all to authenticated using (public.is_staff()) with check (public.is_staff());

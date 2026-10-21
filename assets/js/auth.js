@@ -67,7 +67,10 @@ function authCopy(lang) {
     tabAccess: zh ? "權限核准" : "Access",
     approve: zh ? "核准為 admin" : "Approve as admin",
     reject: zh ? "拒絕" : "Reject",
-    emptyQueue: zh ? "目前沒有待核准的帳號。" : "No pending accounts.",
+    emptyQueue: zh ? "目前沒有帳號資料。" : "No accounts found.",
+    cannotApprove: zh ? "只有 super_admin 可以核准權限。" : "Only a super admin can approve access.",
+    approved: zh ? "已核准為 admin。" : "Approved as admin.",
+    rejected: zh ? "已拒絕此帳號。" : "Request declined.",
     signedInAs: zh ? "目前登入" : "Signed in as",
     roleLabel: zh ? "角色" : "Role",
     error: zh ? "無法完成操作。" : "That request could not be completed.",
@@ -184,6 +187,13 @@ async function fetchProfile(userId) {
   return { missingTable: false, profile: data || null };
 }
 
+async function ensureOwnProfile() {
+  const client = authClient();
+  const { data, error } = await client.rpc("ensure_own_profile");
+  if (error) return null;
+  return data || null;
+}
+
 async function refreshAuthState() {
   const client = authClient();
   const { data } = await client.auth.getSession();
@@ -196,6 +206,10 @@ async function refreshAuthState() {
     const result = await fetchProfile(user.id);
     profile = result.profile;
     missingTable = result.missingTable;
+    if (!missingTable) {
+      const ensured = await ensureOwnProfile();
+      if (ensured) profile = ensured;
+    }
   }
   window.immbaAuthState = {
     ready: true,
@@ -293,8 +307,8 @@ function bindAuthForms() {
 
 async function listAdminProfiles() {
   const { data, error } = await authClient().from("profiles").select("*").order("created_at", { ascending: true });
-  if (error) return [];
-  return data || [];
+  if (error) return { records: [], error };
+  return { records: data || [], error: null };
 }
 
 async function setProfileRole(id, role) {
@@ -303,7 +317,14 @@ async function setProfileRole(id, role) {
     approved_at: role === "admin" ? new Date().toISOString() : null,
     approved_by: role === "admin" && window.immbaAuthState.user ? window.immbaAuthState.user.id : null
   };
-  return authClient().from("profiles").update(patch).eq("id", id);
+  return authClient().from("profiles").update(patch).eq("id", id).select("id, role").maybeSingle();
+}
+
+function accessActionIcon(kind) {
+  if (kind === "approve") {
+    return `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.3 16.3 4.7 11.7l1.4-1.4 3.2 3.2 8.6-8.6 1.4 1.4z"/></svg>`;
+  }
+  return `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12 19 6.4 17.6 5 12 10.6z"/></svg>`;
 }
 
 function adminAccessPage(lang) {
@@ -323,14 +344,22 @@ async function renderAdminAccess() {
   if (!root) return;
   const lang = getLang();
   const t = authCopy(lang);
-  const rows = await listAdminProfiles();
-  if (!rows.length) {
+  const superAdmin = typeof isSuperAdmin === "function" && isSuperAdmin();
+  const { records, error } = await listAdminProfiles();
+  if (error) {
+    root.innerHTML = `<p class="admin-flash" id="access-flash">${escapeHtml(error.message || t.error)}</p>`;
+    return;
+  }
+  if (!records.length) {
     root.innerHTML = `<p class="muted">${t.emptyQueue}</p>`;
     return;
   }
-  root.innerHTML = `<table class="admin-table">
+  const note = superAdmin ? "" : `<p class="muted">${t.cannotApprove}</p>`;
+  root.innerHTML = `${note}
+    <p class="admin-flash" id="access-flash" hidden></p>
+    <table class="admin-table">
     <thead><tr><th>${t.email}</th><th>${t.roleLabel}</th><th></th></tr></thead>
-    <tbody>${rows
+    <tbody>${records
       .map((item) => `<tr>
         <td>${escapeHtml(item.email)}</td>
         <td>${escapeHtml(item.role)}</td>
@@ -338,23 +367,33 @@ async function renderAdminAccess() {
           ${
             item.role === "super_admin"
               ? ""
-              : `<button class="text-link access-approve" type="button" data-id="${item.id}">${t.approve}</button>
-                 <button class="text-link access-reject" type="button" data-id="${item.id}">${t.reject}</button>`
+              : `<button class="access-icon-btn access-approve" type="button" data-id="${item.id}" title="${t.approve}" aria-label="${t.approve}"${superAdmin ? "" : " disabled"}>${accessActionIcon("approve")}</button>
+                 <button class="access-icon-btn access-reject" type="button" data-id="${item.id}" title="${t.reject}" aria-label="${t.reject}"${superAdmin ? "" : " disabled"}>${accessActionIcon("reject")}</button>`
           }
         </td>
       </tr>`)
       .join("")}</tbody>
   </table>`;
+  const flash = document.getElementById("access-flash");
+  const showFlash = (message, ok) => {
+    if (!flash) return;
+    flash.hidden = false;
+    flash.textContent = message;
+    flash.classList.toggle("is-error", !ok);
+  };
+  const changeRole = async (id, role, okMessage) => {
+    const { error: updateError } = await setProfileRole(id, role);
+    if (updateError) {
+      showFlash(updateError.message || t.error, false);
+      return;
+    }
+    showFlash(okMessage, true);
+    renderAdminAccess();
+  };
   root.querySelectorAll(".access-approve").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      await setProfileRole(btn.dataset.id, "admin");
-      renderAdminAccess();
-    });
+    btn.addEventListener("click", () => changeRole(btn.dataset.id, "admin", t.approved));
   });
   root.querySelectorAll(".access-reject").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      await setProfileRole(btn.dataset.id, "rejected");
-      renderAdminAccess();
-    });
+    btn.addEventListener("click", () => changeRole(btn.dataset.id, "rejected", t.rejected));
   });
 }

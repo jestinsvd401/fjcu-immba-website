@@ -77,12 +77,10 @@ function adminSessionBar(lang) {
 
 function adminTabs(lang, tab) {
   const t = adminCopy(lang);
-  const access = typeof isSuperAdmin === "function" && isSuperAdmin()
-    ? `<a class="${tab === "access" ? "active" : ""}" href="${withLang("admin.html")}&tab=access">${t.tabAccess}</a>`
-    : "";
+  const access = `<a class="${tab === "access" ? "active" : ""}" href="${withLang("admin.html?tab=access")}">${t.tabAccess}</a>`;
   return `<nav class="admin-tabs" aria-label="${t.eyebrow}">
     <a class="${tab === "news" ? "active" : ""}" href="${withLang("admin.html")}">${t.tabNews}</a>
-    <a class="${tab === "faculty" ? "active" : ""}" href="${withLang("admin.html")}&tab=faculty">${t.tabFaculty}</a>
+    <a class="${tab === "faculty" ? "active" : ""}" href="${withLang("admin.html?tab=faculty")}">${t.tabFaculty}</a>
     ${access}
   </nav>`;
 }
@@ -202,7 +200,7 @@ function adminNewsPage(lang) {
 
 function adminPage(lang) {
   const tab = new URLSearchParams(location.search).get("tab") || "news";
-  if (tab === "access" && typeof isSuperAdmin === "function" && isSuperAdmin()) {
+  if (tab === "access") {
     return adminAccessPage(lang);
   }
   if (tab === "faculty") {
