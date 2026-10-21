@@ -114,7 +114,7 @@ function pageContent(page, lang) {
             <div><span class="eyebrow">${t.eyebrowNews}</span><h2>${t.newsTitle}</h2></div>
             <a href="news.html${q}">${t.newsMore} →</a>
           </div>
-          <div class="news-cards news-cards-home">${newsList(2)}</div>
+          <div class="news-cards news-cards-home">${newsList()}</div>
           ${newsSource()}
         </div>
       </section>
