@@ -69,8 +69,19 @@ function authCopy(lang) {
     reject: zh ? "拒絕" : "Reject",
     emptyQueue: zh ? "目前沒有帳號資料。" : "No accounts found.",
     cannotApprove: zh ? "只有 super_admin 可以核准權限。" : "Only a super admin can approve access.",
-    approved: zh ? "已核准為 admin。" : "Approved as admin.",
-    rejected: zh ? "已拒絕此帳號。" : "Request declined.",
+    statusLabel: zh ? "核准狀態" : "Approval",
+    statusApproved: zh ? "已核准" : "Approved",
+    statusWaiting: zh ? "尚未核准（等待中）" : "Not approved (waiting)",
+    statusDenied: zh ? "未核准" : "Not approved",
+    statusSuper: zh ? "super_admin" : "super_admin",
+    confirmApprove: zh ? "確定核准此帳號為 admin？" : "Approve this account as admin?",
+    confirmReject: zh ? "確定將此帳號標示為未核准？" : "Mark this account as not approved?",
+    approved: zh ? "已核准" : "Approved",
+    approvedDetail: zh ? "此帳號現在是 admin，可以進入後台。" : "This account is now an admin and can use the back office.",
+    rejected: zh ? "未核准" : "Not approved",
+    rejectedDetail: zh ? "此帳號的申請已被拒絕。" : "This account’s request was declined.",
+    notSaved: zh ? "未核准：變更沒有寫入。" : "Not approved: the change was not saved.",
+    yourStatus: zh ? "你的核准狀態" : "Your approval status",
     signedInAs: zh ? "目前登入" : "Signed in as",
     roleLabel: zh ? "角色" : "Role",
     error: zh ? "無法完成操作。" : "That request could not be completed.",
@@ -166,11 +177,17 @@ function authStatusPage(lang, kind) {
   };
   const [title, lead] = map[kind] || map.pending;
   const email = (window.immbaAuthState.user && window.immbaAuthState.user.email) || "";
+  const role = window.immbaAuthState.role || "pending";
+  const approved = role === "admin" || role === "super_admin";
+  const statusText = approved ? t.statusApproved : kind === "rejected" || role === "rejected" ? t.statusDenied : t.statusWaiting;
   return authFormCard(
     title,
     lead,
-    `<p><strong>${t.signedInAs}:</strong> ${escapeHtml(email)}</p>
-     <p><strong>${t.roleLabel}:</strong> ${escapeHtml(window.immbaAuthState.role || "pending")}</p>
+    `<div class="access-confirm ${approved ? "is-approved" : "is-denied"}" role="status">
+       <strong>${t.yourStatus}: ${statusText}</strong>
+     </div>
+     <p><strong>${t.signedInAs}:</strong> ${escapeHtml(email)}</p>
+     <p><strong>${t.roleLabel}:</strong> ${escapeHtml(role)}</p>
      <p class="muted">${t.flow}</p>
      <div class="action-row">
        <button class="btn btn-action-secondary" type="button" id="auth-signout">${t.signOut}</button>
@@ -320,11 +337,46 @@ async function setProfileRole(id, role) {
   return authClient().from("profiles").update(patch).eq("id", id).select("id, role").maybeSingle();
 }
 
+const ACCESS_FLASH_KEY = "immba-access-flash";
+
 function accessActionIcon(kind) {
   if (kind === "approve") {
     return `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.3 16.3 4.7 11.7l1.4-1.4 3.2 3.2 8.6-8.6 1.4 1.4z"/></svg>`;
   }
   return `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12 19 6.4 17.6 5 12 10.6z"/></svg>`;
+}
+
+function accessStatusMeta(role, t) {
+  if (role === "super_admin") return { label: t.statusSuper, cls: "admin-status-published" };
+  if (role === "admin") return { label: t.statusApproved, cls: "admin-status-approved" };
+  if (role === "rejected") return { label: t.statusDenied, cls: "admin-status-denied" };
+  return { label: t.statusWaiting, cls: "admin-status-waiting" };
+}
+
+function readAccessFlash() {
+  try {
+    const raw = sessionStorage.getItem(ACCESS_FLASH_KEY);
+    if (!raw) return null;
+    sessionStorage.removeItem(ACCESS_FLASH_KEY);
+    return JSON.parse(raw);
+  } catch (err) {
+    return null;
+  }
+}
+
+function writeAccessFlash(payload) {
+  sessionStorage.setItem(ACCESS_FLASH_KEY, JSON.stringify(payload));
+}
+
+function accessFlashHtml(flash, t) {
+  if (!flash) return `<div class="access-confirm" id="access-flash" hidden></div>`;
+  const ok = !!flash.ok;
+  const title = ok ? t.approved : t.rejected;
+  const email = flash.email ? `<span class="access-confirm-email">${escapeHtml(flash.email)}</span>` : "";
+  return `<div class="access-confirm ${ok ? "is-approved" : "is-denied"}" id="access-flash" role="status">
+    <strong>${ok ? t.statusApproved : t.statusDenied}</strong>
+    <p>${email} ${escapeHtml(flash.message || title)}</p>
+  </div>`;
 }
 
 function adminAccessPage(lang) {
@@ -355,45 +407,46 @@ async function renderAdminAccess() {
     return;
   }
   const note = superAdmin ? "" : `<p class="muted">${t.cannotApprove}</p>`;
+  const flash = readAccessFlash();
   root.innerHTML = `${note}
-    <p class="admin-flash" id="access-flash" hidden></p>
+    ${accessFlashHtml(flash, t)}
     <table class="admin-table">
-    <thead><tr><th>${t.email}</th><th>${t.roleLabel}</th><th></th></tr></thead>
+    <thead><tr><th>${t.email}</th><th>${t.statusLabel}</th><th>${t.roleLabel}</th><th></th></tr></thead>
     <tbody>${records
-      .map((item) => `<tr>
+      .map((item) => {
+        const status = accessStatusMeta(item.role, t);
+        return `<tr>
         <td>${escapeHtml(item.email)}</td>
+        <td><span class="admin-status ${status.cls}">${status.label}</span></td>
         <td>${escapeHtml(item.role)}</td>
         <td class="admin-actions">
           ${
             item.role === "super_admin"
               ? ""
-              : `<button class="access-icon-btn access-approve" type="button" data-id="${item.id}" title="${t.approve}" aria-label="${t.approve}"${superAdmin ? "" : " disabled"}>${accessActionIcon("approve")}</button>
-                 <button class="access-icon-btn access-reject" type="button" data-id="${item.id}" title="${t.reject}" aria-label="${t.reject}"${superAdmin ? "" : " disabled"}>${accessActionIcon("reject")}</button>`
+              : `<button class="access-icon-btn access-approve" type="button" data-id="${item.id}" data-email="${escapeHtml(item.email)}" title="${t.approve}" aria-label="${t.approve}"${superAdmin ? "" : " disabled"}>${accessActionIcon("approve")}</button>
+                 <button class="access-icon-btn access-reject" type="button" data-id="${item.id}" data-email="${escapeHtml(item.email)}" title="${t.reject}" aria-label="${t.reject}"${superAdmin ? "" : " disabled"}>${accessActionIcon("reject")}</button>`
           }
         </td>
-      </tr>`)
+      </tr>`;
+      })
       .join("")}</tbody>
   </table>`;
-  const flash = document.getElementById("access-flash");
-  const showFlash = (message, ok) => {
-    if (!flash) return;
-    flash.hidden = false;
-    flash.textContent = message;
-    flash.classList.toggle("is-error", !ok);
-  };
-  const changeRole = async (id, role, okMessage) => {
-    const { error: updateError } = await setProfileRole(id, role);
-    if (updateError) {
-      showFlash(updateError.message || t.error, false);
-      return;
-    }
-    showFlash(okMessage, true);
+  const changeRole = async (btn, role, confirmText, okDetail) => {
+    const email = btn.dataset.email || "";
+    if (!confirm(`${confirmText}\n${email}`)) return;
+    const { data, error: updateError } = await setProfileRole(btn.dataset.id, role);
+    const saved = data && data.role === role;
+    writeAccessFlash({
+      ok: saved,
+      email,
+      message: saved ? okDetail : updateError && updateError.message ? updateError.message : t.notSaved
+    });
     renderAdminAccess();
   };
   root.querySelectorAll(".access-approve").forEach((btn) => {
-    btn.addEventListener("click", () => changeRole(btn.dataset.id, "admin", t.approved));
+    btn.addEventListener("click", () => changeRole(btn, "admin", t.confirmApprove, t.approvedDetail));
   });
   root.querySelectorAll(".access-reject").forEach((btn) => {
-    btn.addEventListener("click", () => changeRole(btn.dataset.id, "rejected", t.rejected));
+    btn.addEventListener("click", () => changeRole(btn, "rejected", t.confirmReject, t.rejectedDetail));
   });
 }

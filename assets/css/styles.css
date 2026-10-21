@@ -2038,14 +2038,55 @@ select {
   color: #00517d;
 }
 
-.admin-status-draft {
+.admin-status-draft,
+.admin-status-waiting {
   color: var(--muted);
+}
+
+.admin-status-approved {
+  color: #0b7a3b;
+}
+
+.admin-status-denied {
+  color: #b71939;
 }
 
 .admin-flash {
   margin: 0;
   color: #00517d;
   font-weight: 600;
+}
+
+.access-confirm {
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  background: #fff8e8;
+}
+
+.access-confirm strong {
+  display: block;
+  font-size: 1.05rem;
+}
+
+.access-confirm p {
+  margin: 6px 0 0;
+}
+
+.access-confirm-email {
+  font-weight: 600;
+}
+
+.access-confirm.is-approved {
+  border-color: #0b7a3b;
+  background: #e8f6ee;
+  color: #0b7a3b;
+}
+
+.access-confirm.is-denied {
+  border-color: #b71939;
+  background: #fdecee;
+  color: #b71939;
 }
 
 .whatsapp-float {
