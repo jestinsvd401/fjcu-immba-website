@@ -506,6 +506,10 @@ async function bindFacultyPage() {
   }
 }
 
+function alumniYearIcon() {
+  return `<svg class="alumni-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 3 1 8l11 5 9-4.09V17h2V8L12 3zm-7 9.18V16c0 2.21 3.13 4 7 4s7-1.79 7-4v-3.82l-7 3.18-7-3.18z"/></svg>`;
+}
+
 function bindAlumniPage() {
   const root = document.getElementById("alumni-list");
   if (!root || typeof listAlumniRecords !== "function") return;
@@ -516,16 +520,22 @@ function bindAlumniPage() {
     root.innerHTML = `<p class="muted">${zh ? "目前沒有校友資料。" : "No alumni records yet."}</p>`;
     return;
   }
-  const groups = ["ImMBA", "EMBA"].map((department) => {
-    const items = records.filter((item) => item.department === department);
-    if (!items.length) return "";
+  const years = [...new Set(records.map((item) => item.admission_year).filter(Boolean))].sort((a, b) => Number(b) - Number(a));
+  const groups = years.map((year) => {
+    const items = records.filter((item) => item.admission_year === year);
     return `<section class="alumni-section">
-      <div class="section-header"><div><span class="eyebrow">alumni</span><h2>${department}</h2></div></div>
+      <div class="section-header">
+        <div>
+          <span class="eyebrow">${zh ? "入學年度" : "admission year"}</span>
+          <h2 class="alumni-year-heading"><span class="alumni-year-icon" aria-hidden="true">${alumniYearIcon()}</span>${escapeHtml(year)}</h2>
+        </div>
+      </div>
       <div class="alumni-grid">${items
         .map(
           (item) => `<article class="alumni-card">
+            <p class="alumni-year-badge"><span class="alumni-year-icon" aria-hidden="true">${alumniYearIcon()}</span><span>${zh ? "入學" : "Admitted"} ${escapeHtml(item.admission_year)}</span></p>
             <h3>${escapeHtml(item.full_name)}</h3>
-            <p class="role">${escapeHtml(item.degree_program)} · ${escapeHtml(item.graduation_year || "—")}</p>
+            <p class="role">${escapeHtml(item.department)} · ${escapeHtml(item.degree_program)}${item.graduation_year ? ` · ${escapeHtml(item.graduation_year)}` : ""}</p>
             <p>${escapeHtml(item.company || "—")}${item.job_title ? ` — ${escapeHtml(item.job_title)}` : ""}</p>
             <p class="muted">${item.email ? `<a href="mailto:${escapeHtml(item.email)}">${escapeHtml(item.email)}</a>` : ""}</p>
           </article>`

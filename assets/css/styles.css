@@ -2288,6 +2288,50 @@ select {
   font-family: var(--serif);
 }
 
+.alumni-year-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.alumni-year-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  background: #fff3c4;
+  color: #b71939;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.alumni-year-icon svg,
+.alumni-icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.alumni-year-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #b71939;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .alumni-card:hover .alumni-year-icon,
+  .alumni-section:hover .alumni-year-heading .alumni-year-icon {
+    transform: translateY(-4px) scale(1.12);
+    box-shadow: 0 10px 18px rgba(183, 25, 57, 0.16);
+  }
+}
+
 .alumni-toolbar {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)) auto;
