@@ -2390,6 +2390,7 @@ select {
 .alumni-op {
   display: inline-flex;
   align-items: center;
+  gap: 8px;
   min-height: 32px;
   padding: 0 10px;
   border: 1px solid var(--line);
@@ -2400,9 +2401,28 @@ select {
   text-decoration: none;
 }
 
+.alumni-op .alumni-action-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.alumni-op .alumni-action-icon svg {
+  width: 13px;
+  height: 13px;
+}
+
 a.alumni-op:hover {
   background: #b71939;
   color: #fff;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .alumni-op:hover .alumni-action-icon {
+    transform: translateY(-6px) scale(1.14);
+    box-shadow: 0 10px 16px rgba(183, 25, 57, 0.22);
+    background: #fff;
+    color: #b71939;
+  }
 }
 
 .alumni-require {

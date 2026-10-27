@@ -496,8 +496,8 @@ function renderAdminAlumni() {
   root.innerHTML = `
     <nav class="alumni-ops" aria-label="${escapeHtml(t.alumniTitle)}">
       <a class="alumni-op" href="${withLang("admin.html?tab=alumni")}#new">${t.addAlumni}</a>
-      <span class="alumni-op">${t.edit}</span>
-      <span class="alumni-op">${t.remove}</span>
+      <a class="alumni-op alumni-op-icon" href="#alumni-search" title="${t.edit}"><span class="alumni-action-icon">${alumniActionIcon("edit")}</span><span>${t.edit}</span></a>
+      <a class="alumni-op alumni-op-icon" href="#alumni-search" title="${t.remove}"><span class="alumni-action-icon alumni-delete">${alumniActionIcon("delete")}</span><span>${t.remove}</span></a>
       <a class="alumni-op" href="#alumni-search">${lang === "zh" ? "搜尋" : "Search"}</a>
       <a class="alumni-op" href="#alumni-search">${lang === "zh" ? "篩選" : "Filter"}</a>
       <a class="alumni-op" href="#alumni-activity">${t.viewActivity}</a>
