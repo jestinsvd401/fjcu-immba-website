@@ -523,17 +523,18 @@ function bindAlumniPage() {
   const years = [...new Set(records.map((item) => item.admission_year).filter(Boolean))].sort((a, b) => Number(b) - Number(a));
   const groups = years.map((year) => {
     const items = records.filter((item) => item.admission_year === year);
-    return `<section class="alumni-section">
-      <div class="section-header">
-        <div>
-          <span class="eyebrow">${zh ? "入學年度" : "admission year"}</span>
-          <h2 class="alumni-year-heading"><span class="alumni-year-icon" aria-hidden="true">${alumniYearIcon()}</span>${escapeHtml(year)}</h2>
-        </div>
+    const panelId = `alumni-year-${year}`;
+    return `<section class="alumni-section" data-year="${escapeHtml(year)}">
+      <div class="alumni-year-row">
+        <span class="eyebrow">${zh ? "入學年度" : "admission year"}</span>
+        <button class="alumni-year-toggle" type="button" aria-expanded="false" aria-controls="${panelId}" title="${zh ? "顯示校友" : "Show alumni"}">
+          <span class="alumni-year-icon">${alumniYearIcon()}</span>
+          <span class="alumni-year-label">${escapeHtml(year)}</span>
+        </button>
       </div>
-      <div class="alumni-grid">${items
+      <div class="alumni-grid" id="${panelId}" hidden>${items
         .map(
           (item) => `<article class="alumni-card">
-            <p class="alumni-year-badge"><span class="alumni-year-icon" aria-hidden="true">${alumniYearIcon()}</span><span>${zh ? "入學" : "Admitted"} ${escapeHtml(item.admission_year)}</span></p>
             <h3>${escapeHtml(item.full_name)}</h3>
             <p class="role">${escapeHtml(item.department)} · ${escapeHtml(item.degree_program)}${item.graduation_year ? ` · ${escapeHtml(item.graduation_year)}` : ""}</p>
             <p>${escapeHtml(item.company || "—")}${item.job_title ? ` — ${escapeHtml(item.job_title)}` : ""}</p>
@@ -544,6 +545,17 @@ function bindAlumniPage() {
     </section>`;
   });
   root.innerHTML = groups.join("");
+  root.querySelectorAll(".alumni-year-toggle").forEach((button) => {
+    button.addEventListener("click", () => {
+      const section = button.closest(".alumni-section");
+      const panel = section?.querySelector(".alumni-grid");
+      if (!panel) return;
+      const open = panel.hasAttribute("hidden");
+      panel.toggleAttribute("hidden", !open);
+      button.setAttribute("aria-expanded", open ? "true" : "false");
+      section.classList.toggle("is-open", open);
+    });
+  });
 }
 
 function hero(title, subtitle) {
