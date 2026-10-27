@@ -61,10 +61,15 @@ function authCopy(lang) {
     rejectedLead: zh ? "你的管理員申請已被拒絕。" : "Your administrator request was rejected.",
     flow: zh ? "Register → Verify Email → pending → Super Admin Review → admin" : "Register → Verify Email → pending → Super Admin Review → admin",
     flowRegister: "Register",
-    flowVerify: zh ? "Verify Email" : "Verify Email",
+    flowVerify: "Verify Email",
     flowPending: "pending",
     flowReview: "Super Admin Review",
     flowAdmin: "admin",
+    flowRegisterTip: zh ? "申請人已註冊帳號。" : "The applicant has registered an account.",
+    flowVerifyTip: zh ? "申請人已完成電子郵件驗證。" : "The applicant has verified their email.",
+    flowPendingTip: zh ? "申請狀態為 pending，等待審核。" : "Status is pending and waiting for review.",
+    flowReviewTip: zh ? "Super admin 在此核准或拒絕申請。" : "The super admin approves or rejects the application here.",
+    flowAdminTip: zh ? "已核准為 admin，可以使用後台。" : "Approved as admin and can use the back office.",
     who: zh ? "Authentication：你是誰？" : "Authentication: who are you?",
     what: zh ? "Authorization：你可以做什麼？" : "Authorization: what are you allowed to do?",
     rolePending: "pending",
@@ -400,17 +405,36 @@ function accessFlashHtml(flash, t) {
   </div>`;
 }
 
-function approvalFlowHtml(t, current) {
+function applicationFlowStep(role) {
+  if (role === "admin" || role === "super_admin") return "admin";
+  if (role === "rejected") return "review";
+  return "pending";
+}
+
+function approvalFlowHtml(t, current, compact = false) {
   const steps = [
-    ["register", t.flowRegister],
-    ["verify", t.flowVerify],
-    ["pending", t.flowPending],
-    ["review", t.flowReview],
-    ["admin", t.flowAdmin]
+    ["register", t.flowRegister, t.flowRegisterTip],
+    ["verify", t.flowVerify, t.flowVerifyTip],
+    ["pending", t.flowPending, t.flowPendingTip],
+    ["review", t.flowReview, t.flowReviewTip],
+    ["admin", t.flowAdmin, t.flowAdminTip]
   ];
-  return `<ol class="approval-flow" aria-label="${t.flow}">
+  const currentIndex = steps.findIndex(([key]) => key === current);
+  return `<ol class="approval-flow${compact ? " is-compact" : ""}" aria-label="${t.flow}">
     ${steps
-      .map(([key, label]) => `<li class="${key === current ? "is-current" : ""}">${escapeHtml(label)}</li>`)
+      .map(([key, label, tip], index) => {
+        const cls = [
+          key === current ? "is-current" : "",
+          currentIndex > index ? "is-done" : "",
+          current === "review" && key === "review" ? "is-review" : ""
+        ]
+          .filter(Boolean)
+          .join(" ");
+        return `<li class="${cls}" tabindex="0">
+          <span class="approval-flow-label">${escapeHtml(label)}</span>
+          <span class="approval-flow-tip">${escapeHtml(tip)}</span>
+        </li>`;
+      })
       .join("")}
   </ol>`;
 }
@@ -508,6 +532,7 @@ async function renderAdminAccess() {
               <h3>${escapeHtml(applicantName(item))}</h3>
               <span class="admin-status admin-status-waiting">${t.statusWaiting}</span>
             </header>
+            ${approvalFlowHtml(t, applicationFlowStep(item.role), true)}
             ${applicantDetailsHtml(item, t)}
             ${accessActionsHtml(item, t, superAdmin)}
           </article>`
@@ -527,7 +552,10 @@ async function renderAdminAccess() {
         return `<tr>
         <td>${escapeHtml(applicantName(item))}</td>
         <td>${escapeHtml(item.email || "—")}</td>
-        <td><span class="admin-status ${status.cls}">${status.label}</span></td>
+        <td>
+          <span class="admin-status ${status.cls}">${status.label}</span>
+          ${approvalFlowHtml(t, applicationFlowStep(item.role), true)}
+        </td>
         <td>${escapeHtml(item.role)}</td>
         <td>${escapeHtml(formatAccessStamp(item.created_at))}</td>
         <td class="admin-actions">${accessActionsHtml(item, t, superAdmin)}</td>
