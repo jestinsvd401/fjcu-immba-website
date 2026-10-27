@@ -1,4 +1,4 @@
-const ALUMNI_STORE_KEY = "immba-alumni-v2";
+const ALUMNI_STORE_KEY = "immba-alumni-v3";
 const ALUMNI_ACTIVITY_KEY = "immba-alumni-activity-v2";
 const ALUMNI_AUDIT_FIELDS = [
   "full_name",
@@ -21,7 +21,7 @@ function seedAlumniRecords() {
     {
       id: "a-1001",
       full_name: "Wei-Chen Lin",
-      student_id: "41001200",
+      student_id: "410012000",
       department: "ImMBA",
       degree_program: "Masters",
       admission_year: "2022",
@@ -35,7 +35,7 @@ function seedAlumniRecords() {
     {
       id: "a-1002",
       full_name: "Amelia Chen",
-      student_id: "41001214",
+      student_id: "410012140",
       department: "ImMBA",
       degree_program: "Masters",
       admission_year: "2021",
@@ -49,7 +49,7 @@ function seedAlumniRecords() {
     {
       id: "a-1003",
       full_name: "Hiroshi Tanaka",
-      student_id: "41001198",
+      student_id: "410011980",
       department: "ImMBA",
       degree_program: "Masters",
       admission_year: "2020",
@@ -63,7 +63,7 @@ function seedAlumniRecords() {
     {
       id: "a-1004",
       full_name: "Mei-Ling Hsu",
-      student_id: "40988022",
+      student_id: "409880220",
       department: "EMBA",
       degree_program: "Masters",
       admission_year: "2019",
@@ -77,7 +77,7 @@ function seedAlumniRecords() {
     {
       id: "a-1005",
       full_name: "Daniel Okoye",
-      student_id: "41001307",
+      student_id: "410013070",
       department: "ImMBA",
       degree_program: "Doctoral Program",
       admission_year: "2018",
@@ -91,7 +91,7 @@ function seedAlumniRecords() {
     {
       id: "a-1006",
       full_name: "Yu-Hsuan Wu",
-      student_id: "40722014",
+      student_id: "407220140",
       department: "EMBA",
       degree_program: "Bachelors",
       admission_year: "2016",
@@ -105,7 +105,7 @@ function seedAlumniRecords() {
     {
       id: "a-1007",
       full_name: "Sofia Martínez",
-      student_id: "41001230",
+      student_id: "410012300",
       department: "ImMBA",
       degree_program: "Other",
       admission_year: "2023",
@@ -164,7 +164,7 @@ function isAlumniEmail(value) {
 
 function alumniValidationError(record) {
   const item = normalizeAlumni(record);
-  if (!/^\d{8}$/.test(item.student_id)) return "Student ID must be exactly 8 digits.";
+  if (!/^\d{9}$/.test(item.student_id)) return "Student ID must be exactly 9 digits.";
   const admission = Number(item.admission_year);
   if (!Number.isFinite(admission) || admission < 2000 || admission > alumniCurrentYear()) {
     return "Admission year must be between 2000 and the current year.";
@@ -445,6 +445,6 @@ function importAlumniRecords(text) {
 function alumniCsvTemplate() {
   return [
     "full_name,student_id,department,degree_program,admission_year,graduation_year,email,phone,company,job_title,notes",
-    "Jane Example,41001999,ImMBA,Masters,2022,2024,jane@example.com,0912000000,Example Co,Analyst,Imported sample"
+    "Jane Example,410019990,ImMBA,Masters,2022,2024,jane@example.com,0912000000,Example Co,Analyst,Imported sample"
   ].join("\n");
 }

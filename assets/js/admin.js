@@ -419,7 +419,7 @@ function adminAlumniForm(current, t) {
     <div class="section-header"><div><span class="eyebrow">alumni</span><h2>full_name · student_id · department · degree_program</h2></div></div>
     <div class="admin-shared">
       <label>${t.alumniFullName}<input name="full_name" required value="${escapeHtml(current.full_name)}"></label>
-      <label>${t.alumniStudentId}<input name="student_id" required inputmode="numeric" pattern="\\d{8}" maxlength="8" minlength="8" title="Exactly 8 digits" value="${escapeHtml(current.student_id)}"></label>
+      <label>${t.alumniStudentId}<input name="student_id" required inputmode="numeric" pattern="\\d{9}" maxlength="9" minlength="9" title="Exactly 9 digits" value="${escapeHtml(current.student_id)}"></label>
       <label>${t.alumniDepartment}${alumniSelect("department", current.department || "ImMBA", departments)}</label>
       <label>${t.alumniDegree}${alumniSelect("degree_program", current.degree_program || "Masters", degrees)}</label>
       <label>${t.alumniAdmission}<select name="admission_year" required>${alumniYearOptions(admissionYears, admission)}</select></label>
