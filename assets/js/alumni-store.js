@@ -1,4 +1,4 @@
-const ALUMNI_STORE_KEY = "immba-alumni-v1";
+const ALUMNI_STORE_KEY = "immba-alumni-v2";
 const ALUMNI_ACTIVITY_KEY = "immba-alumni-activity-v2";
 const ALUMNI_AUDIT_FIELDS = [
   "full_name",
@@ -21,13 +21,13 @@ function seedAlumniRecords() {
     {
       id: "a-1001",
       full_name: "Wei-Chen Lin",
-      student_id: "410012001",
+      student_id: "41001200",
       department: "ImMBA",
       degree_program: "Masters",
       admission_year: "2022",
       graduation_year: "2024",
       email: "weichen.lin@alumni.fju.edu.tw",
-      phone: "+886-912-100-201",
+      phone: "0912100201",
       company: "Taiwan Semiconductor Manufacturing Company",
       job_title: "Strategy Analyst",
       notes: "Dual-degree track, now in operations planning."
@@ -35,13 +35,13 @@ function seedAlumniRecords() {
     {
       id: "a-1002",
       full_name: "Amelia Chen",
-      student_id: "410012014",
+      student_id: "41001214",
       department: "ImMBA",
       degree_program: "Masters",
       admission_year: "2021",
       graduation_year: "2023",
       email: "amelia.chen@alumni.fju.edu.tw",
-      phone: "+886-933-220-118",
+      phone: "0933220118",
       company: "Deloitte Taiwan",
       job_title: "Consultant",
       notes: "Exchange semester in Spain."
@@ -49,13 +49,13 @@ function seedAlumniRecords() {
     {
       id: "a-1003",
       full_name: "Hiroshi Tanaka",
-      student_id: "410011988",
+      student_id: "41001198",
       department: "ImMBA",
       degree_program: "Masters",
       admission_year: "2020",
       graduation_year: "2022",
       email: "hiroshi.tanaka@alumni.fju.edu.tw",
-      phone: "+81-90-4400-3311",
+      phone: "0904400331",
       company: "Rakuten",
       job_title: "Product Manager",
       notes: "International cohort, Tokyo office."
@@ -63,13 +63,13 @@ function seedAlumniRecords() {
     {
       id: "a-1004",
       full_name: "Mei-Ling Hsu",
-      student_id: "409880221",
+      student_id: "40988022",
       department: "EMBA",
       degree_program: "Masters",
       admission_year: "2019",
       graduation_year: "2021",
       email: "meiling.hsu@alumni.fju.edu.tw",
-      phone: "+886-987-441-009",
+      phone: "0987441009",
       company: "Cathay Financial Holdings",
       job_title: "Vice President",
       notes: "EMBA weekend cohort."
@@ -77,13 +77,13 @@ function seedAlumniRecords() {
     {
       id: "a-1005",
       full_name: "Daniel Okoye",
-      student_id: "410013077",
+      student_id: "41001307",
       department: "ImMBA",
       degree_program: "Doctoral Program",
       admission_year: "2018",
       graduation_year: "2024",
       email: "daniel.okoye@alumni.fju.edu.tw",
-      phone: "+886-975-662-440",
+      phone: "0975662440",
       company: "Academia Sinica",
       job_title: "Research Fellow",
       notes: "Continued to doctoral research after imMBA."
@@ -91,13 +91,13 @@ function seedAlumniRecords() {
     {
       id: "a-1006",
       full_name: "Yu-Hsuan Wu",
-      student_id: "407220145",
+      student_id: "40722014",
       department: "EMBA",
       degree_program: "Bachelors",
       admission_year: "2016",
       graduation_year: "2020",
       email: "yuhsuan.wu@alumni.fju.edu.tw",
-      phone: "+886-921-778-305",
+      phone: "0921778305",
       company: "Uniqlo Taiwan",
       job_title: "Store Development Lead",
       notes: "Later completed EMBA coursework."
@@ -105,13 +105,13 @@ function seedAlumniRecords() {
     {
       id: "a-1007",
       full_name: "Sofia Martínez",
-      student_id: "410012301",
+      student_id: "41001230",
       department: "ImMBA",
       degree_program: "Other",
       admission_year: "2023",
-      graduation_year: "2025",
+      graduation_year: "",
       email: "sofia.martinez@alumni.fju.edu.tw",
-      phone: "+34-611-204-887",
+      phone: "0911204887",
       company: "IESE Alumni Network",
       job_title: "Partnership Coordinator",
       notes: "Certificate / other pathway."
@@ -135,17 +135,65 @@ function normalizeAlumniDegree(value) {
   return "";
 }
 
+function alumniCurrentYear() {
+  return new Date().getFullYear();
+}
+
+function alumniAdmissionYears() {
+  const years = [];
+  for (let year = alumniCurrentYear(); year >= 2000; year -= 1) years.push(String(year));
+  return years;
+}
+
+function alumniGraduationYears(admissionYear) {
+  const start = Number(admissionYear);
+  if (!Number.isFinite(start)) return [];
+  const last = alumniCurrentYear() + 6;
+  const years = [];
+  for (let year = start + 1; year <= last; year += 1) years.push(String(year));
+  return years;
+}
+
+function alumniDigits(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function isAlumniEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+}
+
+function alumniValidationError(record) {
+  const item = normalizeAlumni(record);
+  if (!/^\d{8}$/.test(item.student_id)) return "Student ID must be exactly 8 digits.";
+  const admission = Number(item.admission_year);
+  if (!Number.isFinite(admission) || admission < 2000 || admission > alumniCurrentYear()) {
+    return "Admission year must be between 2000 and the current year.";
+  }
+  if (item.graduation_year) {
+    const graduation = Number(item.graduation_year);
+    if (!Number.isFinite(graduation) || graduation <= admission) {
+      return "Graduation year must be later than admission year, or left empty.";
+    }
+  }
+  if (!isAlumniEmail(item.email)) return "Email must use a general format and include @.";
+  if (!/^\d{10}$/.test(item.phone)) return "Phone number must be exactly 10 digits.";
+  if (!item.department || !item.degree_program) return "Department and degree program must use the dropdown values.";
+  return "";
+}
+
 function normalizeAlumni(record, index = 0) {
+  const admission = String(record.admission_year || "").trim();
+  const graduation = String(record.graduation_year || "").trim();
   return {
     id: String(record.id || `a-${Date.now()}-${index}`),
     full_name: String(record.full_name || "").trim(),
-    student_id: String(record.student_id || "").trim(),
+    student_id: alumniDigits(record.student_id),
     department: normalizeAlumniDepartment(record.department),
     degree_program: normalizeAlumniDegree(record.degree_program),
-    admission_year: String(record.admission_year || "").trim(),
-    graduation_year: String(record.graduation_year || "").trim(),
+    admission_year: admission,
+    graduation_year: graduation,
     email: String(record.email || "").trim(),
-    phone: String(record.phone || "").trim(),
+    phone: alumniDigits(record.phone),
     company: String(record.company || "").trim(),
     job_title: String(record.job_title || "").trim(),
     notes: String(record.notes || "").trim()
@@ -270,9 +318,8 @@ function getAlumniById(id) {
 
 function upsertAlumniRecord(record) {
   const next = normalizeAlumni(record);
-  if (!next.department || !next.degree_program) {
-    throw new Error("department and degree_program must use the dropdown values");
-  }
+  const invalid = alumniValidationError(next);
+  if (invalid) throw new Error(invalid);
   const records = loadAlumniRecords();
   const index = records.findIndex((item) => item.id === next.id);
   const existed = index >= 0;
@@ -348,7 +395,7 @@ function parseAlumniCsv(text) {
       },
       index
     );
-    if (!item.full_name || !item.department || !item.degree_program) {
+    if (!item.full_name || alumniValidationError(item)) {
       skipped += 1;
       return;
     }
@@ -398,6 +445,6 @@ function importAlumniRecords(text) {
 function alumniCsvTemplate() {
   return [
     "full_name,student_id,department,degree_program,admission_year,graduation_year,email,phone,company,job_title,notes",
-    "Jane Example,410019999,ImMBA,Masters,2022,2024,jane@example.com,+886-900-000-000,Example Co,Analyst,Imported sample"
+    "Jane Example,41001999,ImMBA,Masters,2022,2024,jane@example.com,0912000000,Example Co,Analyst,Imported sample"
   ].join("\n");
 }

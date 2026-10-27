@@ -34,7 +34,9 @@ function adminCopy(lang) {
     emptyAlumni: zh ? "尚無校友。請新增或匯入。" : "No alumni yet. Add one or import a CSV.",
     confirmDeleteAlumni: zh ? "確定刪除此校友？" : "Delete this alumni record?",
     importOk: zh ? "已匯入" : "Imported",
-    importSkip: zh ? "列因科系或學位不符合下拉選項而略過" : "row(s) skipped because department or degree was not a dropdown value",
+    importSkip: zh ? "列因格式不符而略過" : "row(s) skipped because the values did not match the required format",
+    notGraduated: zh ? "尚未畢業" : "Not graduated yet",
+    alumniInvalid: zh ? "請修正標示的欄位後再儲存。" : "Please fix the highlighted fields before saving.",
     signOut: zh ? "登出" : "Sign out",
     facultyTitle: zh ? "師資管理" : "Faculty management",
     facultyLead: zh ? "師資資料存在雲端（Supabase）。儲存後會同步到公開師資頁。" : "Faculty records live in the cloud (Supabase). Saves sync to the public Faculty page.",
@@ -399,21 +401,31 @@ function alumniSelect(name, value, options, required = true) {
   </select>`;
 }
 
+function alumniYearOptions(years, selected, emptyLabel) {
+  const empty = emptyLabel ? `<option value="">${emptyLabel}</option>` : "";
+  return `${empty}${years
+    .map((year) => `<option value="${year}"${String(year) === String(selected) ? " selected" : ""}>${year}</option>`)
+    .join("")}`;
+}
+
 function adminAlumniForm(current, t) {
   const departments = typeof ALUMNI_DEPARTMENTS !== "undefined" ? ALUMNI_DEPARTMENTS : ["EMBA", "ImMBA"];
   const degrees = typeof ALUMNI_DEGREES !== "undefined" ? ALUMNI_DEGREES : ["Bachelors", "Masters", "Doctoral Program", "Other"];
+  const admissionYears = typeof alumniAdmissionYears === "function" ? alumniAdmissionYears() : [];
+  const admission = current.admission_year || String(alumniCurrentYear());
+  const graduationYears = typeof alumniGraduationYears === "function" ? alumniGraduationYears(admission) : [];
   return `<form id="admin-alumni-form" class="admin-form">
     <input type="hidden" name="id" value="${escapeHtml(current.id)}">
     <div class="section-header"><div><span class="eyebrow">alumni</span><h2>full_name · student_id · department · degree_program</h2></div></div>
     <div class="admin-shared">
       <label>${t.alumniFullName}<input name="full_name" required value="${escapeHtml(current.full_name)}"></label>
-      <label>${t.alumniStudentId}<input name="student_id" required value="${escapeHtml(current.student_id)}"></label>
+      <label>${t.alumniStudentId}<input name="student_id" required inputmode="numeric" pattern="\\d{8}" maxlength="8" minlength="8" title="Exactly 8 digits" value="${escapeHtml(current.student_id)}"></label>
       <label>${t.alumniDepartment}${alumniSelect("department", current.department || "ImMBA", departments)}</label>
       <label>${t.alumniDegree}${alumniSelect("degree_program", current.degree_program || "Masters", degrees)}</label>
-      <label>${t.alumniAdmission}<input name="admission_year" inputmode="numeric" value="${escapeHtml(current.admission_year)}"></label>
-      <label>${t.alumniGraduation}<input name="graduation_year" inputmode="numeric" value="${escapeHtml(current.graduation_year)}"></label>
-      <label>${t.email}<input type="email" name="email" value="${escapeHtml(current.email)}"></label>
-      <label>${t.phone}<input name="phone" value="${escapeHtml(current.phone)}"></label>
+      <label>${t.alumniAdmission}<select name="admission_year" required>${alumniYearOptions(admissionYears, admission)}</select></label>
+      <label>${t.alumniGraduation}<select name="graduation_year">${alumniYearOptions(graduationYears, current.graduation_year, t.notGraduated)}</select></label>
+      <label>${t.email}<input type="email" name="email" required pattern="[^\\s@]+@[^\\s@]+\\.[^\\s@]+" title="Must include @" value="${escapeHtml(current.email)}"></label>
+      <label>${t.phone}<input name="phone" required inputmode="numeric" pattern="\\d{10}" maxlength="10" minlength="10" title="Exactly 10 digits" value="${escapeHtml(current.phone)}"></label>
       <label>${t.alumniCompany}<input name="company" value="${escapeHtml(current.company)}"></label>
       <label>${t.alumniJob}<input name="job_title" value="${escapeHtml(current.job_title)}"></label>
     </div>
@@ -447,7 +459,7 @@ function renderAdminAlumni() {
   const current = editId
     ? getAlumniById(editId)
     : creating
-      ? normalizeAlumni({ id: `a-${Date.now()}`, department: "ImMBA", degree_program: "Masters" })
+      ? normalizeAlumni({ id: `a-${Date.now()}`, department: "ImMBA", degree_program: "Masters", admission_year: String(alumniCurrentYear()) })
       : null;
   const years = [...new Set(records.map((item) => item.graduation_year).filter(Boolean))].sort().reverse();
   const activity = loadAlumniActivity();
@@ -550,10 +562,18 @@ function renderAdminAlumni() {
     });
     location.href = url.pathname.split("/").pop() + url.search;
   });
+  const admissionSelect = document.querySelector("#admin-alumni-form [name='admission_year']");
+  const graduationSelect = document.querySelector("#admin-alumni-form [name='graduation_year']");
+  admissionSelect?.addEventListener("change", () => {
+    if (!graduationSelect || typeof alumniGraduationYears !== "function") return;
+    const kept = graduationSelect.value;
+    const years = alumniGraduationYears(admissionSelect.value);
+    graduationSelect.innerHTML = alumniYearOptions(years, years.includes(kept) ? kept : "", t.notGraduated);
+  });
   document.getElementById("admin-alumni-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
-    upsertAlumniRecord({
+    const payload = {
       id: data.get("id"),
       full_name: data.get("full_name"),
       student_id: data.get("student_id"),
@@ -566,8 +586,27 @@ function renderAdminAlumni() {
       company: data.get("company"),
       job_title: data.get("job_title"),
       notes: data.get("notes")
-    });
-    location.href = withLang("admin.html?tab=alumni");
+    };
+    const invalid = typeof alumniValidationError === "function" ? alumniValidationError(payload) : "";
+    const flash = document.getElementById("admin-flash");
+    if (invalid) {
+      if (flash) {
+        flash.hidden = false;
+        flash.textContent = invalid;
+        flash.classList.add("is-error");
+      } else alert(invalid);
+      return;
+    }
+    try {
+      upsertAlumniRecord(payload);
+      location.href = withLang("admin.html?tab=alumni");
+    } catch (err) {
+      if (flash) {
+        flash.hidden = false;
+        flash.textContent = err.message || t.alumniInvalid;
+        flash.classList.add("is-error");
+      }
+    }
   });
   document.getElementById("alumni-template")?.addEventListener("click", () => {
     const blob = new Blob([alumniCsvTemplate()], { type: "text/csv;charset=utf-8" });
