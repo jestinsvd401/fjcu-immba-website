@@ -2027,6 +2027,37 @@ select {
   cursor: pointer;
 }
 
+.alumni-action-icon {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  background: #fff8e8;
+  color: #b71939;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, background 0.22s ease, color 0.22s ease;
+}
+
+.alumni-action-icon svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.alumni-action-icon.alumni-delete {
+  color: #8b1530;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .alumni-action-icon:hover {
+    transform: translateY(-6px) scale(1.12);
+    box-shadow: 0 10px 16px rgba(183, 25, 57, 0.2);
+    background: #b71939;
+    color: #fff8e8;
+  }
+}
+
 .access-icon-btn {
   width: 36px;
   height: 36px;

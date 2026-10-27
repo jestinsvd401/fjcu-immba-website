@@ -410,6 +410,13 @@ function alumniYearOptions(years, selected, emptyLabel) {
     .join("")}`;
 }
 
+function alumniActionIcon(kind) {
+  if (kind === "edit") {
+    return `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>`;
+  }
+  return `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M6 7h12v14H6V7zm3-4h6l1 2h4v2H4V5h4l1-2zm1 6v8h2V9H10zm4 0v8h2V9h-2z"/></svg>`;
+}
+
 function adminAlumniForm(current, t) {
   const departments = typeof ALUMNI_DEPARTMENTS !== "undefined" ? ALUMNI_DEPARTMENTS : ["EMBA", "ImMBA"];
   const degrees = typeof ALUMNI_DEGREES !== "undefined" ? ALUMNI_DEGREES : ["Bachelors", "Masters", "Doctoral Program", "Other"];
@@ -480,8 +487,8 @@ function renderAdminAlumni() {
         <td>${escapeHtml(item.graduation_year || "—")}</td>
         <td>${escapeHtml(item.company || "—")}</td>
         <td class="admin-actions">
-          <a class="text-link" href="${withLang("admin.html?tab=alumni")}&edit=${encodeURIComponent(item.id)}">${t.edit}</a>
-          <button class="text-link alumni-delete" type="button" data-id="${escapeHtml(item.id)}">${t.remove}</button>
+          <a class="alumni-action-icon" href="${withLang("admin.html?tab=alumni")}&edit=${encodeURIComponent(item.id)}" title="${t.edit}">${alumniActionIcon("edit")}<span class="sr-only">${t.edit}</span></a>
+          <button class="alumni-action-icon alumni-delete" type="button" data-id="${escapeHtml(item.id)}" title="${t.remove}">${alumniActionIcon("delete")}<span class="sr-only">${t.remove}</span></button>
         </td>
       </tr>`
     )
