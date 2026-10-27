@@ -352,12 +352,14 @@ function filterAlumniRecords(records, filters = {}) {
   const department = normalizeAlumniDepartment(filters.department);
   const degree = normalizeAlumniDegree(filters.degree_program);
   const year = String(filters.graduation_year || "").trim();
+  const admission = String(filters.admission_year || "").trim();
   return records.filter((item) => {
     if (department && item.department !== department) return false;
     if (degree && item.degree_program !== degree) return false;
+    if (admission && item.admission_year !== admission) return false;
     if (year && item.graduation_year !== year) return false;
     if (!q) return true;
-    const blob = [item.full_name, item.student_id, item.email, item.company, item.job_title, item.phone].join(" ").toLowerCase();
+    const blob = [item.full_name, item.student_id, item.email, item.company, item.job_title, item.phone, item.admission_year, item.graduation_year].join(" ").toLowerCase();
     return blob.includes(q);
   });
 }
@@ -430,15 +432,25 @@ function importAlumniRecords(text) {
   const existing = loadAlumniRecords();
   records.forEach((item) => {
     const index = existing.findIndex((row) => row.student_id && row.student_id === item.student_id);
-    if (index >= 0) existing[index] = { ...existing[index], ...item, id: existing[index].id };
-    else existing.push(item);
+    if (index >= 0) {
+      const before = existing[index];
+      const next = { ...before, ...item, id: before.id };
+      existing[index] = next;
+      logAlumniActivity({
+        action: "UPDATE",
+        record: alumniRecordLabel(next),
+        change: describeAlumniChanges(before, next)
+      });
+    } else {
+      existing.push(item);
+      logAlumniActivity({
+        action: "CREATE",
+        record: alumniRecordLabel(item),
+        change: describeAlumniChanges(null, item)
+      });
+    }
   });
   saveAlumniRecords(existing);
-  logAlumniActivity({
-    action: "UPDATE",
-    record: `Alumni#batch`,
-    change: `Imported ${records.length} record(s); ${skipped} skipped`
-  });
   return { imported: records.length, skipped };
 }
 

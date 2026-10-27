@@ -8,9 +8,11 @@ function adminCopy(lang) {
     tabFaculty: zh ? "師資管理" : "Faculty",
     tabAlumni: zh ? "校友管理" : "Alumni",
     tabAccess: zh ? "管理員核准" : "Approval",
-    alumniTitle: zh ? "校友後台" : "Alumni back office",
-    alumniLead: zh ? "管理員可新增、編輯、刪除、搜尋、篩選與批次匯入校友，並追蹤操作紀錄。" : "Administrators can add, edit, delete, search, filter, and import alumni in batches, and track administrator activity.",
-    addAlumni: zh ? "新增校友" : "New alumni",
+    alumniTitle: zh ? "校友後台" : "Alumni management",
+    alumniLead: zh ? "支援新增、編輯、刪除、搜尋、篩選與檢視活動紀錄。每次 Create、Update、Delete 都會寫入稽核紀錄。" : "Supports Add, Edit, Delete, Search, Filter, and View activity history. Every Create, Update, and Delete action generates an audit record.",
+    addAlumni: zh ? "新增" : "Add",
+    viewActivity: zh ? "檢視活動紀錄" : "View activity history",
+    alumniRequire: zh ? "每次 Create、Update、Delete 都會產生稽核紀錄。" : "Every Create, Update, and Delete action generates an audit record.",
     importAlumni: zh ? "批次匯入 CSV" : "Import CSV",
     downloadTemplate: zh ? "下載匯入範本" : "Download CSV template",
     searchAlumni: zh ? "搜尋姓名、學號、公司…" : "Search name, student ID, company…",
@@ -24,7 +26,7 @@ function adminCopy(lang) {
     alumniCompany: "company",
     alumniJob: "job_title",
     alumniNotes: "notes",
-    alumniActivity: zh ? "活動紀錄" : "Activity Log",
+    alumniActivity: zh ? "檢視活動紀錄" : "View activity history",
     auditTime: zh ? "Time" : "Time",
     auditAdmin: zh ? "Admin" : "Admin",
     auditAction: zh ? "Action" : "Action",
@@ -453,6 +455,7 @@ function renderAdminAlumni() {
     q: params.get("q") || "",
     department: params.get("department") || "",
     degree_program: params.get("degree") || "",
+    admission_year: params.get("admission") || "",
     graduation_year: params.get("year") || ""
   };
   const shown = filterAlumniRecords(records, filters);
@@ -461,6 +464,7 @@ function renderAdminAlumni() {
     : creating
       ? normalizeAlumni({ id: `a-${Date.now()}`, department: "ImMBA", degree_program: "Masters", admission_year: String(alumniCurrentYear()) })
       : null;
+  const admissionYears = [...new Set(records.map((item) => item.admission_year).filter(Boolean))].sort().reverse();
   const years = [...new Set(records.map((item) => item.graduation_year).filter(Boolean))].sort().reverse();
   const activity = loadAlumniActivity();
   const departments = typeof ALUMNI_DEPARTMENTS !== "undefined" ? ALUMNI_DEPARTMENTS : ["EMBA", "ImMBA"];
@@ -472,6 +476,7 @@ function renderAdminAlumni() {
         <td>${escapeHtml(item.student_id)}</td>
         <td>${escapeHtml(item.department)}</td>
         <td>${escapeHtml(item.degree_program)}</td>
+        <td>${escapeHtml(item.admission_year || "—")}</td>
         <td>${escapeHtml(item.graduation_year || "—")}</td>
         <td>${escapeHtml(item.company || "—")}</td>
         <td class="admin-actions">
@@ -482,6 +487,15 @@ function renderAdminAlumni() {
     )
     .join("");
   root.innerHTML = `
+    <nav class="alumni-ops" aria-label="${escapeHtml(t.alumniTitle)}">
+      <a class="alumni-op" href="${withLang("admin.html?tab=alumni")}#new">${t.addAlumni}</a>
+      <span class="alumni-op">${t.edit}</span>
+      <span class="alumni-op">${t.remove}</span>
+      <a class="alumni-op" href="#alumni-search">${lang === "zh" ? "搜尋" : "Search"}</a>
+      <a class="alumni-op" href="#alumni-search">${lang === "zh" ? "篩選" : "Filter"}</a>
+      <a class="alumni-op" href="#alumni-activity">${t.viewActivity}</a>
+    </nav>
+    <p class="alumni-require">${escapeHtml(t.alumniRequire)}</p>
     <form class="alumni-toolbar" id="alumni-filter-form">
       <label class="sr-only" for="alumni-q">${t.searchAlumni}</label>
       <input id="alumni-q" name="q" value="${escapeHtml(filters.q)}" placeholder="${t.searchAlumni}">
@@ -493,16 +507,21 @@ function renderAdminAlumni() {
         <option value="">${t.alumniDegree}: ${t.filterAll}</option>
         ${degrees.map((item) => `<option value="${item}"${item === filters.degree_program ? " selected" : ""}>${item}</option>`).join("")}
       </select>
+      <select name="admission">
+        <option value="">${t.alumniAdmission}: ${t.filterAll}</option>
+        ${admissionYears.map((item) => `<option value="${item}"${item === filters.admission_year ? " selected" : ""}>${item}</option>`).join("")}
+      </select>
       <select name="year">
         <option value="">${t.alumniGraduation}: ${t.filterAll}</option>
         ${years.map((item) => `<option value="${item}"${item === filters.graduation_year ? " selected" : ""}>${item}</option>`).join("")}
       </select>
       <button class="btn btn-action-secondary" type="submit">${lang === "zh" ? "篩選" : "Filter"}</button>
     </form>
-    <div class="section-header">
+    <div class="section-header" id="alumni-search">
       <div><span class="eyebrow">${t.eyebrow}</span><h2>${t.alumniTitle}</h2></div>
       <div class="action-row">
         <a class="btn btn-action" href="${withLang("admin.html?tab=alumni")}#new">${t.addAlumni}</a>
+        <a class="btn btn-action-secondary" href="#alumni-activity">${t.viewActivity}</a>
         <button class="btn btn-action-secondary" type="button" id="alumni-template">${t.downloadTemplate}</button>
         <label class="btn btn-action-secondary alumni-import-label">${t.importAlumni}<input id="alumni-import" type="file" accept=".csv,text/csv" hidden></label>
       </div>
@@ -518,6 +537,7 @@ function renderAdminAlumni() {
                   <th>${t.alumniStudentId}</th>
                   <th>${t.alumniDepartment}</th>
                   <th>${t.alumniDegree}</th>
+                  <th>${t.alumniAdmission}</th>
                   <th>${t.alumniGraduation}</th>
                   <th>${t.alumniCompany}</th>
                   <th></th>
@@ -528,7 +548,7 @@ function renderAdminAlumni() {
           : `<p class="muted">${t.emptyAlumni}</p>`
       }
     </div>
-    <div class="section-header"><div><span class="eyebrow">audit</span><h2>${t.alumniActivity}</h2></div></div>
+    <div class="section-header" id="alumni-activity"><div><span class="eyebrow">audit</span><h2>${t.alumniActivity}</h2></div></div>
     <div class="admin-table-wrap">
       ${
         activity.length
@@ -555,7 +575,7 @@ function renderAdminAlumni() {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
     const url = new URL(withLang("admin.html?tab=alumni"), location.href);
-    ["q", "department", "degree", "year"].forEach((key) => {
+    ["q", "department", "degree", "admission", "year"].forEach((key) => {
       const value = String(data.get(key) || "").trim();
       if (value) url.searchParams.set(key, value);
       else url.searchParams.delete(key);

@@ -2349,9 +2349,40 @@ select {
   }
 }
 
+.alumni-ops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.alumni-op {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  background: #fff8e8;
+  color: #7a1c2c;
+  font-size: 0.82rem;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+}
+
+a.alumni-op:hover {
+  background: #b71939;
+  color: #fff;
+}
+
+.alumni-require {
+  margin: 0 0 18px;
+  color: #5b4630;
+  font-size: 0.92rem;
+}
+
 .alumni-toolbar {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)) auto;
+  grid-template-columns: minmax(0, 1.4fr) repeat(4, minmax(0, 1fr)) auto;
   gap: 10px;
   margin-bottom: 24px;
 }
