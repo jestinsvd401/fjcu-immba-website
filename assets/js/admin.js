@@ -24,7 +24,7 @@ function adminCopy(lang) {
     alumniCompany: "company",
     alumniJob: "job_title",
     alumniNotes: "notes",
-    alumniActivity: zh ? "稽核軌跡（Audit log）" : "Example of an Activity Log",
+    alumniActivity: zh ? "活動紀錄" : "Activity Log",
     auditTime: zh ? "Time" : "Time",
     auditAdmin: zh ? "Admin" : "Admin",
     auditAction: zh ? "Action" : "Action",
@@ -517,7 +517,6 @@ function renderAdminAlumni() {
       }
     </div>
     <div class="section-header"><div><span class="eyebrow">audit</span><h2>${t.alumniActivity}</h2></div></div>
-    <p class="audit-note">${t.auditNote}</p>
     <div class="admin-table-wrap">
       ${
         activity.length

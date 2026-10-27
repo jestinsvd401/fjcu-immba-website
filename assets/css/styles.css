@@ -522,12 +522,36 @@ a.text-link.active:hover {
 }
 
 .ext-icon,
+.file-icon,
+.news-icon,
+.access-icon-btn,
+.whatsapp-icon {
+  transition: transform 0.22s ease, box-shadow 0.22s ease, color 0.22s ease;
+}
+
+.ext-icon,
 .file-icon {
   width: 0.85em;
   height: 0.85em;
   margin-left: 0.35em;
   vertical-align: -0.08em;
   flex-shrink: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ext-link:hover .ext-icon,
+  .resource-link:hover .file-icon,
+  .official-link:hover .ext-icon {
+    transform: translateY(-4px) scale(1.18);
+  }
+
+  .news-card:hover .news-icon,
+  .access-icon-btn:hover:not(:disabled),
+  .admin-actions a:hover,
+  .admin-actions button:hover,
+  .admin-tabs a:hover {
+    transform: translateY(-6px);
+  }
 }
 
 .ext-link,
@@ -1934,6 +1958,7 @@ select {
   border: 1px solid var(--line);
   background: var(--white);
   font-weight: 600;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
 }
 
 .admin-tabs a.active {
@@ -1987,6 +2012,11 @@ select {
   display: flex;
   gap: 12px;
   white-space: nowrap;
+}
+
+.admin-actions a,
+.admin-actions button {
+  transition: transform 0.22s ease, color 0.22s ease;
 }
 
 .admin-actions button {
