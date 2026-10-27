@@ -287,6 +287,12 @@ function pageContent(page, lang) {
         <div id="faculty-list" class="faculty-list"><p class="muted">${zh ? "載入師資…" : "Loading faculty…"}</p></div>
       </div></section>`,
 
+    alumni: () => `
+      ${hero(zh ? "校友" : "Alumni", zh ? "EMBA 與 imMBA 畢業校友" : "EMBA and imMBA graduates")}
+      <section class="section"><div class="container">
+        <div id="alumni-list" class="alumni-list"><p class="muted">${zh ? "載入校友…" : "Loading alumni…"}</p></div>
+      </div></section>`,
+
     guide: () => `
       ${hero(zh ? "imMBA 全攻略" : "Student guide", zh ? "從入學到出國的實用路徑" : "From arrival to mobility")}
       <section class="section"><div class="container timeline">
@@ -498,6 +504,36 @@ async function bindFacultyPage() {
   } catch (err) {
     root.innerHTML = `<p class="muted">${zh ? "師資資料載入失敗。" : "Could not load faculty."}</p>`;
   }
+}
+
+function bindAlumniPage() {
+  const root = document.getElementById("alumni-list");
+  if (!root || typeof listAlumniRecords !== "function") return;
+  const lang = getLang();
+  const zh = lang === "zh";
+  const records = listAlumniRecords();
+  if (!records.length) {
+    root.innerHTML = `<p class="muted">${zh ? "目前沒有校友資料。" : "No alumni records yet."}</p>`;
+    return;
+  }
+  const groups = ["ImMBA", "EMBA"].map((department) => {
+    const items = records.filter((item) => item.department === department);
+    if (!items.length) return "";
+    return `<section class="alumni-section">
+      <div class="section-header"><div><span class="eyebrow">alumni</span><h2>${department}</h2></div></div>
+      <div class="alumni-grid">${items
+        .map(
+          (item) => `<article class="alumni-card">
+            <h3>${escapeHtml(item.full_name)}</h3>
+            <p class="role">${escapeHtml(item.degree_program)} · ${escapeHtml(item.graduation_year || "—")}</p>
+            <p>${escapeHtml(item.company || "—")}${item.job_title ? ` — ${escapeHtml(item.job_title)}` : ""}</p>
+            <p class="muted">${item.email ? `<a href="mailto:${escapeHtml(item.email)}">${escapeHtml(item.email)}</a>` : ""}</p>
+          </article>`
+        )
+        .join("")}</div>
+    </section>`;
+  });
+  root.innerHTML = groups.join("");
 }
 
 function hero(title, subtitle) {

@@ -47,6 +47,7 @@ const I18N = {
         ]
       },
       { href: "faculty.html", label: "師資介紹" },
+      { href: "alumni.html", label: "校友" },
       { href: "guide.html", label: "imMBA全攻略" },
       { href: "graduation.html", label: "畢業與離校" },
       { href: "dual-degree.html", label: "跨國雙碩士" },
@@ -147,6 +148,7 @@ const I18N = {
         ]
       },
       { href: "faculty.html", label: "Faculty" },
+      { href: "alumni.html", label: "Alumni" },
       { href: "guide.html", label: "imMBA Guide" },
       { href: "graduation.html", label: "Graduation" },
       { href: "dual-degree.html", label: "Dual Degree" },

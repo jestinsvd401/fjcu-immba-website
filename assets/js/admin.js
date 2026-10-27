@@ -6,7 +6,29 @@ function adminCopy(lang) {
     lead: zh ? "一則公告同時保存中文與英文。公開網站只顯示已發布項目。" : "One announcement holds Chinese and English in the same record. The public site shows published items only.",
     tabNews: zh ? "公告管理" : "News",
     tabFaculty: zh ? "師資管理" : "Faculty",
+    tabAlumni: zh ? "校友管理" : "Alumni",
     tabAccess: zh ? "管理員核准" : "Approval",
+    alumniTitle: zh ? "校友後台" : "Alumni back office",
+    alumniLead: zh ? "管理員可新增、編輯、刪除、搜尋、篩選與批次匯入校友，並追蹤操作紀錄。" : "Administrators can add, edit, delete, search, filter, and import alumni in batches, and track administrator activity.",
+    addAlumni: zh ? "新增校友" : "New alumni",
+    importAlumni: zh ? "批次匯入 CSV" : "Import CSV",
+    downloadTemplate: zh ? "下載匯入範本" : "Download CSV template",
+    searchAlumni: zh ? "搜尋姓名、學號、公司…" : "Search name, student ID, company…",
+    filterAll: zh ? "全部" : "All",
+    alumniFullName: "full_name",
+    alumniStudentId: "student_id",
+    alumniDepartment: "department",
+    alumniDegree: "degree_program",
+    alumniAdmission: "admission_year",
+    alumniGraduation: "graduation_year",
+    alumniCompany: "company",
+    alumniJob: "job_title",
+    alumniNotes: "notes",
+    alumniActivity: zh ? "管理員操作紀錄" : "Administrator activity",
+    emptyAlumni: zh ? "尚無校友。請新增或匯入。" : "No alumni yet. Add one or import a CSV.",
+    confirmDeleteAlumni: zh ? "確定刪除此校友？" : "Delete this alumni record?",
+    importOk: zh ? "已匯入" : "Imported",
+    importSkip: zh ? "列因科系或學位不符合下拉選項而略過" : "row(s) skipped because department or degree was not a dropdown value",
     signOut: zh ? "登出" : "Sign out",
     facultyTitle: zh ? "師資管理" : "Faculty management",
     facultyLead: zh ? "師資資料存在雲端（Supabase）。儲存後會同步到公開師資頁。" : "Faculty records live in the cloud (Supabase). Saves sync to the public Faculty page.",
@@ -81,6 +103,7 @@ function adminTabs(lang, tab) {
   return `<nav class="admin-tabs" aria-label="${t.eyebrow}">
     <a class="${tab === "news" ? "active" : ""}" href="${withLang("admin.html")}">${t.tabNews}</a>
     <a class="${tab === "faculty" ? "active" : ""}" href="${withLang("admin.html?tab=faculty")}">${t.tabFaculty}</a>
+    <a class="${tab === "alumni" ? "active" : ""}" href="${withLang("admin.html?tab=alumni")}">${t.tabAlumni}</a>
     ${access}
   </nav>`;
 }
@@ -202,6 +225,16 @@ function adminPage(lang) {
   const tab = new URLSearchParams(location.search).get("tab") || "news";
   if (tab === "access") {
     return adminAccessPage(lang);
+  }
+  if (tab === "alumni") {
+    const t = adminCopy(lang);
+    return `
+      ${hero(t.alumniTitle, t.alumniLead)}
+      <section class="section"><div class="container">
+        ${adminTabs(lang, "alumni")}
+        ${adminSessionBar(lang)}
+        <div id="admin-alumni-root"><p class="muted">${lang === "zh" ? "載入校友…" : "Loading alumni…"}</p></div>
+      </div></section>`;
   }
   if (tab === "faculty") {
     const t = adminCopy(lang);
@@ -354,6 +387,206 @@ async function renderAdminFaculty() {
   });
 }
 
+function alumniSelect(name, value, options, required = true) {
+  return `<select name="${name}"${required ? " required" : ""}>
+    ${options.map((option) => `<option value="${option}"${option === value ? " selected" : ""}>${option}</option>`).join("")}
+  </select>`;
+}
+
+function adminAlumniForm(current, t) {
+  const departments = typeof ALUMNI_DEPARTMENTS !== "undefined" ? ALUMNI_DEPARTMENTS : ["EMBA", "ImMBA"];
+  const degrees = typeof ALUMNI_DEGREES !== "undefined" ? ALUMNI_DEGREES : ["Bachelors", "Masters", "Doctoral Program", "Other"];
+  return `<form id="admin-alumni-form" class="admin-form">
+    <input type="hidden" name="id" value="${escapeHtml(current.id)}">
+    <div class="section-header"><div><span class="eyebrow">alumni</span><h2>full_name · student_id · department · degree_program</h2></div></div>
+    <div class="admin-shared">
+      <label>${t.alumniFullName}<input name="full_name" required value="${escapeHtml(current.full_name)}"></label>
+      <label>${t.alumniStudentId}<input name="student_id" required value="${escapeHtml(current.student_id)}"></label>
+      <label>${t.alumniDepartment}${alumniSelect("department", current.department || "ImMBA", departments)}</label>
+      <label>${t.alumniDegree}${alumniSelect("degree_program", current.degree_program || "Masters", degrees)}</label>
+      <label>${t.alumniAdmission}<input name="admission_year" inputmode="numeric" value="${escapeHtml(current.admission_year)}"></label>
+      <label>${t.alumniGraduation}<input name="graduation_year" inputmode="numeric" value="${escapeHtml(current.graduation_year)}"></label>
+      <label>${t.email}<input type="email" name="email" value="${escapeHtml(current.email)}"></label>
+      <label>${t.phone}<input name="phone" value="${escapeHtml(current.phone)}"></label>
+      <label>${t.alumniCompany}<input name="company" value="${escapeHtml(current.company)}"></label>
+      <label>${t.alumniJob}<input name="job_title" value="${escapeHtml(current.job_title)}"></label>
+    </div>
+    <div class="admin-bilingual">
+      <label>${t.alumniNotes}<textarea name="notes" rows="3">${escapeHtml(current.notes)}</textarea></label>
+    </div>
+    <div class="action-row">
+      <button class="btn btn-action" type="submit">${t.save}</button>
+      <a class="btn btn-action-secondary" href="${withLang("admin.html?tab=alumni")}">${t.cancel}</a>
+    </div>
+    <p class="admin-flash" id="admin-flash" hidden></p>
+  </form>`;
+}
+
+function renderAdminAlumni() {
+  const root = document.getElementById("admin-alumni-root");
+  if (!root || typeof listAlumniRecords !== "function") return;
+  const lang = getLang();
+  const t = adminCopy(lang);
+  const params = new URLSearchParams(location.search);
+  const editId = params.get("edit");
+  const creating = location.hash === "#new";
+  const records = listAlumniRecords();
+  const filters = {
+    q: params.get("q") || "",
+    department: params.get("department") || "",
+    degree_program: params.get("degree") || "",
+    graduation_year: params.get("year") || ""
+  };
+  const shown = filterAlumniRecords(records, filters);
+  const current = editId
+    ? getAlumniById(editId)
+    : creating
+      ? normalizeAlumni({ id: `a-${Date.now()}`, department: "ImMBA", degree_program: "Masters" })
+      : null;
+  const years = [...new Set(records.map((item) => item.graduation_year).filter(Boolean))].sort().reverse();
+  const activity = loadAlumniActivity();
+  const departments = typeof ALUMNI_DEPARTMENTS !== "undefined" ? ALUMNI_DEPARTMENTS : ["EMBA", "ImMBA"];
+  const degrees = typeof ALUMNI_DEGREES !== "undefined" ? ALUMNI_DEGREES : ["Bachelors", "Masters", "Doctoral Program", "Other"];
+  const rows = shown
+    .map(
+      (item) => `<tr>
+        <td>${escapeHtml(item.full_name)}</td>
+        <td>${escapeHtml(item.student_id)}</td>
+        <td>${escapeHtml(item.department)}</td>
+        <td>${escapeHtml(item.degree_program)}</td>
+        <td>${escapeHtml(item.graduation_year || "—")}</td>
+        <td>${escapeHtml(item.company || "—")}</td>
+        <td class="admin-actions">
+          <a class="text-link" href="${withLang("admin.html?tab=alumni")}&edit=${encodeURIComponent(item.id)}">${t.edit}</a>
+          <button class="text-link alumni-delete" type="button" data-id="${escapeHtml(item.id)}">${t.remove}</button>
+        </td>
+      </tr>`
+    )
+    .join("");
+  root.innerHTML = `
+    <form class="alumni-toolbar" id="alumni-filter-form">
+      <label class="sr-only" for="alumni-q">${t.searchAlumni}</label>
+      <input id="alumni-q" name="q" value="${escapeHtml(filters.q)}" placeholder="${t.searchAlumni}">
+      <select name="department">
+        <option value="">${t.alumniDepartment}: ${t.filterAll}</option>
+        ${departments.map((item) => `<option value="${item}"${item === filters.department ? " selected" : ""}>${item}</option>`).join("")}
+      </select>
+      <select name="degree">
+        <option value="">${t.alumniDegree}: ${t.filterAll}</option>
+        ${degrees.map((item) => `<option value="${item}"${item === filters.degree_program ? " selected" : ""}>${item}</option>`).join("")}
+      </select>
+      <select name="year">
+        <option value="">${t.alumniGraduation}: ${t.filterAll}</option>
+        ${years.map((item) => `<option value="${item}"${item === filters.graduation_year ? " selected" : ""}>${item}</option>`).join("")}
+      </select>
+      <button class="btn btn-action-secondary" type="submit">${lang === "zh" ? "篩選" : "Filter"}</button>
+    </form>
+    <div class="section-header">
+      <div><span class="eyebrow">${t.eyebrow}</span><h2>${t.alumniTitle}</h2></div>
+      <div class="action-row">
+        <a class="btn btn-action" href="${withLang("admin.html?tab=alumni")}#new">${t.addAlumni}</a>
+        <button class="btn btn-action-secondary" type="button" id="alumni-template">${t.downloadTemplate}</button>
+        <label class="btn btn-action-secondary alumni-import-label">${t.importAlumni}<input id="alumni-import" type="file" accept=".csv,text/csv" hidden></label>
+      </div>
+    </div>
+    ${current ? adminAlumniForm(current, t) : ""}
+    <div class="admin-table-wrap">
+      ${
+        shown.length
+          ? `<table class="admin-table">
+              <thead>
+                <tr>
+                  <th>${t.alumniFullName}</th>
+                  <th>${t.alumniStudentId}</th>
+                  <th>${t.alumniDepartment}</th>
+                  <th>${t.alumniDegree}</th>
+                  <th>${t.alumniGraduation}</th>
+                  <th>${t.alumniCompany}</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>`
+          : `<p class="muted">${t.emptyAlumni}</p>`
+      }
+    </div>
+    <div class="section-header"><div><span class="eyebrow">log</span><h2>${t.alumniActivity}</h2></div></div>
+    <div class="admin-table-wrap">
+      ${
+        activity.length
+          ? `<table class="admin-table">
+              <thead><tr><th>${lang === "zh" ? "時間" : "Time"}</th><th>${lang === "zh" ? "管理員" : "Administrator"}</th><th>${lang === "zh" ? "動作" : "Action"}</th><th>${lang === "zh" ? "內容" : "Detail"}</th></tr></thead>
+              <tbody>${activity
+                .map(
+                  (item) => `<tr>
+                    <td>${escapeHtml(item.at.replace("T", " ").slice(0, 19))}</td>
+                    <td>${escapeHtml(item.actor)}</td>
+                    <td>${escapeHtml(item.action)}</td>
+                    <td>${escapeHtml(item.detail)}</td>
+                  </tr>`
+                )
+                .join("")}</tbody>
+            </table>`
+          : `<p class="muted">${lang === "zh" ? "尚無操作紀錄。" : "No administrator activity yet."}</p>`
+      }
+    </div>`;
+
+  document.getElementById("alumni-filter-form")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const data = new FormData(e.currentTarget);
+    const url = new URL(withLang("admin.html?tab=alumni"), location.href);
+    ["q", "department", "degree", "year"].forEach((key) => {
+      const value = String(data.get(key) || "").trim();
+      if (value) url.searchParams.set(key, value);
+      else url.searchParams.delete(key);
+    });
+    location.href = url.pathname.split("/").pop() + url.search;
+  });
+  document.getElementById("admin-alumni-form")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const data = new FormData(e.currentTarget);
+    upsertAlumniRecord({
+      id: data.get("id"),
+      full_name: data.get("full_name"),
+      student_id: data.get("student_id"),
+      department: data.get("department"),
+      degree_program: data.get("degree_program"),
+      admission_year: data.get("admission_year"),
+      graduation_year: data.get("graduation_year"),
+      email: data.get("email"),
+      phone: data.get("phone"),
+      company: data.get("company"),
+      job_title: data.get("job_title"),
+      notes: data.get("notes")
+    });
+    location.href = withLang("admin.html?tab=alumni");
+  });
+  document.getElementById("alumni-template")?.addEventListener("click", () => {
+    const blob = new Blob([alumniCsvTemplate()], { type: "text/csv;charset=utf-8" });
+    const href = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = href;
+    link.download = "alumni-import-template.csv";
+    link.click();
+    URL.revokeObjectURL(href);
+  });
+  document.getElementById("alumni-import")?.addEventListener("change", async (e) => {
+    const file = e.currentTarget.files && e.currentTarget.files[0];
+    if (!file) return;
+    const text = await file.text();
+    const result = importAlumniRecords(text);
+    alert(`${t.importOk} ${result.imported}. ${result.skipped} ${t.importSkip}.`);
+    location.href = withLang("admin.html?tab=alumni");
+  });
+  document.querySelectorAll(".alumni-delete").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (!confirm(t.confirmDeleteAlumni)) return;
+      deleteAlumniRecord(btn.dataset.id);
+      location.href = withLang("admin.html?tab=alumni");
+    });
+  });
+}
+
 function bindAdmin() {
   if (document.body.dataset.page !== "admin") return;
   if (typeof canEditContent === "function" && !canEditContent()) {
@@ -365,6 +598,11 @@ function bindAdmin() {
   const tab = new URLSearchParams(location.search).get("tab") || "news";
   if (tab === "access") {
     renderAdminAccess();
+    bindAuthForms();
+    return;
+  }
+  if (tab === "alumni") {
+    renderAdminAlumni();
     bindAuthForms();
     return;
   }

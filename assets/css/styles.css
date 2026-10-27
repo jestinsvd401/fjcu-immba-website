@@ -1671,6 +1671,8 @@ select {
   .split,
   .faculty-grid,
   .faculty-section-grid,
+  .alumni-grid,
+  .alumni-toolbar,
   .gallery-grid,
   .contact-grid,
   .footer-grid,
@@ -2232,6 +2234,47 @@ select {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.alumni-list,
+.alumni-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.alumni-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.alumni-card {
+  padding: 20px;
+  border: 1px solid var(--line);
+  background: var(--white);
+  box-shadow: var(--shadow);
+}
+
+.alumni-card h3 {
+  margin: 0 0 6px;
+  font-family: var(--serif);
+}
+
+.alumni-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)) auto;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.alumni-toolbar input,
+.alumni-toolbar select {
+  min-height: 42px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  background: var(--white);
+}
+
+.alumni-import-label {
+  cursor: pointer;
 }
 
 .whatsapp-float {

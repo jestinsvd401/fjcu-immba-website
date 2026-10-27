@@ -160,6 +160,7 @@ function layout(inner) {
             <p><a href="${withLang("graduation.html")}">${lang === "zh" ? "畢業與離校" : "Graduation"}</a></p>
             <p><a href="${withLang("exchange.html")}">${lang === "zh" ? "海外交換" : "Exchange"}</a></p>
             <p><a href="${withLang("faculty.html")}">${lang === "zh" ? "師資介紹" : "Faculty"}</a></p>
+            <p><a href="${withLang("alumni.html")}">${lang === "zh" ? "校友" : "Alumni"}</a></p>
           </div>
           <div>
             <h3>${t.footerCol3}</h3>
@@ -214,6 +215,7 @@ async function render() {
   if (page === "auth" && typeof bindAuthForms === "function") bindAuthForms();
   if (typeof bindAdmin === "function") bindAdmin();
   if (typeof bindFacultyPage === "function") bindFacultyPage();
+  if (typeof bindAlumniPage === "function") bindAlumniPage();
 }
 
 let brandFireStop = null;
