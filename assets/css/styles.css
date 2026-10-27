@@ -2277,6 +2277,25 @@ select {
   cursor: pointer;
 }
 
+.audit-table thead th {
+  background: #e8a14b;
+  color: #fff;
+}
+
+.audit-note {
+  display: inline-block;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  background: #f6ac00;
+  color: #16141f;
+  font-weight: 600;
+  max-width: 36rem;
+}
+
+.audit-example {
+  margin-top: 14px;
+}
+
 .whatsapp-float {
   position: fixed;
   right: max(20px, env(safe-area-inset-right));

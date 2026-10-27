@@ -24,7 +24,13 @@ function adminCopy(lang) {
     alumniCompany: "company",
     alumniJob: "job_title",
     alumniNotes: "notes",
-    alumniActivity: zh ? "管理員操作紀錄" : "Administrator activity",
+    alumniActivity: zh ? "稽核軌跡（Audit log）" : "Example of an Activity Log",
+    auditTime: zh ? "Time" : "Time",
+    auditAdmin: zh ? "Admin" : "Admin",
+    auditAction: zh ? "Action" : "Action",
+    auditRecord: zh ? "Record" : "Record",
+    auditChange: zh ? "Change" : "Change",
+    auditNote: zh ? "業務資料顯示目前狀態；稽核資料顯示我們如何到達這個狀態。" : "Business data tells us the current state. Audit data tells us how we got there.",
     emptyAlumni: zh ? "尚無校友。請新增或匯入。" : "No alumni yet. Add one or import a CSV.",
     confirmDeleteAlumni: zh ? "確定刪除此校友？" : "Delete this alumni record?",
     importOk: zh ? "已匯入" : "Imported",
@@ -510,24 +516,27 @@ function renderAdminAlumni() {
           : `<p class="muted">${t.emptyAlumni}</p>`
       }
     </div>
-    <div class="section-header"><div><span class="eyebrow">log</span><h2>${t.alumniActivity}</h2></div></div>
+    <div class="section-header"><div><span class="eyebrow">audit</span><h2>${t.alumniActivity}</h2></div></div>
+    <p class="audit-note">${t.auditNote}</p>
     <div class="admin-table-wrap">
       ${
         activity.length
-          ? `<table class="admin-table">
-              <thead><tr><th>${lang === "zh" ? "時間" : "Time"}</th><th>${lang === "zh" ? "管理員" : "Administrator"}</th><th>${lang === "zh" ? "動作" : "Action"}</th><th>${lang === "zh" ? "內容" : "Detail"}</th></tr></thead>
+          ? `<table class="admin-table audit-table">
+              <thead><tr><th>${t.auditTime}</th><th>${t.auditAdmin}</th><th>${t.auditAction}</th><th>${t.auditRecord}</th><th>${t.auditChange}</th></tr></thead>
               <tbody>${activity
                 .map(
                   (item) => `<tr>
-                    <td>${escapeHtml(item.at.replace("T", " ").slice(0, 19))}</td>
-                    <td>${escapeHtml(item.actor)}</td>
-                    <td>${escapeHtml(item.action)}</td>
-                    <td>${escapeHtml(item.detail)}</td>
+                    <td>${escapeHtml(formatAlumniAuditTime(item.at))}</td>
+                    <td>${escapeHtml(item.admin || item.actor || "—")}</td>
+                    <td><span class="admin-status">${escapeHtml(item.action || "—")}</span></td>
+                    <td>${escapeHtml(item.record || "—")}</td>
+                    <td>${escapeHtml(item.change || item.detail || "—")}</td>
                   </tr>`
                 )
                 .join("")}</tbody>
-            </table>`
-          : `<p class="muted">${lang === "zh" ? "尚無操作紀錄。" : "No administrator activity yet."}</p>`
+            </table>
+            <p class="muted audit-example">${escapeHtml(alumniAuditSentence(activity[0]))}</p>`
+          : `<p class="muted">${lang === "zh" ? "尚無稽核紀錄。" : "No audit trail yet."}</p>`
       }
     </div>`;
 
