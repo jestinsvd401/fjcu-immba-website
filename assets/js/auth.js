@@ -405,12 +405,6 @@ function accessFlashHtml(flash, t) {
   </div>`;
 }
 
-function applicationFlowStep(role) {
-  if (role === "admin" || role === "super_admin") return "admin";
-  if (role === "rejected") return "review";
-  return "pending";
-}
-
 function approvalFlowHtml(t, current, compact = false) {
   const steps = [
     ["register", t.flowRegister, t.flowRegisterTip],
@@ -532,7 +526,6 @@ async function renderAdminAccess() {
               <h3>${escapeHtml(applicantName(item))}</h3>
               <span class="admin-status admin-status-waiting">${t.statusWaiting}</span>
             </header>
-            ${approvalFlowHtml(t, applicationFlowStep(item.role), true)}
             ${applicantDetailsHtml(item, t)}
             ${accessActionsHtml(item, t, superAdmin)}
           </article>`
@@ -552,10 +545,7 @@ async function renderAdminAccess() {
         return `<tr>
         <td>${escapeHtml(applicantName(item))}</td>
         <td>${escapeHtml(item.email || "—")}</td>
-        <td>
-          <span class="admin-status ${status.cls}">${status.label}</span>
-          ${approvalFlowHtml(t, applicationFlowStep(item.role), true)}
-        </td>
+        <td><span class="admin-status ${status.cls}">${status.label}</span></td>
         <td>${escapeHtml(item.role)}</td>
         <td>${escapeHtml(formatAccessStamp(item.created_at))}</td>
         <td class="admin-actions">${accessActionsHtml(item, t, superAdmin)}</td>
