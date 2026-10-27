@@ -44,6 +44,7 @@ function authCopy(lang) {
     pendingTitle: zh ? "等待核准" : "Waiting for approval",
     rejectedTitle: zh ? "申請未通過" : "Request declined",
     email: zh ? "電子郵件" : "Email",
+    fullName: zh ? "姓名" : "Full name",
     password: zh ? "密碼" : "Password",
     passwordNew: zh ? "新密碼" : "New password",
     login: zh ? "登入" : "Log in",
@@ -58,20 +59,32 @@ function authCopy(lang) {
     verifyLead: zh ? "請到信箱點選確認連結，證明這個信箱屬於你。" : "Open the confirmation link in your email to prove this address belongs to you.",
     pendingLead: zh ? "你已完成註冊與信箱驗證，但還不能進入後台。請等待 super_admin 核准。" : "You are registered and verified, but cannot access the back office yet. A super admin must approve you.",
     rejectedLead: zh ? "你的管理員申請已被拒絕。" : "Your administrator request was rejected.",
-    flow: zh ? "註冊 → 驗證信箱 → pending → 核准 → admin" : "Register → Verify email → pending → Approval → admin",
+    flow: zh ? "Register → Verify Email → pending → Super Admin Review → admin" : "Register → Verify Email → pending → Super Admin Review → admin",
+    flowRegister: "Register",
+    flowVerify: zh ? "Verify Email" : "Verify Email",
+    flowPending: "pending",
+    flowReview: "Super Admin Review",
+    flowAdmin: "admin",
     who: zh ? "Authentication：你是誰？" : "Authentication: who are you?",
     what: zh ? "Authorization：你可以做什麼？" : "Authorization: what are you allowed to do?",
     rolePending: "pending",
     roleAdmin: "admin",
     roleSuper: "super_admin",
-    tabAccess: zh ? "權限核准" : "Access",
+    tabAccess: zh ? "管理員核准儀表板" : "Administrator Approval Dashboard",
+    pendingQueue: zh ? "待審核的管理員申請" : "Pending administrator requests",
+    allApplications: zh ? "全部申請狀態" : "All applications",
+    applicant: zh ? "申請人" : "Applicant",
+    applicantId: zh ? "申請人 ID" : "Applicant ID",
+    requestedAt: zh ? "申請時間" : "Requested",
+    reviewedAt: zh ? "審核時間" : "Reviewed",
+    emptyPending: zh ? "目前沒有待審核的管理員申請。" : "There are no pending administrator requests.",
     approve: zh ? "核准為 admin" : "Approve as admin",
     reject: zh ? "拒絕" : "Reject",
     emptyQueue: zh ? "目前沒有帳號資料。" : "No accounts found.",
     cannotApprove: zh ? "只有 super_admin 可以核准權限。" : "Only a super admin can approve access.",
     statusLabel: zh ? "核准狀態" : "Approval",
     statusApproved: zh ? "已核准" : "Approved",
-    statusWaiting: zh ? "尚未核准（等待中）" : "Not approved (waiting)",
+    statusWaiting: zh ? "pending — Super Admin Review" : "pending — Super Admin Review",
     statusDenied: zh ? "未核准" : "Not approved",
     statusSuper: zh ? "super_admin" : "super_admin",
     confirmApprove: zh ? "確定核准此帳號為 admin？" : "Approve this account as admin?",
@@ -120,6 +133,7 @@ function authPage(lang) {
       `${flashHtml}
       <p class="muted">${t.flow}</p>
       <form id="auth-register-form" class="admin-form">
+        <label>${t.fullName}<input type="text" name="full_name" required autocomplete="name"></label>
         <label>${t.email}<input type="email" name="email" required autocomplete="email"></label>
         <label>${t.password}<input type="password" name="password" required minlength="6" autocomplete="new-password"></label>
         <p class="admin-flash" id="auth-error" hidden></p>
@@ -183,7 +197,8 @@ function authStatusPage(lang, kind) {
   return authFormCard(
     title,
     lead,
-    `<div class="access-confirm ${approved ? "is-approved" : "is-denied"}" role="status">
+    `${approvalFlowHtml(t, approved ? "admin" : kind === "verify" ? "verify" : "pending")}
+     <div class="access-confirm ${approved ? "is-approved" : "is-denied"}" role="status">
        <strong>${t.yourStatus}: ${statusText}</strong>
      </div>
      <p><strong>${t.signedInAs}:</strong> ${escapeHtml(email)}</p>
@@ -295,7 +310,10 @@ function bindAuthForms() {
     const { error } = await client.auth.signUp({
       email: String(data.get("email") || "").trim(),
       password: String(data.get("password") || ""),
-      options: { emailRedirectTo: AUTH_REDIRECT() }
+      options: {
+        emailRedirectTo: AUTH_REDIRECT(),
+        data: { full_name: String(data.get("full_name") || "").trim() }
+      }
     });
     if (error) return showAuthError(error, t.error);
     sessionStorage.setItem("immba-auth-flash", t.registered);
@@ -329,12 +347,15 @@ async function listAdminProfiles() {
 }
 
 async function setProfileRole(id, role) {
+  const now = new Date().toISOString();
+  const reviewer = window.immbaAuthState.user ? window.immbaAuthState.user.id : null;
   const patch = {
     role,
-    approved_at: role === "admin" ? new Date().toISOString() : null,
-    approved_by: role === "admin" && window.immbaAuthState.user ? window.immbaAuthState.user.id : null
+    reviewed_at: now,
+    approved_at: role === "admin" ? now : null,
+    approved_by: reviewer
   };
-  return authClient().from("profiles").update(patch).eq("id", id).select("id, role").maybeSingle();
+  return authClient().from("profiles").update(patch).eq("id", id).select("id, role, email, full_name").maybeSingle();
 }
 
 const ACCESS_FLASH_KEY = "immba-access-flash";
@@ -379,58 +400,68 @@ function accessFlashHtml(flash, t) {
   </div>`;
 }
 
+function approvalFlowHtml(t, current) {
+  const steps = [
+    ["register", t.flowRegister],
+    ["verify", t.flowVerify],
+    ["pending", t.flowPending],
+    ["review", t.flowReview],
+    ["admin", t.flowAdmin]
+  ];
+  return `<ol class="approval-flow" aria-label="${t.flow}">
+    ${steps
+      .map(([key, label]) => `<li class="${key === current ? "is-current" : ""}">${escapeHtml(label)}</li>`)
+      .join("")}
+  </ol>`;
+}
+
+function formatAccessStamp(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString();
+}
+
+function applicantName(item) {
+  return (item.full_name || "").trim() || item.email || item.id;
+}
+
+function accessActionsHtml(item, t, superAdmin) {
+  if (item.role === "super_admin") return "";
+  const disabled = superAdmin ? "" : " disabled";
+  return `<div class="approval-actions">
+    <button class="btn btn-action access-approve" type="button" data-id="${item.id}" data-email="${escapeHtml(item.email)}"${disabled}>${t.approve}</button>
+    <button class="btn btn-action-secondary access-reject" type="button" data-id="${item.id}" data-email="${escapeHtml(item.email)}"${disabled}>${t.reject}</button>
+  </div>`;
+}
+
+function applicantDetailsHtml(item, t) {
+  const status = accessStatusMeta(item.role, t);
+  return `<dl class="applicant-details">
+    <div><dt>${t.applicant}</dt><dd>${escapeHtml(applicantName(item))}</dd></div>
+    <div><dt>${t.fullName}</dt><dd>${escapeHtml(item.full_name || "—")}</dd></div>
+    <div><dt>${t.email}</dt><dd>${escapeHtml(item.email || "—")}</dd></div>
+    <div><dt>${t.applicantId}</dt><dd>${escapeHtml(item.id)}</dd></div>
+    <div><dt>${t.requestedAt}</dt><dd>${escapeHtml(formatAccessStamp(item.created_at))}</dd></div>
+    <div><dt>${t.reviewedAt}</dt><dd>${escapeHtml(formatAccessStamp(item.reviewed_at || item.approved_at))}</dd></div>
+    <div><dt>${t.statusLabel}</dt><dd><span class="admin-status ${status.cls}">${status.label}</span></dd></div>
+    <div><dt>${t.roleLabel}</dt><dd>${escapeHtml(item.role || "pending")}</dd></div>
+  </dl>`;
+}
+
 function adminAccessPage(lang) {
   const t = authCopy(lang);
   return `
-    ${hero(t.tabAccess, t.what)}
+    ${hero(t.tabAccess, t.flow)}
     <section class="section"><div class="container">
       ${adminTabs(lang, "access")}
       ${typeof adminSessionBar === "function" ? adminSessionBar(lang) : ""}
-      <p class="muted">${t.flow}</p>
+      ${approvalFlowHtml(t, "review")}
       <div id="admin-access-root"><p class="muted">…</p></div>
     </div></section>`;
 }
 
-async function renderAdminAccess() {
-  const root = document.getElementById("admin-access-root");
-  if (!root) return;
-  const lang = getLang();
-  const t = authCopy(lang);
-  const superAdmin = typeof isSuperAdmin === "function" && isSuperAdmin();
-  const { records, error } = await listAdminProfiles();
-  if (error) {
-    root.innerHTML = `<p class="admin-flash" id="access-flash">${escapeHtml(error.message || t.error)}</p>`;
-    return;
-  }
-  if (!records.length) {
-    root.innerHTML = `<p class="muted">${t.emptyQueue}</p>`;
-    return;
-  }
-  const note = superAdmin ? "" : `<p class="muted">${t.cannotApprove}</p>`;
-  const flash = readAccessFlash();
-  root.innerHTML = `${note}
-    ${accessFlashHtml(flash, t)}
-    <table class="admin-table">
-    <thead><tr><th>${t.email}</th><th>${t.statusLabel}</th><th>${t.roleLabel}</th><th></th></tr></thead>
-    <tbody>${records
-      .map((item) => {
-        const status = accessStatusMeta(item.role, t);
-        return `<tr>
-        <td>${escapeHtml(item.email)}</td>
-        <td><span class="admin-status ${status.cls}">${status.label}</span></td>
-        <td>${escapeHtml(item.role)}</td>
-        <td class="admin-actions">
-          ${
-            item.role === "super_admin"
-              ? ""
-              : `<button class="access-icon-btn access-approve" type="button" data-id="${item.id}" data-email="${escapeHtml(item.email)}" title="${t.approve}" aria-label="${t.approve}"${superAdmin ? "" : " disabled"}>${accessActionIcon("approve")}</button>
-                 <button class="access-icon-btn access-reject" type="button" data-id="${item.id}" data-email="${escapeHtml(item.email)}" title="${t.reject}" aria-label="${t.reject}"${superAdmin ? "" : " disabled"}>${accessActionIcon("reject")}</button>`
-          }
-        </td>
-      </tr>`;
-      })
-      .join("")}</tbody>
-  </table>`;
+function bindAccessActions(root, t) {
   const changeRole = async (btn, role, confirmText, okDetail) => {
     const email = btn.dataset.email || "";
     if (!confirm(`${confirmText}\n${email}`)) return;
@@ -449,4 +480,60 @@ async function renderAdminAccess() {
   root.querySelectorAll(".access-reject").forEach((btn) => {
     btn.addEventListener("click", () => changeRole(btn, "rejected", t.confirmReject, t.rejectedDetail));
   });
+}
+
+async function renderAdminAccess() {
+  const root = document.getElementById("admin-access-root");
+  if (!root) return;
+  const lang = getLang();
+  const t = authCopy(lang);
+  const superAdmin = typeof isSuperAdmin === "function" && isSuperAdmin();
+  const { records, error } = await listAdminProfiles();
+  if (error) {
+    root.innerHTML = `<p class="admin-flash" id="access-flash">${escapeHtml(error.message || t.error)}</p>`;
+    return;
+  }
+  if (!records.length) {
+    root.innerHTML = `<p class="muted">${t.emptyQueue}</p>`;
+    return;
+  }
+  const pending = records.filter((item) => item.role === "pending");
+  const note = superAdmin ? "" : `<p class="muted">${t.cannotApprove}</p>`;
+  const flash = readAccessFlash();
+  const pendingCards = pending.length
+    ? pending
+        .map(
+          (item) => `<article class="approval-card">
+            <header>
+              <h3>${escapeHtml(applicantName(item))}</h3>
+              <span class="admin-status admin-status-waiting">${t.statusWaiting}</span>
+            </header>
+            ${applicantDetailsHtml(item, t)}
+            ${accessActionsHtml(item, t, superAdmin)}
+          </article>`
+        )
+        .join("")
+    : `<p class="muted">${t.emptyPending}</p>`;
+  root.innerHTML = `${note}
+    ${accessFlashHtml(flash, t)}
+    <div class="section-header"><div><span class="eyebrow">${t.tabAccess}</span><h2>${t.pendingQueue}</h2></div></div>
+    <div class="approval-queue">${pendingCards}</div>
+    <div class="section-header"><div><span class="eyebrow">${t.statusLabel}</span><h2>${t.allApplications}</h2></div></div>
+    <table class="admin-table">
+    <thead><tr><th>${t.applicant}</th><th>${t.email}</th><th>${t.statusLabel}</th><th>${t.roleLabel}</th><th>${t.requestedAt}</th><th></th></tr></thead>
+    <tbody>${records
+      .map((item) => {
+        const status = accessStatusMeta(item.role, t);
+        return `<tr>
+        <td>${escapeHtml(applicantName(item))}</td>
+        <td>${escapeHtml(item.email || "—")}</td>
+        <td><span class="admin-status ${status.cls}">${status.label}</span></td>
+        <td>${escapeHtml(item.role)}</td>
+        <td>${escapeHtml(formatAccessStamp(item.created_at))}</td>
+        <td class="admin-actions">${accessActionsHtml(item, t, superAdmin)}</td>
+      </tr>`;
+      })
+      .join("")}</tbody>
+  </table>`;
+  bindAccessActions(root, t);
 }

@@ -1,6 +1,6 @@
 -- Auth + authorization for the back office.
 -- Roles: pending, admin, super_admin, rejected
--- Flow: Register → Verify email → pending → Approval → admin
+-- Flow: Register → Verify Email → pending → Super Admin Review → admin
 -- First account becomes super_admin (so someone can approve later signups).
 -- Also set Authentication → URL Configuration:
 --   Site URL: production origin
@@ -10,12 +10,17 @@
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null default '',
+  full_name text not null default '',
   role text not null default 'pending'
     check (role in ('pending', 'admin', 'super_admin', 'rejected')),
   created_at timestamptz not null default now(),
+  reviewed_at timestamptz,
   approved_at timestamptz,
   approved_by uuid references auth.users(id)
 );
+
+alter table public.profiles add column if not exists full_name text not null default '';
+alter table public.profiles add column if not exists reviewed_at timestamptz;
 
 alter table public.profiles enable row level security;
 
@@ -57,10 +62,11 @@ declare
   admin_count integer;
 begin
   select count(*) into admin_count from public.profiles where role = 'super_admin';
-  insert into public.profiles (id, email, role)
+  insert into public.profiles (id, email, full_name, role)
   values (
     new.id,
     coalesce(new.email, ''),
+    coalesce(new.raw_user_meta_data ->> 'full_name', ''),
     case when admin_count = 0 then 'super_admin' else 'pending' end
   )
   on conflict (id) do nothing;
@@ -105,18 +111,27 @@ begin
   select count(*) into admin_count from public.profiles where role = 'super_admin';
 
   if result.id is null then
-    insert into public.profiles (id, email, role)
+    insert into public.profiles (id, email, full_name, role)
     values (
       auth.uid(),
       coalesce(auth.jwt() ->> 'email', ''),
+      coalesce(auth.jwt() -> 'user_metadata' ->> 'full_name', ''),
       case when admin_count = 0 then 'super_admin' else 'pending' end
     )
     returning * into result;
-  elsif admin_count = 0 and result.role is distinct from 'super_admin' then
-    update public.profiles
-      set role = 'super_admin'
-      where id = auth.uid()
-    returning * into result;
+  else
+    if admin_count = 0 and result.role is distinct from 'super_admin' then
+      update public.profiles
+        set role = 'super_admin'
+        where id = auth.uid()
+      returning * into result;
+    end if;
+    if coalesce(result.full_name, '') = '' then
+      update public.profiles
+        set full_name = coalesce(auth.jwt() -> 'user_metadata' ->> 'full_name', result.full_name)
+        where id = auth.uid()
+      returning * into result;
+    end if;
   end if;
 
   return result;

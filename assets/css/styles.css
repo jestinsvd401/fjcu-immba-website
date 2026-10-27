@@ -1831,6 +1831,10 @@ select {
     align-items: start;
   }
 
+  .applicant-details {
+    grid-template-columns: 1fr;
+  }
+
   .news-cards-home .news-card time,
   .news-cards-home .news-card h3,
   .news-cards-home .news-card .text-link,
@@ -2087,6 +2091,83 @@ select {
   border-color: #b71939;
   background: #fdecee;
   color: #b71939;
+}
+
+.approval-flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0 0 28px;
+  padding: 0;
+}
+
+.approval-flow li {
+  position: relative;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  background: var(--white);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.approval-flow li.is-current {
+  background: #00517d;
+  border-color: #00517d;
+  color: #fff;
+}
+
+.approval-queue {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.approval-card {
+  padding: 20px;
+  border: 1px solid var(--line);
+  background: #fffdf6;
+  box-shadow: var(--shadow);
+}
+
+.approval-card header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.approval-card h3 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.4rem;
+}
+
+.applicant-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 20px;
+  margin: 0 0 16px;
+}
+
+.applicant-details dt {
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.applicant-details dd {
+  margin: 2px 0 0;
+  word-break: break-word;
+}
+
+.approval-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .whatsapp-float {

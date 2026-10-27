@@ -6,7 +6,7 @@ function adminCopy(lang) {
     lead: zh ? "一則公告同時保存中文與英文。公開網站只顯示已發布項目。" : "One announcement holds Chinese and English in the same record. The public site shows published items only.",
     tabNews: zh ? "公告管理" : "News",
     tabFaculty: zh ? "師資管理" : "Faculty",
-    tabAccess: zh ? "權限核准" : "Access",
+    tabAccess: zh ? "管理員核准" : "Approval",
     signOut: zh ? "登出" : "Sign out",
     facultyTitle: zh ? "師資管理" : "Faculty management",
     facultyLead: zh ? "師資資料存在雲端（Supabase）。儲存後會同步到公開師資頁。" : "Faculty records live in the cloud (Supabase). Saves sync to the public Faculty page.",
