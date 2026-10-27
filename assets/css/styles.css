@@ -2431,6 +2431,33 @@ a.alumni-op:hover {
   font-size: 0.92rem;
 }
 
+.alumni-import-hint {
+  margin: -8px 0 16px;
+}
+
+.alumni-import-report {
+  margin: 0 0 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  background: #fff8e8;
+}
+
+.alumni-import-report.is-error {
+  border-color: #b71939;
+  background: #fff1f3;
+  color: #7a1c2c;
+}
+
+.alumni-import-report.is-ok {
+  border-color: #0b7a3b;
+  background: #f1f8f3;
+}
+
+.alumni-import-report ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
 .alumni-toolbar {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) repeat(4, minmax(0, 1fr)) auto;

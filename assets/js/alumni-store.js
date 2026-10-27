@@ -15,6 +15,17 @@ const ALUMNI_AUDIT_FIELDS = [
 ];
 const ALUMNI_DEPARTMENTS = ["EMBA", "ImMBA"];
 const ALUMNI_DEGREES = ["Bachelors", "Masters", "Doctoral Program", "Other"];
+const ALUMNI_CSV_REQUIRED_COLUMNS = [
+  "full_name",
+  "student_id",
+  "department",
+  "degree_program",
+  "admission_year",
+  "email",
+  "phone"
+];
+const ALUMNI_CSV_OPTIONAL_COLUMNS = ["graduation_year", "company", "job_title", "notes", "id"];
+const ALUMNI_CSV_KNOWN_COLUMNS = ALUMNI_CSV_REQUIRED_COLUMNS.concat(ALUMNI_CSV_OPTIONAL_COLUMNS);
 
 function seedAlumniRecords() {
   return [
@@ -364,22 +375,125 @@ function filterAlumniRecords(records, filters = {}) {
   });
 }
 
-function parseAlumniCsv(text) {
-  const lines = String(text || "")
+function normalizeAlumniCsvHeader(value) {
+  return String(value || "")
     .replace(/^\uFEFF/, "")
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-  if (lines.length < 2) return { records: [], skipped: 0 };
-  const headers = splitAlumniCsvLine(lines[0]).map((cell) => cell.trim().toLowerCase());
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+}
+
+function isAlumniCsvRowEmpty(cells) {
+  return cells.every((cell) => !String(cell || "").trim());
+}
+
+function alumniCsvIssue(row, issue, detail) {
+  return { row, issue, detail };
+}
+
+async function readAlumniCsvFile(file) {
+  const issues = [];
+  if (!file) return { text: "", issues: [alumniCsvIssue(0, "encoding", "No file was selected.")] };
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  if (!bytes.length) {
+    return { text: "", issues: [alumniCsvIssue(0, "encoding", "The file is empty.")] };
+  }
+  if (bytes[0] === 0xff && bytes[1] === 0xfe) {
+    return {
+      text: new TextDecoder("utf-16le").decode(bytes),
+      issues: [alumniCsvIssue(0, "encoding", "The file is UTF-16. Save it as UTF-8 CSV before importing.")]
+    };
+  }
+  if (bytes[0] === 0xfe && bytes[1] === 0xff) {
+    return {
+      text: new TextDecoder("utf-16be").decode(bytes),
+      issues: [alumniCsvIssue(0, "encoding", "The file is UTF-16. Save it as UTF-8 CSV before importing.")]
+    };
+  }
+  const sample = bytes.subarray(0, Math.min(bytes.length, 400));
+  if (Array.from(sample).some((byte) => byte === 0)) {
+    issues.push(alumniCsvIssue(0, "encoding", "The file contains null bytes, so it is not a valid UTF-8 CSV."));
+  }
+  try {
+    const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    if (/\uFFFD/.test(text)) {
+      issues.push(alumniCsvIssue(0, "encoding", "The file contains replacement characters. Save it as UTF-8."));
+    }
+    return { text, issues };
+  } catch (err) {
+    const text = new TextDecoder("utf-8").decode(bytes);
+    issues.push(alumniCsvIssue(0, "encoding", "The file is not valid UTF-8. Save it as UTF-8 CSV."));
+    return { text, issues };
+  }
+}
+
+function validateAlumniCsv(text, existing = []) {
+  const errors = [];
+  const warnings = [];
   const records = [];
-  let skipped = 0;
-  lines.slice(1).forEach((line, index) => {
+  const raw = String(text || "").replace(/^\uFEFF/, "");
+  if (!raw.trim()) {
+    errors.push(alumniCsvIssue(0, "encoding", "The CSV has no readable text."));
+    return { ok: false, records, errors, warnings };
+  }
+  if (/[\uFFFD]/.test(raw) || /Ã.|Â.|â€™|â€/.test(raw.slice(0, 400))) {
+    errors.push(alumniCsvIssue(0, "encoding", "The file looks mis-encoded. Save it as UTF-8 CSV."));
+  }
+  const lines = raw.split(/\r?\n/);
+  if (!lines.length || isAlumniCsvRowEmpty(splitAlumniCsvLine(lines[0]))) {
+    errors.push(alumniCsvIssue(1, "columns", "The first row must contain column names."));
+    return { ok: false, records, errors, warnings };
+  }
+  const rawHeaders = splitAlumniCsvLine(lines[0]).map((cell) => String(cell || "").trim());
+  const headers = rawHeaders.map(normalizeAlumniCsvHeader);
+  const missing = ALUMNI_CSV_REQUIRED_COLUMNS.filter((name) => !headers.includes(name));
+  if (missing.length) {
+    errors.push(alumniCsvIssue(1, "columns", `Incorrect or missing column names: ${missing.join(", ")}.`));
+  }
+  const unknown = headers.filter((name) => name && !ALUMNI_CSV_KNOWN_COLUMNS.includes(name));
+  if (unknown.length) {
+    errors.push(alumniCsvIssue(1, "columns", `Unknown column names: ${unknown.join(", ")}. Use the template headers.`));
+  }
+  if (new Set(headers.filter(Boolean)).size !== headers.filter(Boolean).length) {
+    errors.push(alumniCsvIssue(1, "columns", "Duplicate column names were found in the header row."));
+  }
+  const dataLines = lines.slice(1);
+  if (!dataLines.some((line) => !isAlumniCsvRowEmpty(splitAlumniCsvLine(line)))) {
+    errors.push(alumniCsvIssue(0, "empty", "The CSV has no data rows."));
+    return { ok: false, records, errors, warnings };
+  }
+  const fileIds = new Map();
+  const fileEmails = new Map();
+  const existingById = new Map(existing.map((item) => [item.student_id, item]));
+  const existingByEmail = new Map(existing.filter((item) => item.email).map((item) => [item.email.toLowerCase(), item]));
+  dataLines.forEach((line, index) => {
+    const rowNumber = index + 2;
     const cells = splitAlumniCsvLine(line);
+    if (isAlumniCsvRowEmpty(cells)) {
+      errors.push(alumniCsvIssue(rowNumber, "empty", "Empty row."));
+      return;
+    }
     const row = {};
     headers.forEach((key, i) => {
-      row[key] = cells[i] || "";
+      if (key) row[key] = String(cells[i] || "").trim();
     });
+    const requiredMissing = ALUMNI_CSV_REQUIRED_COLUMNS.filter((key) => !String(row[key] || "").trim());
+    if (requiredMissing.length) {
+      errors.push(alumniCsvIssue(rowNumber, "required", `Missing required fields: ${requiredMissing.join(", ")}.`));
+    }
+    if (row.degree_program && !normalizeAlumniDegree(row.degree_program)) {
+      errors.push(
+        alumniCsvIssue(
+          rowNumber,
+          "degree_program",
+          `Invalid degree_program "${row.degree_program}". Use ${ALUMNI_DEGREES.join(", ")}.`
+        )
+      );
+    }
+    if (row.department && !normalizeAlumniDepartment(row.department)) {
+      errors.push(alumniCsvIssue(rowNumber, "required", `Invalid department "${row.department}". Use ${ALUMNI_DEPARTMENTS.join(" or ")}.`));
+    }
     const item = normalizeAlumni(
       {
         id: row.id || `a-import-${Date.now()}-${index}`,
@@ -397,13 +511,40 @@ function parseAlumniCsv(text) {
       },
       index
     );
-    if (!item.full_name || alumniValidationError(item)) {
-      skipped += 1;
-      return;
+    const fieldError = alumniValidationError(item);
+    if (fieldError && !requiredMissing.length) {
+      errors.push(alumniCsvIssue(rowNumber, "record", fieldError));
     }
-    records.push(item);
+    if (item.student_id) {
+      if (fileIds.has(item.student_id)) {
+        errors.push(alumniCsvIssue(rowNumber, "duplicate", `Duplicate student_id ${item.student_id} also appears on row ${fileIds.get(item.student_id)}.`));
+      } else {
+        fileIds.set(item.student_id, rowNumber);
+      }
+      if (existingById.has(item.student_id)) {
+        warnings.push(alumniCsvIssue(rowNumber, "duplicate", `student_id ${item.student_id} already exists and would be updated.`));
+      }
+    }
+    if (item.email) {
+      const emailKey = item.email.toLowerCase();
+      if (fileEmails.has(emailKey)) {
+        errors.push(alumniCsvIssue(rowNumber, "duplicate", `Duplicate email ${item.email} also appears on row ${fileEmails.get(emailKey)}.`));
+      } else {
+        fileEmails.set(emailKey, rowNumber);
+      }
+      const other = existingByEmail.get(emailKey);
+      if (other && other.student_id !== item.student_id) {
+        errors.push(alumniCsvIssue(rowNumber, "duplicate", `Email ${item.email} already belongs to ${alumniRecordLabel(other)}.`));
+      }
+    }
+    if (!requiredMissing.length && !fieldError && item.degree_program) records.push(item);
   });
-  return { records, skipped };
+  return { ok: !errors.length, records, errors, warnings };
+}
+
+function parseAlumniCsv(text) {
+  const report = validateAlumniCsv(text, []);
+  return { records: report.records, skipped: report.errors.filter((item) => item.row > 1).length, report };
 }
 
 function splitAlumniCsvLine(line) {
@@ -426,9 +567,12 @@ function splitAlumniCsvLine(line) {
   return out;
 }
 
-function importAlumniRecords(text) {
-  const { records, skipped } = parseAlumniCsv(text);
-  if (!records.length) return { imported: 0, skipped };
+function importAlumniRecords(text, existingRecords) {
+  const report = validateAlumniCsv(text, existingRecords || loadAlumniRecords());
+  if (!report.ok) return { imported: 0, skipped: report.errors.length, report };
+  const { records } = report;
+  const skipped = report.warnings.length;
+  if (!records.length) return { imported: 0, skipped, report };
   const existing = loadAlumniRecords();
   records.forEach((item) => {
     const index = existing.findIndex((row) => row.student_id && row.student_id === item.student_id);
@@ -451,7 +595,7 @@ function importAlumniRecords(text) {
     }
   });
   saveAlumniRecords(existing);
-  return { imported: records.length, skipped };
+  return { imported: records.length, skipped, report };
 }
 
 function alumniCsvTemplate() {

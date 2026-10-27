@@ -14,6 +14,9 @@ function adminCopy(lang) {
     viewActivity: zh ? "檢視活動紀錄" : "View activity history",
     alumniRequire: zh ? "每次 Create、Update、Delete 都會產生稽核紀錄。" : "Every Create, Update, and Delete action generates an audit record.",
     importAlumni: zh ? "批次匯入 CSV" : "Import CSV",
+    importValidate: zh ? "匯入前會先檢查必填欄位、空白列、學位值、欄位名稱、重複資料與編碼。" : "Validate before importing: required fields, empty rows, degree-program values, column names, duplicates, and encoding.",
+    importBlocked: zh ? "未匯入。請先修正下列問題。" : "Import blocked. Fix these issues first.",
+    importOk: zh ? "已匯入" : "Imported",
     downloadTemplate: zh ? "下載匯入範本" : "Download CSV template",
     searchAlumni: zh ? "搜尋姓名、學號、公司…" : "Search name, student ID, company…",
     filterAll: zh ? "全部" : "All",
@@ -35,7 +38,6 @@ function adminCopy(lang) {
     auditNote: zh ? "業務資料顯示目前狀態；稽核資料顯示我們如何到達這個狀態。" : "Business data tells us the current state. Audit data tells us how we got there.",
     emptyAlumni: zh ? "尚無校友。請新增或匯入。" : "No alumni yet. Add one or import a CSV.",
     confirmDeleteAlumni: zh ? "確定刪除此校友？" : "Delete this alumni record?",
-    importOk: zh ? "已匯入" : "Imported",
     importSkip: zh ? "列因格式不符而略過" : "row(s) skipped because the values did not match the required format",
     notGraduated: zh ? "尚未畢業" : "Not graduated yet",
     alumniInvalid: zh ? "請修正標示的欄位後再儲存。" : "Please fix the highlighted fields before saving.",
@@ -410,6 +412,39 @@ function alumniYearOptions(years, selected, emptyLabel) {
     .join("")}`;
 }
 
+function alumniImportIssueLine(item) {
+  const row = item.row ? `Row ${item.row}` : "File";
+  return `${row} · ${item.issue}: ${item.detail}`;
+}
+
+function alumniImportReportHtml(report, t, imported) {
+  const errors = (report && report.errors) || [];
+  const warnings = (report && report.warnings) || [];
+  if (errors.length) {
+    return `<div class="alumni-import-report is-error" id="alumni-import-report">
+      <p>${escapeHtml(t.importBlocked)}</p>
+      <ul>${errors.map((item) => `<li>${escapeHtml(alumniImportIssueLine(item))}</li>`).join("")}</ul>
+    </div>`;
+  }
+  if (imported == null && !warnings.length) return `<div id="alumni-import-report"></div>`;
+  return `<div class="alumni-import-report is-ok" id="alumni-import-report">
+    ${imported != null ? `<p>${escapeHtml(t.importOk)} ${imported}.</p>` : ""}
+    ${warnings.length ? `<ul>${warnings.map((item) => `<li>${escapeHtml(alumniImportIssueLine(item))}</li>`).join("")}</ul>` : ""}
+  </div>`;
+}
+
+function consumeAlumniImportFlash(t) {
+  try {
+    const raw = sessionStorage.getItem("immba-alumni-import-flash");
+    if (!raw) return `<div id="alumni-import-report"></div>`;
+    sessionStorage.removeItem("immba-alumni-import-flash");
+    const flash = JSON.parse(raw);
+    return alumniImportReportHtml(flash.report || {}, t, flash.imported);
+  } catch (err) {
+    return `<div id="alumni-import-report"></div>`;
+  }
+}
+
 function alumniActionIcon(kind) {
   if (kind === "edit") {
     return `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>`;
@@ -503,6 +538,8 @@ function renderAdminAlumni() {
       <a class="alumni-op" href="#alumni-activity">${t.viewActivity}</a>
     </nav>
     <p class="alumni-require">${escapeHtml(t.alumniRequire)}</p>
+    <p class="muted alumni-import-hint">${escapeHtml(t.importValidate)}</p>
+    ${consumeAlumniImportFlash(t)}
     <form class="alumni-toolbar" id="alumni-filter-form">
       <label class="sr-only" for="alumni-q">${t.searchAlumni}</label>
       <input id="alumni-q" name="q" value="${escapeHtml(filters.q)}" placeholder="${t.searchAlumni}">
@@ -647,9 +684,19 @@ function renderAdminAlumni() {
   document.getElementById("alumni-import")?.addEventListener("change", async (e) => {
     const file = e.currentTarget.files && e.currentTarget.files[0];
     if (!file) return;
-    const text = await file.text();
-    const result = importAlumniRecords(text);
-    alert(`${t.importOk} ${result.imported}. ${result.skipped} ${t.importSkip}.`);
+    const box = document.getElementById("alumni-import-report");
+    const read = typeof readAlumniCsvFile === "function" ? await readAlumniCsvFile(file) : { text: await file.text(), issues: [] };
+    const report = validateAlumniCsv(read.text, listAlumniRecords());
+    report.errors = (read.issues || []).concat(report.errors || []);
+    report.ok = !report.errors.length;
+    e.currentTarget.value = "";
+    if (!report.ok) {
+      if (box) box.outerHTML = alumniImportReportHtml(report, t);
+      else alert(t.importBlocked + "\n" + report.errors.map(alumniImportIssueLine).join("\n"));
+      return;
+    }
+    const result = importAlumniRecords(read.text, listAlumniRecords());
+    sessionStorage.setItem("immba-alumni-import-flash", JSON.stringify({ imported: result.imported, report: result.report }));
     location.href = withLang("admin.html?tab=alumni");
   });
   document.querySelectorAll(".alumni-delete").forEach((btn) => {
