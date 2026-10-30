@@ -13,6 +13,7 @@ function adminCopy(lang) {
     addAlumni: zh ? "新增" : "Add",
     viewActivity: zh ? "檢視活動紀錄" : "View activity history",
     alumniRequire: zh ? "每次 Create、Update、Delete 都會產生稽核紀錄。" : "Every Create, Update, and Delete action generates an audit record.",
+    columns: zh ? "欄位" : "Columns",
     importAlumni: zh ? "批次匯入 CSV" : "Import CSV",
     importValidate: zh ? "匯入前會先檢查必填欄位、空白列、學位值、欄位名稱、重複資料與編碼。" : "Validate before importing: required fields, empty rows, degree-program values, column names, duplicates, and encoding.",
     importBlocked: zh ? "未匯入。請先修正下列問題。" : "Import blocked. Fix these issues first.",
@@ -405,6 +406,132 @@ function alumniSelect(name, value, options, required = true) {
   </select>`;
 }
 
+const ALUMNI_COLUMN_KEY = "immba-alumni-columns-v1";
+const ALUMNI_COLUMNS = [
+  { id: "full_name", label: { en: "Name", zh: "姓名" }, defaultOn: true },
+  { id: "department", label: { en: "Department", zh: "系所" }, defaultOn: true },
+  { id: "graduation_year", label: { en: "Graduation Year", zh: "畢業年度" }, defaultOn: true },
+  { id: "company", label: { en: "Company", zh: "公司" }, defaultOn: true },
+  { id: "phone", label: { en: "Phone", zh: "電話" }, defaultOn: false },
+  { id: "email", label: { en: "Email", zh: "電子郵件" }, defaultOn: false },
+  { id: "student_id", label: { en: "Student ID", zh: "學號" }, defaultOn: true },
+  { id: "degree_program", label: { en: "Degree Program", zh: "學位" }, defaultOn: true },
+  { id: "admission_year", label: { en: "Admission Year", zh: "入學年度" }, defaultOn: true },
+  { id: "job_title", label: { en: "Job Title", zh: "職稱" }, defaultOn: false }
+];
+
+function defaultAlumniColumns() {
+  return Object.fromEntries(ALUMNI_COLUMNS.map((col) => [col.id, col.defaultOn]));
+}
+
+function loadAlumniColumns() {
+  try {
+    const raw = localStorage.getItem(ALUMNI_COLUMN_KEY);
+    if (raw) return { ...defaultAlumniColumns(), ...JSON.parse(raw) };
+  } catch (err) {
+    /* ignore */
+  }
+  return defaultAlumniColumns();
+}
+
+function saveAlumniColumns(visible) {
+  localStorage.setItem(ALUMNI_COLUMN_KEY, JSON.stringify(visible));
+}
+
+function alumniColumnLabel(col, lang) {
+  return (col.label && (col.label[lang] || col.label.en)) || col.id;
+}
+
+function alumniCellHtml(item, columnId) {
+  if (columnId === "email") {
+    return item.email ? `<a href="mailto:${escapeHtml(item.email)}">${escapeHtml(item.email)}</a>` : "—";
+  }
+  return escapeHtml(item[columnId] || "—");
+}
+
+function alumniVisibleColumns(visible) {
+  return ALUMNI_COLUMNS.filter((col) => visible[col.id]);
+}
+
+function alumniTableHtml(shown, visible, t, lang) {
+  if (!shown.length) return `<p class="muted">${t.emptyAlumni}</p>`;
+  const columns = alumniVisibleColumns(visible);
+  return `<table class="admin-table">
+    <thead>
+      <tr>
+        ${columns.map((col) => `<th>${escapeHtml(alumniColumnLabel(col, lang))}</th>`).join("")}
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      ${shown
+        .map(
+          (item) => `<tr>
+            ${columns.map((col) => `<td>${alumniCellHtml(item, col.id)}</td>`).join("")}
+            <td class="admin-actions">
+              <a class="alumni-action-icon" href="${withLang("admin.html?tab=alumni")}&edit=${encodeURIComponent(item.id)}" title="${t.edit}">${alumniActionIcon("edit")}<span class="sr-only">${t.edit}</span></a>
+              <button class="alumni-action-icon alumni-delete" type="button" data-id="${escapeHtml(item.id)}" title="${t.remove}">${alumniActionIcon("delete")}<span class="sr-only">${t.remove}</span></button>
+            </td>
+          </tr>`
+        )
+        .join("")}
+    </tbody>
+  </table>`;
+}
+
+function alumniColumnsMenuHtml(visible, lang, t) {
+  return `<div class="alumni-columns">
+    <button class="btn btn-action-secondary alumni-columns-btn" id="alumni-columns-btn" type="button" aria-expanded="false" aria-haspopup="true">${escapeHtml(t.columns)} <span aria-hidden="true">▾</span></button>
+    <div class="alumni-columns-menu" id="alumni-columns-menu" hidden>
+      ${ALUMNI_COLUMNS.map(
+        (col) => `<label>
+          <input type="checkbox" data-col="${col.id}"${visible[col.id] ? " checked" : ""}>
+          <span>${escapeHtml(alumniColumnLabel(col, lang))}</span>
+        </label>`
+      ).join("")}
+    </div>
+  </div>`;
+}
+
+function bindAlumniDeleteButtons(t) {
+  document.querySelectorAll(".alumni-delete").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (!confirm(t.confirmDeleteAlumni)) return;
+      deleteAlumniRecord(btn.dataset.id);
+      location.href = withLang("admin.html?tab=alumni");
+    });
+  });
+}
+
+function bindAlumniColumnPicker(shown, t, lang) {
+  const btn = document.getElementById("alumni-columns-btn");
+  const menu = document.getElementById("alumni-columns-menu");
+  const root = document.getElementById("admin-alumni-root");
+  if (!btn || !menu) return;
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const open = menu.hidden;
+    menu.hidden = !open;
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+  });
+  menu.addEventListener("click", (e) => e.stopPropagation());
+  menu.querySelectorAll("input[type='checkbox']").forEach((input) => {
+    input.addEventListener("change", () => {
+      const visible = loadAlumniColumns();
+      visible[input.dataset.col] = input.checked;
+      saveAlumniColumns(visible);
+      const wrap = document.getElementById("alumni-table-wrap");
+      if (wrap) wrap.innerHTML = alumniTableHtml(shown, visible, t, lang);
+      bindAlumniDeleteButtons(t);
+    });
+  });
+  root?.addEventListener("click", (e) => {
+    if (e.target.closest(".alumni-columns")) return;
+    menu.hidden = true;
+    btn.setAttribute("aria-expanded", "false");
+  });
+}
+
 function alumniYearOptions(years, selected, emptyLabel) {
   const empty = emptyLabel ? `<option value="">${emptyLabel}</option>` : "";
   return `${empty}${years
@@ -511,23 +638,7 @@ function renderAdminAlumni() {
   const activity = loadAlumniActivity();
   const departments = typeof ALUMNI_DEPARTMENTS !== "undefined" ? ALUMNI_DEPARTMENTS : ["EMBA", "ImMBA"];
   const degrees = typeof ALUMNI_DEGREES !== "undefined" ? ALUMNI_DEGREES : ["Bachelors", "Masters", "Doctoral Program", "Other"];
-  const rows = shown
-    .map(
-      (item) => `<tr>
-        <td>${escapeHtml(item.full_name)}</td>
-        <td>${escapeHtml(item.student_id)}</td>
-        <td>${escapeHtml(item.department)}</td>
-        <td>${escapeHtml(item.degree_program)}</td>
-        <td>${escapeHtml(item.admission_year || "—")}</td>
-        <td>${escapeHtml(item.graduation_year || "—")}</td>
-        <td>${escapeHtml(item.company || "—")}</td>
-        <td class="admin-actions">
-          <a class="alumni-action-icon" href="${withLang("admin.html?tab=alumni")}&edit=${encodeURIComponent(item.id)}" title="${t.edit}">${alumniActionIcon("edit")}<span class="sr-only">${t.edit}</span></a>
-          <button class="alumni-action-icon alumni-delete" type="button" data-id="${escapeHtml(item.id)}" title="${t.remove}">${alumniActionIcon("delete")}<span class="sr-only">${t.remove}</span></button>
-        </td>
-      </tr>`
-    )
-    .join("");
+  const visibleColumns = loadAlumniColumns();
   root.innerHTML = `
     <nav class="alumni-ops" aria-label="${escapeHtml(t.alumniTitle)}">
       <a class="alumni-op" href="${withLang("admin.html?tab=alumni")}#new">${t.addAlumni}</a>
@@ -565,32 +676,15 @@ function renderAdminAlumni() {
       <div><span class="eyebrow">${t.eyebrow}</span><h2>${t.alumniTitle}</h2></div>
       <div class="action-row">
         <a class="btn btn-action" href="${withLang("admin.html?tab=alumni")}#new">${t.addAlumni}</a>
+        ${alumniColumnsMenuHtml(visibleColumns, lang, t)}
         <a class="btn btn-action-secondary" href="#alumni-activity">${t.viewActivity}</a>
         <button class="btn btn-action-secondary" type="button" id="alumni-template">${t.downloadTemplate}</button>
         <label class="btn btn-action-secondary alumni-import-label">${t.importAlumni}<input id="alumni-import" type="file" accept=".csv,text/csv" hidden></label>
       </div>
     </div>
     ${current ? adminAlumniForm(current, t) : ""}
-    <div class="admin-table-wrap">
-      ${
-        shown.length
-          ? `<table class="admin-table">
-              <thead>
-                <tr>
-                  <th>${t.alumniFullName}</th>
-                  <th>${t.alumniStudentId}</th>
-                  <th>${t.alumniDepartment}</th>
-                  <th>${t.alumniDegree}</th>
-                  <th>${t.alumniAdmission}</th>
-                  <th>${t.alumniGraduation}</th>
-                  <th>${t.alumniCompany}</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>${rows}</tbody>
-            </table>`
-          : `<p class="muted">${t.emptyAlumni}</p>`
-      }
+    <div class="admin-table-wrap" id="alumni-table-wrap">
+      ${alumniTableHtml(shown, visibleColumns, t, lang)}
     </div>
     <div class="section-header" id="alumni-activity"><div><span class="eyebrow">audit</span><h2>${t.alumniActivity}</h2></div></div>
     <div class="admin-table-wrap">
@@ -699,13 +793,8 @@ function renderAdminAlumni() {
     sessionStorage.setItem("immba-alumni-import-flash", JSON.stringify({ imported: result.imported, report: result.report }));
     location.href = withLang("admin.html?tab=alumni");
   });
-  document.querySelectorAll(".alumni-delete").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      if (!confirm(t.confirmDeleteAlumni)) return;
-      deleteAlumniRecord(btn.dataset.id);
-      location.href = withLang("admin.html?tab=alumni");
-    });
-  });
+  bindAlumniDeleteButtons(t);
+  bindAlumniColumnPicker(shown, t, lang);
 }
 
 function bindAdmin() {
