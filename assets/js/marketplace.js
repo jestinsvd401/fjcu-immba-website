@@ -1,7 +1,7 @@
 /* Books & materials desk. The imMBA page shell stays; this paints the child page. */
 (function () {
   const E = window.MarketEngine;
-  const KEY = "immba-market-v1";
+  const KEY = "immba-market-v2";
   const SESSION = "immba-market-session";
   const ROLE = "immba-market-role";
 
@@ -1093,7 +1093,19 @@
       const slot = root.querySelector(".mk-flash");
       if (!slot) root.insertAdjacentHTML("afterbegin", `<p class="mk-flash">${esc(message)}</p>`);
     }
+    labelTables(root);
     bind(root);
+  }
+
+  function labelTables(root) {
+    root.querySelectorAll(".mk-table table").forEach((table) => {
+      const heads = [...table.querySelectorAll("thead th")].map((th) => th.textContent.trim());
+      table.querySelectorAll("tbody tr").forEach((row) => {
+        [...row.children].forEach((cell, index) => {
+          if (heads[index]) cell.setAttribute("data-label", heads[index]);
+        });
+      });
+    });
   }
 
   window.mountMarketplace = function () {
