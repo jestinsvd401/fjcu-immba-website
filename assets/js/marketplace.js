@@ -4,6 +4,7 @@
   const KEY = "immba-market-v2";
   const SESSION = "immba-market-session";
   const ROLE = "immba-market-role";
+  const TOKEN = "immba-market-token";
 
   const STATUS = {
     waiting_payment: { en: "Waiting for payment confirmation", zh: "等待確認付款" },
@@ -61,7 +62,9 @@
     description: { en: "Add a short description.", zh: "請寫一段簡短說明。" },
     price: { en: "Enter a price in NT$.", zh: "請輸入新台幣價格。" },
     image: { en: "Product image must be under 1.4 MB.", zh: "商品圖片需小於 1.4 MB。" },
-    locked: { en: "Platform administrator access cannot be changed here.", zh: "這裡不能變更平台管理員權限。" }
+    locked: { en: "Platform administrator access cannot be changed here.", zh: "這裡不能變更平台管理員權限。" },
+    cloud: { en: "The shared marketplace could not be saved. Refresh and try again.", zh: "無法寫入共用市集。請重新整理後再試。" },
+    admin_only: { en: "Only the platform admin can restore the sample floor.", zh: "只有平台管理員可以還原示範市集。" }
   };
 
   let db = null;
@@ -117,8 +120,61 @@
     localStorage.setItem(KEY, JSON.stringify(seeded));
     return seeded;
   }
-  function persist() {
-    localStorage.setItem(KEY, JSON.stringify(db));
+  function token() {
+    return sessionStorage.getItem(TOKEN) || "";
+  }
+  function remember(state) {
+    localStorage.setItem(KEY, JSON.stringify(state));
+  }
+  function publicSeed() {
+    const seeded = E.createSeed(new Date());
+    seeded.users.forEach((user) => {
+      delete user.password;
+    });
+    return seeded;
+  }
+  async function pull() {
+    if (!window.MarketCloud) return load();
+    let state = await MarketCloud.load(token());
+    if (!state || !Array.isArray(state.users)) throw new Error("load");
+    if (!state.users.length) {
+      const installed = await MarketCloud.install(publicSeed());
+      if (!installed || installed.ok === false) throw new Error("install");
+      state = await MarketCloud.load(token());
+      if (!state || !Array.isArray(state.users) || !state.users.length) throw new Error("load");
+    }
+    remember(state);
+    return state;
+  }
+  async function persist() {
+    if (!window.MarketCloud) {
+      remember(db);
+      return true;
+    }
+    if (!token()) return false;
+    const copy = JSON.parse(JSON.stringify(db));
+    copy.users.forEach((user) => {
+      delete user.password;
+    });
+    const result = await MarketCloud.save(token(), copy);
+    if (!result || result.ok === false) return false;
+    remember(db);
+    return true;
+  }
+  async function commit(next) {
+    const ok = await persist();
+    if (!ok) {
+      flash = tErr("cloud");
+      try {
+        db = await pull();
+      } catch (error) {
+        db = load();
+      }
+      renderMarket();
+      return;
+    }
+    if (typeof next === "function") next();
+    else renderMarket();
   }
   function userId() {
     return sessionStorage.getItem(SESSION) || "";
@@ -400,7 +456,6 @@
         <p>${zh() ? "每個示範帳號的密碼都是" : "Every sample account uses the password"} <code>${E.DEMO_PASSWORD}</code>. ${zh() ? "訪客可以略過，直接逛市集。" : "Visitors can skip this and browse the floor."}</p>
         <div class="mk-demos">${demos.map((demo) => `<button type="button" data-action="demo" data-email="${esc(demo[1])}"><strong>${esc(demo[0])}</strong><span>${esc(demo[2])}</span></button>`).join("")}</div>
         <p><a href="#/">${zh() ? "以訪客繼續" : "Continue as a visitor"}</a></p>
-        <button type="button" class="mk-text" data-action="reset">${zh() ? "還原示範資料" : "Reset sample data"}</button>
       </section>
     </div>`;
   }
@@ -734,7 +789,8 @@
     return `${chrome()}${banner()}<section class="mk-sheet">
       <p class="mk-kicker">${zh() ? "平台管理員" : "Platform admin"}</p>
       <h2>${zh() ? "交易管理" : "Transaction management"}</h2>
-      <p class="mk-note">${zh() ? "監看不等於修改。已完成的交易會保留，作為業務紀錄。" : "Monitoring does not always mean editing. Completed transactions stay as business records."}</p>
+      <p class="mk-note">${zh() ? "監看不等於修改。已完成的交易會保留，作為業務紀錄。商品、價格與訂單存在共用資料庫。" : "Monitoring does not always mean editing. Completed transactions stay as business records. Listings, prices, and orders are stored in the shared database."}</p>
+      <p><button type="button" class="mk-text" data-action="reset">${zh() ? "還原示範市集" : "Restore the sample floor"}</button></p>
       <div class="mk-stats">
         <article><span>${zh() ? "交易金額" : "Transaction amount"}</span><strong>${esc(money(report.volume))}</strong></article>
         <article><span>${zh() ? "未完成" : "Incomplete"}</span><strong>${report.incompleteCount}</strong></article>
@@ -889,81 +945,94 @@
       input.addEventListener("change", () => {
         const result = E.setCartQuantity(db, userId(), activeRole(), input.dataset.cartQty, input.value);
         if (!result.ok) return fail(result);
-        persist();
-        renderMarket();
+        commit();
       });
     });
-    root.addEventListener("click", (event) => {
+    root.addEventListener("click", async (event) => {
       const button = event.target.closest("[data-action]");
       if (!button || button.tagName === "FORM") return;
       const action = button.dataset.action;
       if (action === "logout") {
+        const current = token();
         setSession("", "");
+        sessionStorage.removeItem(TOKEN);
+        if (current && window.MarketCloud) MarketCloud.logout(current);
         flash = zh() ? "已登出。你可以繼續以訪客瀏覽。" : "Signed out. You can keep browsing as a visitor.";
         go("/");
         return;
       }
       if (action === "reset") {
-        db = E.createSeed(new Date());
-        persist();
-        setSession("", "");
-        flash = zh() ? "示範資料已還原。" : "Sample data restored.";
-        go("/login");
+        if (!window.MarketCloud) {
+          db = E.createSeed(new Date());
+          remember(db);
+          setSession("", "");
+          flash = zh() ? "示範資料已還原。" : "Sample data restored.";
+          go("/login");
+          return;
+        }
+        const result = await MarketCloud.reset(token());
+        if (!result || result.ok === false) return fail(result || { error: "cloud" });
+        if (result.token) sessionStorage.setItem(TOKEN, result.token);
+        db = await pull();
+        flash = zh() ? "示範市集已還原。" : "Sample floor restored.";
+        go("/admin");
         return;
       }
       if (action === "demo") {
-        const result = E.login(db, button.dataset.email, E.DEMO_PASSWORD);
-        if (!result.ok) return fail(result);
+        if (!window.MarketCloud) {
+          const result = E.login(db, button.dataset.email, E.DEMO_PASSWORD);
+          if (!result.ok) return fail(result);
+          afterLogin(result);
+          return;
+        }
+        const result = await MarketCloud.login(button.dataset.email, E.DEMO_PASSWORD);
+        if (!result || result.ok === false) return fail(result || { error: "cloud" });
+        sessionStorage.setItem(TOKEN, result.token);
+        db = await pull();
         afterLogin(result);
         return;
       }
       if (action === "cart-remove") {
         const result = E.setCartQuantity(db, userId(), activeRole(), button.dataset.id, 0);
         if (!result.ok) return fail(result);
-        persist();
-        renderMarket();
+        commit();
         return;
       }
       if (action === "advance") {
         const note = document.getElementById("ship-note");
         const result = E.advance(db, userId(), activeRole(), button.dataset.id, button.dataset.step, note ? note.value : "", Date.now());
         if (!result.ok) return fail(result);
-        persist();
         flash = zh() ? "訂單狀態已更新。賣家與買家會看到同一筆紀錄。" : "Order status updated. Buyer and seller share this record.";
-        renderMarket();
+        commit();
         return;
       }
       if (action === "complete") {
         const result = E.completeOrder(db, userId(), activeRole(), button.dataset.id, Date.now());
         if (!result.ok) return fail(result);
-        persist();
         flash = zh() ? "交易已完成，紀錄會保留。" : "Transaction completed. The record stays.";
-        renderMarket();
+        commit();
         return;
       }
       if (action === "set-qty") {
         const input = root.querySelector(`[data-qty="${CSS.escape(button.dataset.id)}"]`);
         const result = E.setQuantity(db, userId(), activeRole(), button.dataset.id, input ? input.value : "", Date.now());
         if (!result.ok) return fail(result);
-        persist();
         flash = zh() ? "可售數量已更新。" : "Available quantity updated.";
-        renderMarket();
+        commit();
         return;
       }
       if (action === "visibility") {
         if (button.dataset.step === "remove" && !window.confirm(zh() ? "下架後買家就看不到這項商品。已完成的訂單仍會保留。" : "Buyers will no longer see this listing. Completed orders stay on record.")) return;
         const result = E.setVisibility(db, userId(), activeRole(), button.dataset.id, button.dataset.step, Date.now());
         if (!result.ok) return fail(result);
-        persist();
-        renderMarket();
+        commit();
         return;
       }
       if (action === "user") {
         const result = E.adminUsers(db, userId(), activeRole(), button.dataset.id, button.dataset.step, Date.now());
         if (!result.ok) return fail(result);
-        persist();
         flash = zh() ? "使用者狀態已更新。" : "User updated.";
-        renderMarket();
+        commit();
         return;
       }
       if (action === "csv") {
@@ -984,30 +1053,46 @@
       const data = new FormData(form);
       const action = form.dataset.action;
       if (action === "login") {
-        const result = E.login(db, data.get("email"), data.get("password"));
-        if (!result.ok) return fail(result);
+        if (!window.MarketCloud) {
+          const result = E.login(db, data.get("email"), data.get("password"));
+          if (!result.ok) return fail(result);
+          afterLogin(result);
+          return;
+        }
+        const result = await MarketCloud.login(data.get("email"), data.get("password"));
+        if (!result || result.ok === false) return fail(result || { error: "cloud" });
+        sessionStorage.setItem(TOKEN, result.token);
+        db = await pull();
         afterLogin(result);
         return;
       }
       if (action === "register") {
-        const result = E.register(db, {
+        const input = {
           name: data.get("name"),
           email: data.get("email"),
           password: data.get("password"),
           role: data.get("role"),
           shopName: data.get("shopName")
-        }, Date.now());
-        if (!result.ok) return fail(result);
-        persist();
+        };
+        if (!window.MarketCloud) {
+          const result = E.register(db, input, Date.now());
+          if (!result.ok) return fail(result);
+          remember(db);
+          afterLogin(result);
+          return;
+        }
+        const result = await MarketCloud.register(input);
+        if (!result || result.ok === false) return fail(result || { error: "cloud" });
+        sessionStorage.setItem(TOKEN, result.token);
+        db = await pull();
         afterLogin(result);
         return;
       }
       if (action === "add-cart") {
         const result = E.addToCart(db, userId(), activeRole(), data.get("productId"), data.get("quantity"));
         if (!result.ok) return fail(result);
-        persist();
         flash = zh() ? "已加入購物車。" : "Added to cart.";
-        go("/cart");
+        commit(() => go("/cart"));
         return;
       }
       if (action === "checkout") {
@@ -1026,9 +1111,8 @@
           items: cart.items.filter((item) => item.purchasable).map((item) => ({ productId: item.productId, quantity: item.quantity }))
         }, Date.now());
         if (!result.ok) return fail(result);
-        persist();
         flash = zh() ? "訂單已建立，賣家會在待處理訂單裡看到它。" : "Order created. The seller can see it in orders to process.";
-        go(result.orders.length === 1 ? "/orders/" + result.orders[0].id : "/orders");
+        commit(() => go(result.orders.length === 1 ? "/orders/" + result.orders[0].id : "/orders"));
         return;
       }
       if (action === "save-product") {
@@ -1046,9 +1130,8 @@
           image
         }, data.get("id") || null, Date.now());
         if (!result.ok) return fail(result);
-        persist();
         flash = zh() ? "商品已儲存。" : "Product saved.";
-        go("/sell/inventory");
+        commit(() => go("/sell/inventory"));
         return;
       }
       if (action === "search") {
@@ -1108,8 +1191,23 @@
     });
   }
 
+  let loadGen = 0;
   window.mountMarketplace = function () {
-    db = load();
-    renderMarket();
+    const gen = ++loadGen;
+    const root = document.getElementById("market-root");
+    if (root && !db) {
+      root.innerHTML = `<p class="mk-empty">${typeof getLang === "function" && getLang() === "zh" ? "正在讀取市集…" : "Loading the marketplace…"}</p>`;
+    }
+    const job = window.MarketCloud ? pull() : Promise.resolve(load());
+    Promise.resolve(job).then((state) => {
+      if (gen !== loadGen) return;
+      db = state;
+      renderMarket();
+    }).catch(() => {
+      if (gen !== loadGen) return;
+      db = load();
+      flash = tErr("cloud");
+      renderMarket();
+    });
   };
 })();
