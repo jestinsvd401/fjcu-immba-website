@@ -52,7 +52,8 @@ const I18N = {
       { href: "graduation.html", label: "畢業與離校" },
       { href: "dual-degree.html", label: "跨國雙碩士" },
       { href: "exchange.html", label: "海外交換" },
-      { href: "gallery.html", label: "活動集錦" }
+      { href: "gallery.html", label: "活動集錦" },
+      { href: "marketplace.html", label: "教材市集" }
     ],
     footerAbout:
       "輔仁大學國際經營管理碩士班（imMBA）為全英語授課、AACSB 認證之國際化 MBA 學程，培養具備全球視野、跨域整合與數位創新能力的管理人才。",
@@ -153,7 +154,8 @@ const I18N = {
       { href: "graduation.html", label: "Graduation" },
       { href: "dual-degree.html", label: "Dual Degree" },
       { href: "exchange.html", label: "Exchange" },
-      { href: "gallery.html", label: "Highlights" }
+      { href: "gallery.html", label: "Highlights" },
+      { href: "marketplace.html", label: "Marketplace" }
     ],
     footerAbout:
       "Fu Jen imMBA is an English-taught, AACSB-accredited MBA designed for global mobility, cross-disciplinary integration, and digital innovation.",

@@ -161,6 +161,7 @@ function layout(inner) {
             <p><a href="${withLang("exchange.html")}">${lang === "zh" ? "海外交換" : "Exchange"}</a></p>
             <p><a href="${withLang("faculty.html")}">${lang === "zh" ? "師資介紹" : "Faculty"}</a></p>
             <p><a href="${withLang("alumni.html")}">${lang === "zh" ? "校友" : "Alumni"}</a></p>
+            <p><a href="${withLang("marketplace.html")}">${lang === "zh" ? "教材市集" : "Marketplace"}</a></p>
           </div>
           <div>
             <h3>${t.footerCol3}</h3>
@@ -185,6 +186,7 @@ async function render() {
   document.documentElement.lang = I18N[lang].htmlLang;
   if (page === "admin") document.title = lang === "zh" ? "後台管理 | imMBA" : "Back office | imMBA";
   else if (page === "auth") document.title = lang === "zh" ? "後台登入 | imMBA" : "Back office sign-in | imMBA";
+  else if (page === "marketplace") document.title = lang === "zh" ? "教材與書籍市集 | imMBA" : "Books & Materials Marketplace | imMBA";
   else document.title = I18N[lang].pageTitle;
 
   let inner;
@@ -216,6 +218,7 @@ async function render() {
   if (typeof bindAdmin === "function") bindAdmin();
   if (typeof bindFacultyPage === "function") bindFacultyPage();
   if (typeof bindAlumniPage === "function") bindAlumniPage();
+  if (page === "marketplace" && typeof mountMarketplace === "function") mountMarketplace();
 }
 
 let brandFireStop = null;

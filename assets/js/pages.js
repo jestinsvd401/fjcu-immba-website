@@ -104,6 +104,7 @@ function pageContent(page, lang) {
           <p class="lead">${t.lead}</p>
           <div class="hero-actions">
             ${actionLink(q ? "admissions.html" + q : "admissions.html", I18N[lang].apply)}
+            ${actionLink(q ? "marketplace.html" + q : "marketplace.html", t.cta2, "secondary")}
             ${actionLink(q ? "contact.html" + q : "contact.html", I18N[lang].contactAction, "secondary")}
           </div>
         </div>
@@ -158,19 +159,12 @@ function pageContent(page, lang) {
       </div></section>`,
 
     marketplace: () => `
-      ${hero(zh ? "教材與書籍市集" : "Books & Materials Marketplace", zh ? "課程示範用讀本與講義（非正式書店）" : "Course-demonstration readings and packs — not an official bookstore")}
-      <section class="section"><div class="container">
+      ${hero(zh ? "教材與書籍市集" : "Books & Materials Marketplace", zh ? "同學之間的二手書與教材。課程示範，不是正式書店。" : "A student desk for second-hand books and course materials. A course demonstration, not an official bookstore.")}
+      <section class="section" style="padding-top:0"><div class="container">
         <div class="notice">${zh
-          ? "本頁為課程示範內容，非正式販售。正式教材請依教師與圖書館公告。"
-          : "This page is for the course demonstration only. It is not an official shop. Follow faculty and library notices for required texts."}</div>
-        <div class="grid-3">${MATERIALS.map((m) => `
-          <article class="card">
-            <span class="eyebrow">${m.type[lang]}</span>
-            <h3>${m.title[lang]}</h3>
-            <p>${m.note[lang]}</p>
-            ${m.title.en === "Thesis Format Guide" ? resourceLink("assets/docs/thesis-format-checklist.pdf", zh ? "論文格式檢核表（教學示範）" : "Thesis format checklist (teaching sample)") : ""}
-            ${m.title.en === "Partner School Briefs" ? resourceLink("assets/docs/immba-curriculum-overview.pdf", zh ? "課程與修業一覽（教學示範）" : "Curriculum overview (teaching sample)") : ""}
-          </article>`).join("")}</div>
+          ? "本頁為課程示範。買家、賣家與平台管理員看到的功能不同。交易紀錄會保留，不會在完成後刪除。"
+          : "Course demonstration. Buyers, sellers, and the platform admin see different tools. Completed transactions stay on record."}</div>
+        <div id="market-root"></div>
       </div></section>`,
 
     about: () => `
