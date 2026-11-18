@@ -473,15 +473,9 @@
       </section>`;
   }
 
-  function cardSrc(image) {
-    if (typeof image === "string" && image.length > 48000) {
-      return "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320"><rect width="240" height="320" fill="#4c2a6a"/></svg>');
-    }
-    return image || "";
-  }
   function card(product) {
     return `<a class="mk-card" href="#/product/${esc(product.id)}">
-      <span class="mk-photo"><img src="${esc(cardSrc(product.image))}" alt=""><em class="mk-stock ${product.stockStatus}">${esc(pick(STOCK[product.stockStatus]))}</em></span>
+      <span class="mk-photo"><img src="${esc(product.image || "")}" alt="${esc(pick(product.name))}"><em class="mk-stock ${product.stockStatus}">${esc(pick(STOCK[product.stockStatus]))}</em></span>
       <p class="mk-kicker">${esc(pick(CATS[product.category]))}</p>
       <h3>${esc(pick(product.name))}</h3>
       <p class="mk-shop">${esc(product.shopName)}</p>
