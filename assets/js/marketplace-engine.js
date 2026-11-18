@@ -169,7 +169,7 @@
         name: "Mei Huang",
         email: "mei.huang@immba.test",
         password: DEMO_PASSWORD,
-        roles: ["seller"],
+        roles: ["seller", "buyer"],
         shopName: "Mei’s Used Books",
         sellerStatus: "approved",
         suspended: false,
@@ -182,7 +182,7 @@
         name: "Arun Shah",
         email: "arun.shah@immba.test",
         password: DEMO_PASSWORD,
-        roles: ["seller"],
+        roles: ["seller", "buyer"],
         shopName: "Arun Course Packs",
         sellerStatus: "approved",
         suspended: false,
@@ -221,7 +221,7 @@
         name: "Sam Ortiz",
         email: "sam.ortiz@immba.test",
         password: DEMO_PASSWORD,
-        roles: ["seller"],
+        roles: ["seller", "buyer"],
         shopName: "Sam’s Notes",
         sellerStatus: "pending",
         suspended: false,
@@ -381,10 +381,6 @@
     return { ok: true, actor };
   }
 
-  function sellerLocked(user) {
-    return !!(user && Array.isArray(user.roles) && user.roles.includes("seller") && user.sellerStatus !== "approved");
-  }
-
   function register(db, input, now) {
     const name = String(input.name || "").trim();
     const email = String(input.email || "").trim().toLowerCase();
@@ -412,8 +408,9 @@
       postal: String(input.postal || "").trim(),
       country: String(input.country || "Taiwan").trim() || "Taiwan"
     };
+    db.userSeq = (db.userSeq || 0) + 1;
     const user = {
-      id: "u_" + Date.now().toString(36),
+      id: "u_" + db.userSeq.toString(36) + (now || Date.now()).toString(36),
       name,
       email,
       password,
@@ -451,7 +448,6 @@
     const gate = requireUser(db, userId, activeRole);
     if (!gate.ok) return gate;
     if (gate.actor.role !== "buyer") return { ok: false, error: "buyer_only" };
-    if (sellerLocked(gate.actor)) return { ok: false, error: "not_approved" };
     const product = findProduct(db, productId);
     if (!product || product.listingStatus !== "active") return { ok: false, error: "missing" };
     const qty = Math.floor(Number(quantity));
@@ -468,7 +464,6 @@
     const gate = requireUser(db, userId, activeRole);
     if (!gate.ok) return gate;
     if (gate.actor.role !== "buyer") return { ok: false, error: "buyer_only" };
-    if (sellerLocked(gate.actor)) return { ok: false, error: "not_approved" };
     const user = findUser(db, userId);
     const qty = Math.floor(Number(quantity));
     user.cart = user.cart.filter((item) => item.productId !== productId || qty > 0);
@@ -512,7 +507,6 @@
     const gate = requireUser(db, userId, activeRole);
     if (!gate.ok) return gate;
     if (gate.actor.role !== "buyer") return { ok: false, error: "buyer_only" };
-    if (sellerLocked(gate.actor)) return { ok: false, error: "not_approved" };
     if (!input || input.quantitiesConfirmed !== true) return { ok: false, error: "confirm" };
     const address = input.address || {};
     const recipient = String(address.recipient || "").trim();
@@ -644,7 +638,6 @@
     const gate = requireUser(db, userId, activeRole);
     if (!gate.ok) return gate;
     if (gate.actor.role !== "buyer") return { ok: false, error: "buyer_only" };
-    if (sellerLocked(gate.actor)) return { ok: false, error: "not_approved" };
     const order = findOrder(db, orderId);
     if (!order || order.buyerId !== gate.actor.id) return { ok: false, error: "missing" };
     if (order.status !== "shipped") return { ok: false, error: "step" };
@@ -895,6 +888,32 @@
     return { ok: true, user: userPublic(target) };
   }
 
+  function applySeller(db, userId, activeRole, shopName, now) {
+    const gate = requireUser(db, userId, activeRole);
+    if (!gate.ok) return gate;
+    if (gate.actor.role !== "buyer") return { ok: false, error: "buyer_only" };
+    if (gate.actor.roles.includes("admin")) return { ok: false, error: "locked" };
+    if (gate.actor.sellerStatus === "approved" || gate.actor.sellerStatus === "pending") return { ok: false, error: "step" };
+    const shop = String(shopName || "").trim();
+    if (shop.length < 2) return { ok: false, error: "shop" };
+    const user = findUser(db, userId);
+    if (!user.roles.includes("buyer")) user.roles.unshift("buyer");
+    if (!user.roles.includes("seller")) user.roles.push("seller");
+    user.shopName = shop;
+    user.sellerStatus = "pending";
+    const moment = iso(now || Date.now());
+    log(db, {
+      at: moment,
+      type: "seller_applied",
+      actorName: user.name,
+      message: {
+        en: user.name + " applied to sell as " + shop + " and is waiting for approval.",
+        zh: user.name + " 以 " + shop + " 申請成為賣家，等待核准。"
+      }
+    });
+    return { ok: true, user: userPublic(user), activeRole: "buyer" };
+  }
+
   return {
     DEMO_PASSWORD,
     WEEK_MS,
@@ -929,6 +948,7 @@
     salesSummary,
     salesCsv,
     adminOrders,
-    adminUsers
+    adminUsers,
+    applySeller
   };
 });

@@ -490,18 +490,6 @@ begin
   if seller_locked then
     if exists (
       select 1
-      from jsonb_array_elements(coalesce(p_state->'users', '[]'::jsonb)) as item
-      join public.market_users u on u.id = item->>'id'
-      where u.id = uid
-        and (
-          u.cart is distinct from coalesce(item->'cart', '[]'::jsonb)
-          or u.address is distinct from item->'address'
-        )
-    ) then
-      return jsonb_build_object('ok', false, 'error', 'not_approved');
-    end if;
-    if exists (
-      select 1
       from jsonb_array_elements(coalesce(p_state->'products', '[]'::jsonb)) as item
       left join public.market_products p on p.id = item->>'id'
       where coalesce(p.seller_id, item->>'sellerId') = uid
@@ -523,7 +511,7 @@ begin
       select 1
       from jsonb_array_elements(coalesce(p_state->'orders', '[]'::jsonb)) as item
       left join public.market_orders o on o.id = item->>'id'
-      where uid in (item->>'buyerId', item->>'sellerId')
+      where item->>'sellerId' = uid
         and (
           o.id is null
           or o.status is distinct from item->>'status'
@@ -871,3 +859,78 @@ drop trigger if exists market_keep_platform_owner on public.market_users;
 create trigger market_keep_platform_owner
 before update on public.market_users
 for each row execute function public.market_keep_platform_owner();
+
+create or replace function public.market_apply_seller(p_token text, p_shop text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  account public.market_users%rowtype;
+  shop text := trim(coalesce(p_shop, ''));
+  next_roles text[];
+  activity_id text;
+begin
+  select u.* into account
+  from public.market_sessions s
+  join public.market_users u on u.id = s.user_id
+  where s.token = p_token
+    and u.suspended = false;
+  if account.id is null then
+    return jsonb_build_object('ok', false, 'error', 'sign_in');
+  end if;
+  if 'admin' = any(account.roles) then
+    return jsonb_build_object('ok', false, 'error', 'locked');
+  end if;
+  if 'buyer' <> all(account.roles) then
+    return jsonb_build_object('ok', false, 'error', 'buyer_only');
+  end if;
+  if account.seller_status in ('pending', 'approved') then
+    return jsonb_build_object('ok', false, 'error', 'step');
+  end if;
+  if char_length(shop) < 2 then
+    return jsonb_build_object('ok', false, 'error', 'shop');
+  end if;
+  next_roles := account.roles;
+  if not ('buyer' = any(next_roles)) then
+    next_roles := array['buyer'] || next_roles;
+  end if;
+  if not ('seller' = any(next_roles)) then
+    next_roles := next_roles || array['seller'];
+  end if;
+  update public.market_users
+    set roles = next_roles,
+        shop_name = shop,
+        seller_status = 'pending'
+    where id = account.id
+    returning * into account;
+  update public.market_meta
+    set activity_seq = activity_seq + 1
+    where id = 'main'
+    returning 'a' || activity_seq into activity_id;
+  insert into public.market_activity (id, at, type, actor_name, message)
+  values (
+    activity_id,
+    now(),
+    'seller_applied',
+    account.name,
+    jsonb_build_object(
+      'en', account.name || ' applied to sell as ' || shop || ' and is waiting for approval.',
+      'zh', account.name || ' 以 ' || shop || ' 申請成為賣家，等待核准。'
+    )
+  );
+  return jsonb_build_object(
+    'ok', true,
+    'activeRole', 'buyer',
+    'user', public.market_public_user(account, account.id, false)
+  );
+end;
+$$;
+
+grant execute on function public.market_apply_seller(text, text) to anon, authenticated;
+
+update public.market_users
+  set roles = roles || array['buyer']
+  where 'seller' = any(roles)
+    and not ('buyer' = any(roles));

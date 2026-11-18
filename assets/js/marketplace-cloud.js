@@ -31,6 +31,9 @@
     register(input) {
       return rpc("market_register", { p_input: input });
     },
+    applySeller(token, shopName) {
+      return rpc("market_apply_seller", { p_token: token || "", p_shop: shopName || "" });
+    },
     logout(token) {
       return rpc("market_logout", { p_token: token || "" });
     },
