@@ -331,7 +331,11 @@ begin
   return jsonb_build_object(
     'ok', true,
     'token', fresh,
-    'activeRole', account.roles[1],
+    'activeRole', case
+      when 'admin' = any(account.roles) then 'admin'
+      when 'seller' = any(account.roles) and account.seller_status in ('approved', 'pending') then 'seller'
+      else 'buyer'
+    end,
     'user', public.market_public_user(account, account.id, 'admin' = any(account.roles))
   );
 end;

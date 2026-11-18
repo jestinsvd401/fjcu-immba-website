@@ -40,7 +40,7 @@
   };
   const ERRORS = {
     sign_in: { en: "Sign in to continue.", zh: "請先登入。" },
-    credentials: { en: "That email and password do not match.", zh: "帳號或密碼不正確。" },
+    credentials: { en: "That email and password do not match. Registered buyers and sellers use the password from sign-up. The sample password works only on the sample buttons.", zh: "帳號或密碼不正確。註冊的買家和賣家請用註冊時設定的密碼。示範密碼只適用右側的示範按鈕。" },
     suspended: { en: "This account is suspended.", zh: "此帳號已停用。" },
     buyer_only: { en: "Cart and checkout belong to buyer accounts.", zh: "購物車與結帳只開放給買家。" },
     seller_only: { en: "Listings and shipping stay on the seller desk.", zh: "上架與出貨只在賣家工作台。" },
@@ -52,6 +52,7 @@
     confirm: { en: "Confirm the payment before buying.", zh: "付款後才能買下。" },
     payment: { en: "Choose how you paid and add the payment reference.", zh: "請選擇付款方式並填上付款參考。" },
     delivery: { en: "Choose home delivery or self collection.", zh: "請選擇宅配或自取。" },
+    charge: { en: "Every order includes the NT$4 service charge, and the total must include the delivery choice.", zh: "每筆訂單都要加 NT$4 服務費，合計也要包含所選的運費。" },
     address: { en: "Recipient, address, and city are required.", zh: "請填收件人、地址與城市。" },
     phone: { en: "Enter a phone number with 8 to 15 digits.", zh: "請填 8 到 15 碼的電話號碼。" },
     missing: { en: "That record is not on this desk.", zh: "這個工作台找不到該筆資料。" },
@@ -428,6 +429,7 @@
           ? "訪客可瀏覽公開商品。買家加入購物車並下單。賣家管理庫存與出貨。平台管理員只監看交易。同一套系統裡有買家、賣家與平台管理員三種角色，介面會跟著目前角色改變。"
           : "Visitors browse public listings. Buyers add to cart and place orders. Sellers manage inventory and shipping. The platform admin monitors transactions and does not act as the buyer or the seller. One system holds buyer, seller, and platform admin roles, and the desk changes with the role you are using."}</p>
         ${actor() ? sellApplication() : signupChoices()}
+        ${sellerDeskNote()}
         <form class="mk-filters" data-action="search">
           <label>${zh() ? "搜尋商品" : "Search products"}
             <input name="q" value="${esc(q)}" placeholder="${zh() ? "書名、講義、賣家" : "Title, notes, seller"}">
@@ -561,10 +563,11 @@
         <p class="mk-kicker">${zh() ? "帳號" : "Account"}</p>
         <h2>${zh() ? "登入你的工作台" : "Sign in to your desk"}</h2>
         <form data-action="login">
-          <label>${zh() ? "電子郵件" : "Email"}<input name="email" type="email" value="elena.chen@immba.test" autocomplete="username"></label>
-          <label>${zh() ? "密碼" : "Password"}<input name="password" type="password" value="${E.DEMO_PASSWORD}" autocomplete="current-password"></label>
+          <label>${zh() ? "電子郵件" : "Email"}<input name="email" type="email" autocomplete="username" required></label>
+          <label>${zh() ? "密碼" : "Password"}<input name="password" type="password" autocomplete="current-password" required></label>
           <button class="mk-btn" type="submit">${zh() ? "登入" : "Sign in"}</button>
         </form>
+        <p class="mk-note">${zh() ? "買家和賣家在這裡登入，請輸入註冊時設定的密碼。示範密碼只給右側的示範按鈕使用。" : "Buyers and sellers sign in here with the password chosen at sign-up. The sample password is only for the sample buttons."}</p>
         <h3>${zh() ? "註冊" : "Sign up"}</h3>
         <p>${zh() ? "買家和賣家各自註冊。超級管理員用後台帳號登入，核准賣家並監看交易。" : "Buyers and sellers each register. The super admin signs in with the back-office account to approve sellers and monitor transactions."}</p>
         ${signupChoices()}
@@ -814,19 +817,21 @@
           <th>${zh() ? "商品" : "Item"}</th>
           <th>${zh() ? "價格" : "Price"}</th>
           <th>${zh() ? "可售" : "Available"}</th>
+          <th>${zh() ? "買家已買" : "Sold"}</th>
           <th>${zh() ? "上架狀態" : "Listing"}</th>
           <th></th>
         </tr></thead>
         <tbody>${listings.map((product) => `<tr>
-          <td>${esc(pick(product.name))}</td>
+          <td>${esc(pick(product.name))}<br><small>${esc(purchaseNote(product))}</small></td>
           <td>${esc(money(product.price))}</td>
           <td>${product.quantity}</td>
+          <td>${purchaseCount(product)}</td>
           <td>${esc(pick(LISTING[product.listingStatus]))}</td>
           <td class="mk-row-actions">
             <a href="#/sell/products/${esc(product.id)}/edit">${zh() ? "編輯" : "Edit"}</a>
             <button type="button" data-action="visibility" data-step="remove" data-id="${esc(product.id)}">${zh() ? "移除" : "Remove"}</button>
           </td>
-        </tr>`).join("") || `<tr><td colspan="5">${zh() ? "還沒有上架的商品。" : "No items listed yet."}</td></tr>`}</tbody>
+        </tr>`).join("") || `<tr><td colspan="6">${zh() ? "還沒有上架的商品。" : "No items listed yet."}</td></tr>`}</tbody>
       </table></div>
       ${removed.length ? `<p class="mk-note">${zh() ? "已移除、買家看不到的商品：" : "Removed from the floor:"} ${esc(removed.map((product) => pick(product.name)).join(", "))}</p>` : ""}
       <h3>${zh() ? "交易" : "Transactions"}</h3>
@@ -867,15 +872,17 @@
           <th>${zh() ? "分類" : "Category"}</th>
           <th>${zh() ? "價格" : "Price"}</th>
           <th>${zh() ? "可售" : "Available"}</th>
+          <th>${zh() ? "買家已買" : "Sold"}</th>
           <th>${zh() ? "存貨狀態" : "Stock"}</th>
           <th>${zh() ? "上架狀態" : "Listing"}</th>
           <th></th>
         </tr></thead>
         <tbody>${result.products.map((product) => `<tr>
-          <td>${esc(pick(product.name))}<br><small>${zh() ? "目前存貨" : "Current inventory"} ${product.currentInventory} − ${zh() ? "已購買" : "purchased"} ${product.purchased}</small></td>
+          <td>${esc(pick(product.name))}<br><small>${zh() ? "目前存貨" : "Current inventory"} ${product.currentInventory} − ${zh() ? "已購買" : "purchased"} ${product.purchased}</small><br><small>${esc(purchaseNote(product))}</small></td>
           <td>${esc(pick(CATS[product.category]))}</td>
           <td>${esc(money(product.price))}</td>
           <td><input data-qty="${esc(product.id)}" type="number" min="0" value="${product.quantity}" ${locked ? "disabled" : ""}></td>
+          <td>${purchaseCount(product)}</td>
           <td><em class="mk-pill ${product.stockStatus}">${esc(pick(STOCK[product.stockStatus]))}</em></td>
           <td>${esc(pick(LISTING[product.listingStatus]))}</td>
           <td class="mk-row-actions">
@@ -997,7 +1004,7 @@
     return `${chrome()}${banner()}<section class="mk-sheet">
       <p class="mk-kicker">${zh() ? "平台管理員" : "Platform admin"}</p>
       <h2>${zh() ? "交易管理" : "Transaction management"}</h2>
-      <p class="mk-note">${zh() ? "監看不等於修改。已完成的交易會保留，作為業務紀錄。商品、價格與訂單存在共用資料庫。" : "Monitoring does not always mean editing. Completed transactions stay as business records. Listings, prices, and orders are stored in the shared database."}</p>
+      <p class="mk-note">${zh() ? `這裡列出每一間店的每一筆買家交易，目前顯示 ${report.orders.length} 筆，資料庫共 ${db.orders.length} 筆。監看不會刪除已完成的交易。` : `Every buyer purchase from every shop is listed here. Showing ${report.orders.length} of ${db.orders.length} transactions. Monitoring does not delete a completed sale.`}</p>
       ${applicationQueue()}
       <p><button type="button" class="mk-text" data-action="reset">${zh() ? "還原示範市集" : "Restore the sample floor"}</button></p>
       <div class="mk-stats">
@@ -1120,6 +1127,27 @@
     </section>`;
   }
 
+  function purchaseCount(product) {
+    const rows = E.productPurchases(db, product.id);
+    if (!rows.length) return product.purchased || 0;
+    return rows.reduce((sum, row) => sum + row.quantity, 0);
+  }
+  function purchaseNote(product) {
+    const rows = E.productPurchases(db, product.id);
+    if (!rows.length) return zh() ? "還沒有買家購買。" : "No buyer purchases yet.";
+    return rows.map((row) => zh()
+      ? `${row.buyerName} 買了 ${row.quantity}（${row.orderId}）`
+      : `${row.buyerName} bought ${row.quantity} (${row.orderId})`).join(zh() ? "、" : ", ");
+  }
+  function sellerDeskNote() {
+    const user = E.findUser(db, userId());
+    if (!user || activeRole() === "seller") return "";
+    if (!user.roles.includes("seller") || user.sellerStatus !== "approved") return "";
+    return `<p class="mk-note">${zh()
+      ? "這間店已經核准。切換到賣家，就能看到庫存和買家買走的數量。"
+      : "This shop is approved. Switch to Seller to see inventory and the quantities buyers purchased."}</p>`;
+  }
+
   function sellerWaiting(user) {
     const person = user || E.findUser(db, userId());
     return !!(person && person.roles.includes("seller") && person.sellerStatus !== "approved");
@@ -1195,6 +1223,23 @@
     setSession(result.user.id, result.activeRole);
     flash = zh() ? "已登入。" : "Signed in.";
     go(deskFor(result.activeRole));
+  }
+
+  async function enterDesk(result) {
+    if (!result || result.ok === false || !result.user) return fail(result || { error: "cloud" });
+    if (!window.MarketCloud) return afterLogin(result);
+    if (result.token) sessionStorage.setItem(TOKEN, result.token);
+    try {
+      db = await pull();
+    } catch (error) {
+      sessionStorage.removeItem(TOKEN);
+      return fail({ error: "cloud" });
+    }
+    if (!E.findUser(db, result.user.id)) {
+      sessionStorage.removeItem(TOKEN);
+      return fail({ error: "cloud" });
+    }
+    afterLogin(result);
   }
 
   async function readImage(file) {
@@ -1291,10 +1336,7 @@
           return;
         }
         const result = await MarketCloud.login(button.dataset.email, E.DEMO_PASSWORD);
-        if (!result || result.ok === false) return fail(result || { error: "cloud" });
-        sessionStorage.setItem(TOKEN, result.token);
-        db = await pull();
-        afterLogin(result);
+        await enterDesk(result);
         return;
       }
       if (action === "cart-remove") {
@@ -1371,11 +1413,8 @@
           afterLogin(result);
           return;
         }
-        const result = await MarketCloud.login(data.get("email"), data.get("password"));
-        if (!result || result.ok === false) return fail(result || { error: "cloud" });
-        sessionStorage.setItem(TOKEN, result.token);
-        db = await pull();
-        afterLogin(result);
+        const result = await MarketCloud.login(String(data.get("email") || "").trim(), data.get("password"));
+        await enterDesk(result);
         return;
       }
       if (action === "register") {
@@ -1400,10 +1439,7 @@
           return;
         }
         const result = await MarketCloud.register(input);
-        if (!result || result.ok === false) return fail(result || { error: "cloud" });
-        sessionStorage.setItem(TOKEN, result.token);
-        db = await pull();
-        afterLogin(result);
+        await enterDesk(result);
         return;
       }
       if (action === "apply-seller") {

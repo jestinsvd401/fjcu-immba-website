@@ -440,11 +440,38 @@
     return { ok: true, user: userPublic(user), activeRole: role };
   }
 
+  function openingRole(user) {
+    if (!user) return "";
+    if (user.roles.includes("admin")) return "admin";
+    if (user.roles.includes("seller") && (user.sellerStatus === "approved" || user.sellerStatus === "pending")) return "seller";
+    if (user.roles.includes("buyer")) return "buyer";
+    return user.roles[0] || "";
+  }
+
   function login(db, email, password) {
     const user = db.users.find((entry) => entry.email === String(email || "").trim().toLowerCase());
     if (!user || user.password !== password) return { ok: false, error: "credentials" };
     if (user.suspended) return { ok: false, error: "suspended" };
-    return { ok: true, user: userPublic(user), activeRole: user.roles[0] };
+    return { ok: true, user: userPublic(user), activeRole: openingRole(user) };
+  }
+
+  function productPurchases(db, productId) {
+    const rows = [];
+    (db.orders || []).forEach((order) => {
+      (order.items || []).forEach((item) => {
+        if (item.productId !== productId) return;
+        const buyer = findUser(db, order.buyerId);
+        rows.push({
+          orderId: order.id,
+          buyerName: buyer ? buyer.name : "Buyer",
+          quantity: Number(item.quantity) || 0,
+          status: order.status,
+          createdAt: order.createdAt
+        });
+      });
+    });
+    rows.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+    return rows;
   }
 
   function addToCart(db, userId, activeRole, productId, quantity) {
@@ -976,7 +1003,9 @@
     findOrder,
     sessionActor,
     register,
+    openingRole,
     login,
+    productPurchases,
     addToCart,
     setCartQuantity,
     cartView,
