@@ -789,7 +789,8 @@
     return text;
   }
 
-  function salesCsv(db, sellerId) {
+  function salesCsv(db, sellerId, status) {
+    const wanted = String(status || "").trim();
     const rows = [[
       "Order ID",
       "Buyer",
@@ -802,7 +803,7 @@
       "Completed at"
     ]];
     db.orders
-      .filter((order) => order.sellerId === sellerId)
+      .filter((order) => order.sellerId === sellerId && (!wanted || order.status === wanted))
       .forEach((order) => {
         const buyer = findUser(db, order.buyerId);
         const products = order.items.map((item) => (item.name.en || item.name) + " x " + item.quantity).join("; ");

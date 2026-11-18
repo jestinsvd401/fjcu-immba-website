@@ -240,10 +240,10 @@
       add("/cart", (zh() ? "購物車 " : "Cart ") + cartCount());
     }
     if (user && user.role === "seller" && !sellerWaiting(user)) {
-      add("/sell/inventory", zh() ? "庫存" : "Inventory");
-      add("/sell/products/new", zh() ? "上架商品" : "Add product");
+      add("/sell/inventory", zh() ? "商品" : "Listings");
+      add("/sell/products/new", zh() ? "新增商品" : "Add item");
       add("/sell/orders", zh() ? "待處理訂單" : "Orders");
-      add("/sell/sales", zh() ? "銷售紀錄" : "Sales");
+      add("/sell/sales", zh() ? "交易紀錄" : "Transactions");
     }
     if (user && user.role === "admin") {
       const waiting = pendingSellers().length;
@@ -717,19 +717,66 @@
     const block = guard("seller");
     if (block) return block;
     const user = actor();
-    const open = db.orders.filter((order) => order.sellerId === user.id && E.inQueue(order, "process")).length;
+    const status = new URLSearchParams((location.hash.split("?")[1] || "")).get("status") || "";
+    const listings = db.products.filter((product) => product.sellerId === user.id && product.listingStatus !== "removed");
+    const removed = db.products.filter((product) => product.sellerId === user.id && product.listingStatus === "removed");
+    const transactions = db.orders
+      .filter((order) => order.sellerId === user.id && (!status || order.status === status))
+      .map((order) => E.orderView(db, order, Date.now()));
+    const statuses = [{ id: "", en: "All transactions", zh: "全部交易" }].concat(E.STATUSES.map((id) => ({ id, en: STATUS[id].en, zh: STATUS[id].zh })));
     return `${chrome()}${banner()}<section class="mk-sheet">
-      <p class="mk-kicker">${esc(user.shopName || "")}</p>
-      <h2>${zh() ? "賣家工作台" : "Seller desk"}</h2>
-      ${user.sellerStatus !== "approved" ? `<p class="mk-note">${zh()
-        ? `賣家申請目前是${user.sellerStatus === "pending" ? "待核准" : user.sellerStatus}。平台管理員核准前不能改庫存。賣家不能核准平台管理員。`
-        : `This seller application is ${user.sellerStatus}. Inventory changes stay locked until a platform admin approves the shop. Sellers cannot approve platform administrators.`}</p>` : ""}
-      <div class="mk-stats">
-        <article><span>${zh() ? "待處理訂單" : "Orders to process"}</span><strong>${open}</strong></article>
-        <article><span>${zh() ? "待確認付款" : "Payments to confirm"}</span><strong>${db.orders.filter((order) => order.sellerId === user.id && order.status === "waiting_payment").length}</strong></article>
-        <article><span>${zh() ? "待出貨" : "Products to ship"}</span><strong>${db.orders.filter((order) => order.sellerId === user.id && (order.status === "payment_confirmed" || order.status === "ready_to_ship")).length}</strong></article>
+      <div class="mk-head">
+        <div>
+          <p class="mk-kicker">${esc(user.shopName || "")}</p>
+          <h2>${zh() ? "賣家工作台" : "Seller desk"}</h2>
+        </div>
+        <div class="mk-row-actions">
+          <a class="mk-btn" href="#/sell/products/new">${zh() ? "新增商品" : "Add item"}</a>
+          <button type="button" class="mk-btn mk-ghost" data-action="csv" data-status="${esc(status)}">${zh() ? "匯出 CSV" : "Export CSV"}</button>
+        </div>
       </div>
-      <p><a class="mk-btn" href="#/sell/orders">${zh() ? "處理訂單" : "Process orders"}</a> <a class="mk-btn mk-ghost" href="#/sell/inventory">${zh() ? "管理庫存" : "Manage inventory"}</a></p>
+      <p>${zh() ? "上架或移除商品，並追蹤這間店的每一筆交易。CSV 會依你目前選的交易狀態匯出。" : "List or remove items, then follow every transaction for this shop. The CSV follows the transaction status you select."}</p>
+      <h3>${zh() ? "商品" : "Listings"}</h3>
+      <div class="mk-table"><table>
+        <thead><tr>
+          <th>${zh() ? "商品" : "Item"}</th>
+          <th>${zh() ? "價格" : "Price"}</th>
+          <th>${zh() ? "可售" : "Available"}</th>
+          <th>${zh() ? "上架狀態" : "Listing"}</th>
+          <th></th>
+        </tr></thead>
+        <tbody>${listings.map((product) => `<tr>
+          <td>${esc(pick(product.name))}</td>
+          <td>${esc(money(product.price))}</td>
+          <td>${product.quantity}</td>
+          <td>${esc(pick(LISTING[product.listingStatus]))}</td>
+          <td class="mk-row-actions">
+            <a href="#/sell/products/${esc(product.id)}/edit">${zh() ? "編輯" : "Edit"}</a>
+            <button type="button" data-action="visibility" data-step="remove" data-id="${esc(product.id)}">${zh() ? "移除" : "Remove"}</button>
+          </td>
+        </tr>`).join("") || `<tr><td colspan="5">${zh() ? "還沒有上架的商品。" : "No items listed yet."}</td></tr>`}</tbody>
+      </table></div>
+      ${removed.length ? `<p class="mk-note">${zh() ? "已移除、買家看不到的商品：" : "Removed from the floor:"} ${esc(removed.map((product) => pick(product.name)).join(", "))}</p>` : ""}
+      <h3>${zh() ? "交易" : "Transactions"}</h3>
+      <div class="mk-chips">${statuses.map((item) => `<a class="${status === item.id ? "on" : ""}" href="#/sell${item.id ? "?status=" + item.id : ""}">${esc(zh() ? item.zh : item.en)}</a>`).join("")}</div>
+      <div class="mk-table"><table>
+        <thead><tr>
+          <th>${zh() ? "訂單編號" : "Order ID"}</th>
+          <th>${zh() ? "買家" : "Buyer"}</th>
+          <th>${zh() ? "商品" : "Items"}</th>
+          <th>${zh() ? "日期" : "Date"}</th>
+          <th>${zh() ? "合計" : "Total"}</th>
+          <th>${zh() ? "狀態" : "Status"}</th>
+        </tr></thead>
+        <tbody>${transactions.map((order) => `<tr>
+          <td><a href="#/sell/orders/${esc(order.id)}">${esc(order.id)}</a></td>
+          <td>${esc(order.buyer.name)}</td>
+          <td>${esc(order.items.map((item) => pick(item.name) + " × " + item.quantity).join(", "))}</td>
+          <td>${esc(when(order.createdAt))}</td>
+          <td>${esc(money(order.total))}</td>
+          <td>${esc(pick(STATUS[order.status]))}</td>
+        </tr>`).join("") || `<tr><td colspan="6">${zh() ? "這個狀態沒有交易。" : "No transactions for this status."}</td></tr>`}</tbody>
+      </table></div>
     </section>`;
   }
 
@@ -764,7 +811,7 @@
             ${locked ? "" : `<button type="button" data-action="set-qty" data-id="${esc(product.id)}">${zh() ? "更新數量" : "Update quantity"}</button>`}
             ${!locked && product.listingStatus === "active" ? `<button type="button" data-action="visibility" data-step="hide" data-id="${esc(product.id)}">${zh() ? "隱藏" : "Hide"}</button>` : ""}
             ${!locked && product.listingStatus === "hidden" ? `<button type="button" data-action="visibility" data-step="unhide" data-id="${esc(product.id)}">${zh() ? "重新上架" : "List again"}</button>` : ""}
-            ${!locked && product.listingStatus !== "removed" ? `<button type="button" data-action="visibility" data-step="remove" data-id="${esc(product.id)}">${zh() ? "下架" : "Remove"}</button>` : ""}
+            ${!locked && product.listingStatus !== "removed" ? `<button type="button" data-action="visibility" data-step="remove" data-id="${esc(product.id)}">${zh() ? "移除" : "Remove"}</button>` : ""}
           </td>
         </tr>`).join("")}</tbody>
       </table></div>
@@ -845,8 +892,8 @@
     const summary = E.salesSummary(db, userId(), Date.now());
     const orders = db.orders.filter((order) => order.sellerId === userId()).map((order) => E.orderView(db, order, Date.now()));
     return `${chrome()}${banner()}<section class="mk-sheet">
-      <div class="mk-head"><div><p class="mk-kicker">${zh() ? "賣家" : "Seller"}</p><h2>${zh() ? "銷售與帳務" : "Sales history"}</h2></div><button type="button" class="mk-btn" data-action="csv">${zh() ? "下載 CSV" : "Download CSV"}</button></div>
-      <p>${zh() ? "這間店的每一筆訂單都留在銷售紀錄裡，包含已完成的交易。" : "Every order for this shop stays in the sales history, including completed transactions."}</p>
+      <div class="mk-head"><div><p class="mk-kicker">${zh() ? "賣家" : "Seller"}</p><h2>${zh() ? "交易紀錄" : "Transactions"}</h2></div><button type="button" class="mk-btn" data-action="csv">${zh() ? "匯出 CSV" : "Export CSV"}</button></div>
+      <p>${zh() ? "這間店的每一筆訂單都留在交易紀錄裡，包含已完成的交易。需要時可以匯出 CSV。" : "Every order for this shop stays in the transaction record, including completed sales. Export a CSV whenever you need it."}</p>
       <div class="mk-stats">
         <article><span>${esc(summary.monthLabel)} ${zh() ? "營收" : "revenue"}</span><strong>${esc(money(summary.monthlyRevenue))}</strong></article>
         <article><span>${zh() ? "已完成訂單" : "Completed orders"}</span><strong>${summary.completedOrders}</strong></article>
@@ -1208,12 +1255,13 @@
         return;
       }
       if (action === "csv") {
-        const csv = E.salesCsv(db, userId());
+        const wanted = button.dataset.status || "";
+        const csv = E.salesCsv(db, userId(), wanted);
         const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = "immba-sales.csv";
+        link.download = wanted ? "immba-transactions-" + wanted + ".csv" : "immba-transactions.csv";
         link.click();
         URL.revokeObjectURL(url);
       }
