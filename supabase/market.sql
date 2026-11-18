@@ -345,7 +345,11 @@ declare
   person_name text := trim(coalesce(p_input->>'name', ''));
   person_email text := lower(trim(coalesce(p_input->>'email', '')));
   person_password text := coalesce(p_input->>'password', '');
-  person_role text := case when p_input->>'role' = 'seller' then 'seller' else 'buyer' end;
+  person_role text := case
+    when p_input->>'role' = 'seller' then 'seller'
+    when p_input->>'role' = 'admin' then 'admin'
+    else 'buyer'
+  end;
   shop text := trim(coalesce(p_input->>'shopName', ''));
   new_id text;
   activity_id text;
@@ -370,7 +374,11 @@ begin
     return jsonb_build_object('ok', false, 'error', 'shop');
   end if;
   new_id := 'u_' || substr(encode(gen_random_bytes(9), 'hex'), 1, 12);
-  assigned := case when person_role = 'seller' then array['buyer', 'seller'] else array['buyer'] end;
+  assigned := case
+    when person_role = 'seller' then array['buyer', 'seller']
+    when person_role = 'admin' then array['admin']
+    else array['buyer']
+  end;
   insert into public.market_users (id, name, email, password_hash, roles, shop_name, seller_status, suspended, address, cart, created_at)
   values (
     new_id,
@@ -400,6 +408,22 @@ begin
       jsonb_build_object(
         'en', person_name || ' applied to sell as ' || shop || ' and is waiting for approval.',
         'zh', person_name || ' 以 ' || shop || ' 申請成為賣家，等待核准。'
+      )
+    );
+  elsif person_role = 'admin' then
+    update public.market_meta
+      set activity_seq = activity_seq + 1
+      where id = 'main'
+      returning 'a' || activity_seq into activity_id;
+    insert into public.market_activity (id, at, type, actor_name, message)
+    values (
+      activity_id,
+      now(),
+      'admin_registered',
+      person_name,
+      jsonb_build_object(
+        'en', person_name || ' registered as a platform administrator.',
+        'zh', person_name || ' 註冊成為平台管理員。'
       )
     );
   end if;

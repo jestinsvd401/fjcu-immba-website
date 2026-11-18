@@ -2691,6 +2691,66 @@ a.alumni-op:hover {
   max-width: 640px;
 }
 
+.mk-signup-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.mk-signup {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-height: 168px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--paper);
+  color: inherit;
+  text-decoration: none;
+}
+
+.mk-signup strong {
+  font-family: var(--serif);
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+}
+
+.mk-signup em {
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #b71939;
+}
+
+.mk-signup span:last-child {
+  color: var(--ink-soft);
+}
+
+.mk-signup-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: #b71939;
+  color: #fff8e8;
+}
+
+.mk-signup-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.mk-panel > .mk-signup-icon {
+  margin-bottom: 8px;
+}
+
 .mk-split {
   display: grid;
   grid-template-columns: 1.2fr 0.8fr;
@@ -3113,7 +3173,8 @@ a.alumni-op:hover {
 @media (max-width: 800px) {
   .mk-split,
   .mk-detail,
-  .mk-roles li {
+  .mk-roles li,
+  .mk-signup-row {
     grid-template-columns: 1fr;
   }
 
@@ -3226,6 +3287,7 @@ a.alumni-op:hover {
   .mk-note,
   .mk-flash,
   .mk-row-actions,
+  .mk-signup,
   .footer-grid,
   .footer-bottom {
     padding-right: 76px;

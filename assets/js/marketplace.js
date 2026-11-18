@@ -351,6 +351,7 @@
         <p class="mk-lead">${zh()
           ? "訪客可瀏覽公開商品。買家加入購物車並下單。賣家管理庫存與出貨。平台管理員只監看交易。同一套系統裡有買家、賣家與平台管理員三種角色，介面會跟著目前角色改變。"
           : "Visitors browse public listings. Buyers add to cart and place orders. Sellers manage inventory and shipping. The platform admin monitors transactions and does not act as the buyer or the seller. One system holds buyer, seller, and platform admin roles, and the desk changes with the role you are using."}</p>
+        ${actor() ? "" : signupChoices()}
         <form class="mk-filters" data-action="search">
           <label>${zh() ? "搜尋商品" : "Search products"}
             <input name="q" value="${esc(q)}" placeholder="${zh() ? "書名、講義、賣家" : "Title, notes, seller"}">
@@ -429,6 +430,27 @@
     </article>`;
   }
 
+  function roleIcon(role) {
+    const paths = {
+      buyer: `<circle cx="24" cy="15" r="6"/><path d="M9 38c1.6-7 6.4-11 15-11s13.4 4 15 11"/>`,
+      seller: `<path d="M8 20 24 8l16 12"/><path d="M12 18v18h24V18"/><path d="M20 36v-8h8v8"/>`,
+      admin: `<path d="M24 7 38 13v10c0 8-6 13-14 16-8-3-14-8-14-16V13z"/><path d="M18 24l4 4 8-8"/>`
+    };
+    return `<span class="mk-signup-icon"><svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${paths[role] || ""}</svg></span>`;
+  }
+  function signupChoices() {
+    const items = [
+      ["buyer", zh() ? "買家" : "Buyer", zh() ? "立刻加入購物車並下單" : "Add to a cart and place orders"],
+      ["seller", zh() ? "賣家" : "Seller", zh() ? "申請開店，核准後即可上架" : "Apply for a shop, then list after approval"],
+      ["admin", zh() ? "平台管理員" : "Administrator", zh() ? "監看交易並核准賣家" : "Monitor transactions and approve sellers"]
+    ];
+    return `<div class="mk-signup-row">${items.map(([role, title, detail]) => `<a class="mk-signup" href="#/register/${role}">
+      ${roleIcon(role)}
+      <strong>${esc(title)}</strong>
+      <em>${zh() ? "註冊" : "Sign up"}</em>
+      <span>${esc(detail)}</span>
+    </a>`).join("")}</div>`;
+  }
   function loginPage() {
     const demos = [
       ["Wei Lin", "wei.lin@immba.test", zh() ? "平台管理員" : "Platform admin"],
@@ -448,7 +470,9 @@
           <label>${zh() ? "密碼" : "Password"}<input name="password" type="password" value="${E.DEMO_PASSWORD}" autocomplete="current-password"></label>
           <button class="mk-btn" type="submit">${zh() ? "登入" : "Sign in"}</button>
         </form>
-        <p>${zh() ? "新同學？" : "New here?"} <a href="#/register">${zh() ? "建立買家或賣家帳號" : "Create a buyer or seller account"}</a></p>
+        <h3>${zh() ? "註冊" : "Sign up"}</h3>
+        <p>${zh() ? "買家、賣家和平台管理員各自註冊，帳號互不共用。" : "Buyers, sellers, and administrators each register on their own."}</p>
+        ${signupChoices()}
       </section>
       <section class="mk-panel">
         <p class="mk-kicker">${zh() ? "示範帳號" : "Sample floor"}</p>
@@ -460,21 +484,39 @@
     </div>`;
   }
 
-  function registerPage() {
+  function registerPage(role) {
+    const chosen = role === "seller" || role === "admin" ? role : role === "buyer" ? "buyer" : "";
+    if (!chosen) {
+      return `${chrome()}${banner()}<section class="mk-panel">
+        <p class="mk-kicker">${zh() ? "註冊" : "Sign up"}</p>
+        <h2>${zh() ? "選擇你的角色" : "Choose your role"}</h2>
+        <p>${zh() ? "買家、賣家和平台管理員各自有一個註冊入口。三個帳號分開建立，互不取代。" : "Buyers, sellers, and administrators each have their own sign-up. The three accounts are created separately."}</p>
+        ${signupChoices()}
+      </section>`;
+    }
+    const title = chosen === "seller"
+      ? (zh() ? "註冊賣家" : "Sign up as a seller")
+      : chosen === "admin"
+        ? (zh() ? "註冊平台管理員" : "Sign up as an administrator")
+        : (zh() ? "註冊買家" : "Sign up as a buyer");
+    const note = chosen === "seller"
+      ? (zh() ? "賣家帳號會先停在待核准。平台管理員核准後才能改庫存和出貨。" : "A seller account stays pending until a platform administrator approves the shop. Inventory and shipping unlock after that.")
+      : chosen === "admin"
+        ? (zh() ? "平台管理員監看每一筆交易並核准賣家，不代替買家下單，也不代替賣家出貨。" : "An administrator monitors every transaction and approves sellers. This account does not place orders or ship them.")
+        : (zh() ? "買家帳號建立後就可以把書放進購物車並送出訂單。" : "A buyer account can add books to a cart and submit orders as soon as it is created.");
     return `${chrome()}${banner()}<section class="mk-panel mk-narrow">
-      <p class="mk-kicker">${zh() ? "註冊" : "Register"}</p>
-      <h2>${zh() ? "建立買家或賣家帳號" : "Open a buyer or seller account"}</h2>
-      <p>${zh() ? "賣家申請會先停在待核准，直到平台管理員核准。這裡不能建立平台管理員。" : "Seller applications stay pending until a platform admin approves them. Platform admin accounts are not created here."}</p>
+      <p><a href="#/register">${zh() ? "三個註冊入口" : "All three sign-ups"}</a></p>
+      ${roleIcon(chosen)}
+      <p class="mk-kicker">${zh() ? "註冊" : "Sign up"}</p>
+      <h2>${esc(title)}</h2>
+      <p>${esc(note)}</p>
       <form data-action="register">
-        <div class="mk-chips">
-          <label><input type="radio" name="role" value="buyer" checked> ${zh() ? "買家" : "Buyer"}</label>
-          <label><input type="radio" name="role" value="seller"> ${zh() ? "賣家" : "Seller"}</label>
-        </div>
+        <input type="hidden" name="role" value="${chosen}">
         <label>${zh() ? "姓名" : "Name"}<input name="name" required></label>
-        <label>${zh() ? "電子郵件" : "Email"}<input name="email" type="email" required></label>
-        <label>${zh() ? "密碼" : "Password"}<input name="password" type="password" required></label>
-        <label>${zh() ? "店名（賣家）" : "Shop name (sellers)"}<input name="shopName" placeholder="${zh() ? "買家會看到的名稱" : "The name buyers will see"}"></label>
-        <button class="mk-btn" type="submit">${zh() ? "建立帳號" : "Create account"}</button>
+        <label>${zh() ? "電子郵件" : "Email"}<input name="email" type="email" required autocomplete="username"></label>
+        <label>${zh() ? "密碼" : "Password"}<input name="password" type="password" required minlength="4" autocomplete="new-password"></label>
+        ${chosen === "seller" ? `<label>${zh() ? "店名" : "Shop name"}<input name="shopName" required minlength="2" placeholder="${zh() ? "買家會看到的名稱" : "The name buyers will see"}"></label>` : ""}
+        <button class="mk-btn" type="submit">${zh() ? "註冊" : "Sign up"}</button>
       </form>
     </section>`;
   }
@@ -882,7 +924,7 @@
     const parts = route();
     const head = parts[0] || "";
     if (head === "login") return loginPage();
-    if (head === "register") return registerPage();
+    if (head === "register") return registerPage(parts[1]);
     if (head === "product") return productPage(parts[1]);
     if (head === "cart") return cartPage();
     if (head === "checkout") return checkoutPage();
