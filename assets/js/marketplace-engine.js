@@ -9,6 +9,8 @@
   const LOW_STOCK = 5;
   const STATUSES = ["waiting_payment", "payment_confirmed", "ready_to_ship", "shipped", "completed"];
   const PAYMENT_METHODS = ["bank_transfer", "cash", "line_pay"];
+  const SERVICE_CHARGE = 4;
+  const HOME_DELIVERY_CHARGE = 40;
   const CATEGORIES = ["textbooks", "packs", "notes", "stationery", "electronics"];
   const DEMO_PASSWORD = "immba-demo";
 
@@ -504,6 +506,20 @@
     return { items, subtotal };
   }
 
+  function cartQuote(subtotal, delivery) {
+    const method = delivery === "pickup" ? "pickup" : delivery === "home" ? "home" : "";
+    const goods = Math.max(0, Number(subtotal) || 0);
+    const serviceCharge = goods > 0 ? SERVICE_CHARGE : 0;
+    const deliveryCharge = goods > 0 && method === "home" ? HOME_DELIVERY_CHARGE : 0;
+    return {
+      delivery: method,
+      subtotal: goods,
+      serviceCharge,
+      deliveryCharge,
+      total: goods + serviceCharge + deliveryCharge
+    };
+  }
+
   function placeOrders(db, userId, activeRole, input, now) {
     const gate = requireUser(db, userId, activeRole);
     if (!gate.ok) return gate;
@@ -512,6 +528,8 @@
     const paymentMethod = PAYMENT_METHODS.includes(input.paymentMethod) ? input.paymentMethod : "";
     const paymentReference = String(input.paymentReference || "").trim();
     if (!paymentMethod || paymentReference.length < 2) return { ok: false, error: "payment" };
+    const delivery = input.delivery === "pickup" ? "pickup" : input.delivery === "home" ? "home" : "";
+    if (!delivery) return { ok: false, error: "delivery" };
     const address = input.address || {};
     const recipient = String(address.recipient || "").trim();
     const line1 = String(address.line1 || "").trim();
@@ -532,6 +550,7 @@
     }
     const moment = iso(now || Date.now());
     const created = [];
+    let chargeOnce = true;
     groups.forEach((lines, sellerId) => {
       const seller = findUser(db, sellerId);
       db.orderSeq += 1;
@@ -548,12 +567,15 @@
           quantity: qty
         };
       });
+      const goods = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      const fees = chargeOnce ? cartQuote(goods, delivery) : { serviceCharge: 0, deliveryCharge: 0 };
+      chargeOnce = false;
       const order = {
         id: "MK-" + db.orderSeq,
         buyerId: user.id,
         sellerId,
         items,
-        total: items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+        total: goods + fees.serviceCharge + fees.deliveryCharge,
         status: "waiting_payment",
         paymentStatus: "waiting",
         prepared: false,
@@ -567,7 +589,10 @@
           country: String(address.country || "Taiwan").trim(),
           phone: String(address.phone || "").trim(),
           paymentMethod,
-          paymentReference
+          paymentReference,
+          deliveryMethod: delivery,
+          serviceCharge: fees.serviceCharge,
+          deliveryCharge: fees.deliveryCharge
         },
         createdAt: moment,
         updatedAt: moment,
@@ -935,6 +960,8 @@
     LOW_STOCK,
     STATUSES,
     PAYMENT_METHODS,
+    SERVICE_CHARGE,
+    HOME_DELIVERY_CHARGE,
     CATEGORIES,
     createSeed,
     stockStatus,
@@ -953,6 +980,7 @@
     addToCart,
     setCartQuantity,
     cartView,
+    cartQuote,
     placeOrders,
     advance,
     completeOrder,

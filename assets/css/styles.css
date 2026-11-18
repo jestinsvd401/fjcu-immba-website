@@ -3047,6 +3047,32 @@ button.mk-signup {
   font-size: 1.2rem;
 }
 
+.mk-delivery {
+  border: 0;
+  margin: 14px 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.mk-fees {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 16px;
+}
+
+.mk-fees div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.mk-fee-total {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+  font-size: 1.2rem;
+}
+
 .mk-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));

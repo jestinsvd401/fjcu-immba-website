@@ -51,6 +51,7 @@
     empty: { en: "The cart is empty.", zh: "購物車是空的。" },
     confirm: { en: "Confirm the payment before buying.", zh: "付款後才能買下。" },
     payment: { en: "Choose how you paid and add the payment reference.", zh: "請選擇付款方式並填上付款參考。" },
+    delivery: { en: "Choose home delivery or self collection.", zh: "請選擇宅配或自取。" },
     address: { en: "Recipient, address, and city are required.", zh: "請填收件人、地址與城市。" },
     phone: { en: "Enter a phone number with 8 to 15 digits.", zh: "請填 8 到 15 碼的電話號碼。" },
     missing: { en: "That record is not on this desk.", zh: "這個工作台找不到該筆資料。" },
@@ -98,6 +99,49 @@
       currency: "TWD",
       maximumFractionDigits: 0
     }).format(amount || 0);
+  }
+
+  function deliveryChoice() {
+    const value = new URLSearchParams((location.hash.split("?")[1] || "")).get("delivery");
+    return value === "pickup" ? "pickup" : "home";
+  }
+
+  function deliveryChooser() {
+    const current = deliveryChoice();
+    return `<fieldset class="mk-delivery">
+      <legend>${zh() ? "取貨方式" : "Collection"}</legend>
+      <label class="mk-check"><input type="radio" name="delivery" value="home" ${current === "home" ? "checked" : ""}> ${zh() ? "宅配" : "Home delivery"} · ${esc(money(E.HOME_DELIVERY_CHARGE))}</label>
+      <label class="mk-check"><input type="radio" name="delivery" value="pickup" ${current === "pickup" ? "checked" : ""}> ${zh() ? "自取" : "Self collection"} · ${zh() ? "免運" : "Nil"}</label>
+    </fieldset>`;
+  }
+
+  function chargeSummary(quote) {
+    const deliveryName = quote.delivery === "pickup" ? (zh() ? "自取" : "Self collection") : (zh() ? "宅配" : "Home delivery");
+    const deliveryAmount = quote.deliveryCharge ? money(quote.deliveryCharge) : (zh() ? "免運" : "Nil");
+    return `<dl class="mk-fees" data-quote>
+      <div><dt>${zh() ? "小計" : "Subtotal"}</dt><dd>${esc(money(quote.subtotal))}</dd></div>
+      <div><dt>${zh() ? "服務費" : "Service charge"}</dt><dd>${esc(money(quote.serviceCharge))}</dd></div>
+      <div><dt>${esc(deliveryName)}</dt><dd>${esc(deliveryAmount)}</dd></div>
+      <div class="mk-fee-total"><dt>${zh() ? "合計" : "Total"}</dt><dd><strong>${esc(money(quote.total))}</strong></dd></div>
+    </dl>`;
+  }
+
+  function collecting(order) {
+    return !!(order.address && order.address.deliveryMethod === "pickup");
+  }
+
+  function orderFees(order) {
+    const address = order.address || {};
+    if (!Number(address.serviceCharge) && !Number(address.deliveryCharge)) return "";
+    const service = Number(address.serviceCharge) || 0;
+    const delivery = Number(address.deliveryCharge) || 0;
+    return chargeSummary({
+      subtotal: order.total - service - delivery,
+      serviceCharge: service,
+      deliveryCharge: delivery,
+      delivery: address.deliveryMethod === "pickup" ? "pickup" : "home",
+      total: order.total
+    });
   }
   function when(value) {
     if (!value) return "";
@@ -606,8 +650,7 @@
         <strong>${esc(money(item.lineTotal))}</strong>
         <button type="button" class="mk-text" data-action="cart-remove" data-id="${esc(item.productId)}">${zh() ? "移除" : "Remove"}</button>
       </div>`).join("") : `<p class="mk-empty">${zh() ? "購物車是空的。" : "Nothing in the cart yet."}</p>`}
-      <p class="mk-total">${zh() ? "小計" : "Subtotal"} <strong>${esc(money(cart.subtotal))}</strong></p>
-      ${cart.items.some((item) => item.purchasable) ? `<a class="mk-btn" href="#/checkout">${zh() ? "付款並購買" : "Pay and buy"}</a>` : ""}
+      ${cart.items.some((item) => item.purchasable) ? `<p class="mk-note">${zh() ? "每筆購物都要加服務費 NT$4。宅配 NT$40，自取免運。" : "Every cart includes a NT$4 service charge. Home delivery is NT$40. Self collection is nil."}</p>${deliveryChooser()}${chargeSummary(E.cartQuote(cart.subtotal, deliveryChoice()))}<a class="mk-btn" href="#/checkout?delivery=${deliveryChoice()}" data-checkout>${zh() ? "付款並購買" : "Pay and buy"}</a>` : (cart.items.length ? `<p class="mk-total">${zh() ? "小計" : "Subtotal"} <strong>${esc(money(cart.subtotal))}</strong></p>` : "")}
     </section>`;
   }
 
@@ -649,7 +692,7 @@
           ["phone", zh() ? "電話" : "Phone", address.phone]
         ].map(([name, label, value]) => `<label>${esc(label)}<input name="${name}" ${name === "phone" ? 'type="tel" inputmode="tel"' : ""} value="${esc(value || "")}"></label>`).join("")}
         <label class="mk-check"><input type="checkbox" name="confirm" required> ${zh() ? "我已支付這筆金額" : "I have paid this amount"}</label>
-        <p class="mk-total">${zh() ? "合計" : "Total"} <strong>${esc(money(cart.subtotal))}</strong></p>
+        ${buyable.length ? `${deliveryChooser()}${chargeSummary(E.cartQuote(cart.subtotal, deliveryChoice()))}` : ""}
         <button class="mk-btn" type="submit" ${buyable.length ? "" : "disabled"}>${zh() ? "付款並購買" : "Pay and buy"}</button>
       </form>
     </section>`;
@@ -716,14 +759,14 @@
           ${people}
           <h3>${zh() ? "商品" : "Products"}</h3>
           ${order.items.map((item) => `<div class="mk-line"><img src="${esc(item.image)}" alt=""><div><strong>${esc(pick(item.name))}</strong><p>${esc(pick(CATS[item.category] || item.category))} · ${item.quantity}</p></div><strong>${esc(money(item.price * item.quantity))}</strong></div>`).join("")}
-          <p class="mk-total">${zh() ? "合計" : "Total"} <strong>${esc(money(order.total))}</strong></p>
+          ${orderFees(order) || `<p class="mk-total">${zh() ? "合計" : "Total"} <strong>${esc(money(order.total))}</strong></p>`}
         </div>
         <div>
           <h3>${zh() ? "訂單資料" : "Order"}</h3>
           <p>${zh() ? "訂單日期" : "Order date"}: ${esc(when(order.createdAt))}</p>
           <p>${zh() ? "付款狀態" : "Payment status"}: ${esc(pick(PAY[order.paymentStatus]))}</p>
           ${paymentDetail(order) ? `<p>${zh() ? "付款方式" : "Paid by"}: ${esc(paymentDetail(order))}</p>` : ""}
-          <p>${zh() ? "送到" : "Ship to"}:<br>${esc([order.address.recipient, order.address.phone, order.address.line1, order.address.city, order.address.region, order.address.postal, order.address.country].filter(Boolean).join(", "))}</p>
+          <p>${collecting(order) ? (zh() ? "自取聯絡" : "Self collection") : (zh() ? "宅配地址" : "Home delivery")}:<br>${esc([order.address.recipient, order.address.phone, order.address.line1, order.address.city, order.address.region, order.address.postal, order.address.country].filter(Boolean).join(", "))}</p>
           ${order.shipmentNote ? `<p>${zh() ? "出貨備註" : "Shipment note"}: ${esc(order.shipmentNote)}</p>` : ""}
           ${order.status === "ready_to_ship" ? `<p class="mk-note">${order.prepared ? (zh() ? "商品已備好。" : "Product prepared.") : (zh() ? "商品還需要準備。" : "Product still needs to be prepared.")}</p>` : ""}
           ${actions}
@@ -1184,6 +1227,20 @@
         commit();
       });
     });
+    root.querySelectorAll('input[name="delivery"]').forEach((input) => {
+      input.addEventListener("change", () => {
+        const user = E.findUser(db, userId());
+        if (!user) return;
+        const cart = E.cartView(db, user);
+        const quote = E.cartQuote(cart.subtotal, input.value);
+        const box = root.querySelector("[data-quote]");
+        if (box) box.outerHTML = chargeSummary(quote);
+        const link = root.querySelector("[data-checkout]");
+        if (link) link.href = "#/checkout?delivery=" + encodeURIComponent(input.value);
+        const path = (location.hash || "#/cart").replace(/^#/, "").split("?")[0];
+        history.replaceState(null, "", "#" + path + "?delivery=" + encodeURIComponent(input.value));
+      });
+    });
     if (root.dataset.bound === "yes") return;
     root.dataset.bound = "yes";
     root.addEventListener("click", async (event) => {
@@ -1379,6 +1436,7 @@
           quantitiesConfirmed: true,
           paymentMethod: data.get("paymentMethod"),
           paymentReference: data.get("paymentReference"),
+          delivery: data.get("delivery") || deliveryChoice(),
           address: {
             recipient: data.get("recipient"),
             line1: data.get("line1"),
