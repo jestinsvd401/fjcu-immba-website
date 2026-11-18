@@ -468,6 +468,9 @@ declare
   old_order public.market_orders%rowtype;
   next_roles text[];
   seller_ok boolean;
+  actor_status text;
+  actor_roles text[];
+  seller_locked boolean := false;
 begin
   select u.id, ('admin' = any(u.roles))
     into uid, is_admin
@@ -477,6 +480,61 @@ begin
     and u.suspended = false;
   if uid is null then
     return jsonb_build_object('ok', false, 'error', 'sign_in');
+  end if;
+
+  select u.seller_status, u.roles
+    into actor_status, actor_roles
+  from public.market_users u
+  where u.id = uid;
+  seller_locked := (not is_admin) and ('seller' = any(actor_roles)) and actor_status is distinct from 'approved';
+  if seller_locked then
+    if exists (
+      select 1
+      from jsonb_array_elements(coalesce(p_state->'users', '[]'::jsonb)) as item
+      join public.market_users u on u.id = item->>'id'
+      where u.id = uid
+        and (
+          u.cart is distinct from coalesce(item->'cart', '[]'::jsonb)
+          or u.address is distinct from item->'address'
+        )
+    ) then
+      return jsonb_build_object('ok', false, 'error', 'not_approved');
+    end if;
+    if exists (
+      select 1
+      from jsonb_array_elements(coalesce(p_state->'products', '[]'::jsonb)) as item
+      left join public.market_products p on p.id = item->>'id'
+      where coalesce(p.seller_id, item->>'sellerId') = uid
+        and (
+          p.id is null
+          or p.quantity is distinct from (item->>'quantity')::integer
+          or p.purchased is distinct from coalesce((item->>'purchased')::integer, 0)
+          or p.price is distinct from (item->>'price')::numeric
+          or p.listing_status is distinct from item->>'listingStatus'
+          or p.category is distinct from item->>'category'
+          or p.name is distinct from item->'name'
+          or p.description is distinct from item->'description'
+          or p.image is distinct from coalesce(item->>'image', '')
+        )
+    ) then
+      return jsonb_build_object('ok', false, 'error', 'not_approved');
+    end if;
+    if exists (
+      select 1
+      from jsonb_array_elements(coalesce(p_state->'orders', '[]'::jsonb)) as item
+      left join public.market_orders o on o.id = item->>'id'
+      where uid in (item->>'buyerId', item->>'sellerId')
+        and (
+          o.id is null
+          or o.status is distinct from item->>'status'
+          or o.payment_status is distinct from item->>'paymentStatus'
+          or o.prepared is distinct from coalesce((item->>'prepared')::boolean, false)
+          or coalesce(o.shipment_note, '') is distinct from coalesce(item->>'shipmentNote', '')
+          or o.timeline is distinct from coalesce(item->'timeline', '[]'::jsonb)
+        )
+    ) then
+      return jsonb_build_object('ok', false, 'error', 'not_approved');
+    end if;
   end if;
 
   for rec in select value from jsonb_array_elements(coalesce(p_state->'users', '[]'::jsonb)) as value

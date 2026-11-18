@@ -381,6 +381,10 @@
     return { ok: true, actor };
   }
 
+  function sellerLocked(user) {
+    return !!(user && Array.isArray(user.roles) && user.roles.includes("seller") && user.sellerStatus !== "approved");
+  }
+
   function register(db, input, now) {
     const name = String(input.name || "").trim();
     const email = String(input.email || "").trim().toLowerCase();
@@ -447,6 +451,7 @@
     const gate = requireUser(db, userId, activeRole);
     if (!gate.ok) return gate;
     if (gate.actor.role !== "buyer") return { ok: false, error: "buyer_only" };
+    if (sellerLocked(gate.actor)) return { ok: false, error: "not_approved" };
     const product = findProduct(db, productId);
     if (!product || product.listingStatus !== "active") return { ok: false, error: "missing" };
     const qty = Math.floor(Number(quantity));
@@ -463,6 +468,7 @@
     const gate = requireUser(db, userId, activeRole);
     if (!gate.ok) return gate;
     if (gate.actor.role !== "buyer") return { ok: false, error: "buyer_only" };
+    if (sellerLocked(gate.actor)) return { ok: false, error: "not_approved" };
     const user = findUser(db, userId);
     const qty = Math.floor(Number(quantity));
     user.cart = user.cart.filter((item) => item.productId !== productId || qty > 0);
@@ -506,6 +512,7 @@
     const gate = requireUser(db, userId, activeRole);
     if (!gate.ok) return gate;
     if (gate.actor.role !== "buyer") return { ok: false, error: "buyer_only" };
+    if (sellerLocked(gate.actor)) return { ok: false, error: "not_approved" };
     if (!input || input.quantitiesConfirmed !== true) return { ok: false, error: "confirm" };
     const address = input.address || {};
     const recipient = String(address.recipient || "").trim();
@@ -637,6 +644,7 @@
     const gate = requireUser(db, userId, activeRole);
     if (!gate.ok) return gate;
     if (gate.actor.role !== "buyer") return { ok: false, error: "buyer_only" };
+    if (sellerLocked(gate.actor)) return { ok: false, error: "not_approved" };
     const order = findOrder(db, orderId);
     if (!order || order.buyerId !== gate.actor.id) return { ok: false, error: "missing" };
     if (order.status !== "shipped") return { ok: false, error: "step" };

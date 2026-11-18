@@ -45,7 +45,7 @@
     buyer_only: { en: "Cart and checkout belong to buyer accounts.", zh: "購物車與結帳只開放給買家。" },
     seller_only: { en: "Listings and shipping stay on the seller desk.", zh: "上架與出貨只在賣家工作台。" },
     admin_only: { en: "Transaction monitoring belongs to the platform admin.", zh: "交易監控只開放給平台管理員。" },
-    not_approved: { en: "Inventory stays locked until a platform admin approves the shop.", zh: "平台管理員核准前，庫存功能會先鎖住。" },
+    not_approved: { en: "This shop can use the marketplace only after the super admin approves it.", zh: "超級管理員核准這間店之後，才能使用市集。" },
     stock: { en: "That quantity is no longer available.", zh: "這個數量目前沒有足夠庫存。" },
     quantity: { en: "Enter a valid quantity.", zh: "請輸入有效數量。" },
     empty: { en: "The cart is empty.", zh: "購物車是空的。" },
@@ -230,14 +230,16 @@
         : here === href || (href !== "/" && here.startsWith(href));
       links.push(`<a class="${selected ? "on" : ""}" href="#${href}">${esc(label)}</a>`);
     };
-    if (!user || user.role === "buyer") {
+    if (user && sellerWaiting(user)) {
+      links.push(`<span class="on">${zh() ? "等待核准" : "Waiting for approval"}</span>`);
+    } else if (!user || user.role === "buyer") {
       add("/", zh() ? "市集" : "Floor");
     }
-    if (user && user.role === "buyer") {
+    if (user && user.role === "buyer" && !sellerWaiting(user)) {
       add("/orders", zh() ? "我的訂單" : "My orders");
       add("/cart", (zh() ? "購物車 " : "Cart ") + cartCount());
     }
-    if (user && user.role === "seller") {
+    if (user && user.role === "seller" && !sellerWaiting(user)) {
       add("/sell/inventory", zh() ? "庫存" : "Inventory");
       add("/sell/products/new", zh() ? "上架商品" : "Add product");
       add("/sell/orders", zh() ? "待處理訂單" : "Orders");
@@ -251,7 +253,7 @@
       add("/admin/activity", zh() ? "活動紀錄" : "Activity");
     }
     if (!user) add("/login", zh() ? "登入" : "Sign in");
-    const switcher = user && user.roles.length > 1
+    const switcher = user && user.roles.length > 1 && !sellerWaiting(user)
       ? `<label class="mk-switch">${zh() ? "角色" : "Role"}
           <select data-role-switch>${user.roles.map((role) => `<option value="${role}" ${role === user.role ? "selected" : ""}>${esc(roleLabel(role))}</option>`).join("")}</select>
         </label>`
@@ -259,7 +261,7 @@
     const whoLabel = user && user.platformOwner
       ? (zh() ? "超級管理員" : "Super admin")
       : user
-        ? `${user.name} · ${roleLabel(user.role)}${user.role === "seller" && user.shopName ? " · " + user.shopName : ""}`
+        ? `${user.name} · ${sellerWaiting(user) ? (zh() ? "等待核准" : "Waiting for approval") : roleLabel(user.role)}${user.role === "seller" && user.shopName && !sellerWaiting(user) ? " · " + user.shopName : ""}`
         : "";
     const who = user
       ? `<span class="mk-who">${esc(whoLabel)}</span>
@@ -376,7 +378,7 @@
             <ul class="mk-roles">
               <li><strong>${zh() ? "訪客" : "Visitor"}</strong><span>${zh() ? "瀏覽公開商品資訊" : "Browse public product information"}</span></li>
               <li><strong>${zh() ? "買家" : "Buyer"}</strong><span>${zh() ? "瀏覽、加入購物車、下單、查看訂單紀錄" : "Browse, add to cart, place orders, view order history"}</span></li>
-              <li><strong>${zh() ? "賣家" : "Seller"}</strong><span>${zh() ? "上架、改庫存、確認付款、出貨、查看銷售" : "List products, manage inventory, confirm payment, ship, view sales"}</span></li>
+              <li><strong>${zh() ? "賣家" : "Seller"}</strong><span>${zh() ? "核准後才能上架、改庫存、確認付款、出貨、查看銷售" : "After approval: list products, manage inventory, confirm payment, ship, and view sales"}</span></li>
               <li><strong>${zh() ? "平台管理員" : "Platform admin"}</strong><span>${zh() ? "管理使用者並監看交易，不代買也不代賣" : "Manage users and monitor transactions, without buying or selling"}</span></li>
             </ul>
           </div>
@@ -536,7 +538,7 @@
       ? (zh() ? "註冊賣家" : "Sign up as a seller")
       : (zh() ? "註冊買家" : "Sign up as a buyer");
     const note = chosen === "seller"
-      ? (zh() ? "賣家註冊時要留下地址和電話。帳號會先停在待核准，超級管理員核准後才能改庫存和出貨。" : "Sellers leave an address and phone number when they register. The account stays pending until the super admin approves the shop.")
+      ? (zh() ? "賣家註冊時要留下地址和電話。超級管理員核准前，不能使用市集裡的任何功能。" : "Sellers leave an address and phone number when they register. The marketplace stays closed until the super admin approves the shop.")
       : (zh() ? "買家註冊時要留下地址和電話。帳號建立後就可以把書放進購物車並送出訂單。" : "Buyers leave an address and phone number when they register. The account can add books to a cart and submit orders right away.");
     return `${chrome()}${banner()}<section class="mk-panel mk-narrow">
       <p><a href="#/register">${zh() ? "註冊入口" : "Sign-up choices"}</a></p>
@@ -952,7 +954,7 @@
       : `<p class="mk-empty">${zh() ? "目前沒有待核准的賣家申請。" : "No seller applications are waiting."}</p>`;
     return `<div class="mk-applications">
       <h3>${zh() ? "賣家申請" : "Seller applications"}</h3>
-      <p>${zh() ? "超級管理員逐一核准賣家。核准前，對方不能管理庫存與出貨。" : "The super admin approves each seller. Inventory and shipping stay locked until that shop is approved."}</p>
+      <p>${zh() ? "超級管理員逐一核准賣家。核准前，對方不能使用市集裡的任何功能。" : "The super admin approves each seller. The shop stays closed until that approval."}</p>
       ${rows}
     </div>`;
   }
@@ -998,7 +1000,25 @@
     </section>`;
   }
 
+  function sellerWaiting(user) {
+    const person = user || E.findUser(db, userId());
+    return !!(person && person.roles.includes("seller") && person.sellerStatus !== "approved");
+  }
+
+  function waitingPage() {
+    const user = E.findUser(db, userId());
+    return `${chrome()}${banner()}<section class="mk-panel mk-narrow">
+      <p class="mk-kicker">${esc(user.shopName || (zh() ? "賣家" : "Seller"))}</p>
+      <h2>${zh() ? "等待核准" : "Waiting for approval"}</h2>
+      <p>${zh()
+        ? "超級管理員核准這間店之前，不能瀏覽商品、加入購物車、下單、上架、管理庫存、處理訂單或查看銷售。"
+        : "Until the super admin approves this shop, browsing, the cart, checkout, listings, inventory, orders, and sales stay closed."}</p>
+      <p class="mk-note">${zh() ? "核准後請重新整理或重新登入，賣家工作台就會打開。" : "After approval, refresh or sign in again and the seller desk opens."}</p>
+    </section>`;
+  }
+
   function view() {
+    if (sellerWaiting()) return waitingPage();
     const parts = route();
     const head = parts[0] || "";
     if (head === "login") return loginPage();
