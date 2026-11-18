@@ -169,14 +169,27 @@
       /* reseed below */
     }
     const seeded = E.createSeed(new Date());
-    localStorage.setItem(KEY, JSON.stringify(seeded));
+    remember(seeded);
     return seeded;
   }
   function token() {
     return sessionStorage.getItem(TOKEN) || "";
   }
   function remember(state) {
-    localStorage.setItem(KEY, JSON.stringify(state));
+    try {
+      const copy = JSON.parse(JSON.stringify(state));
+      (copy.products || []).forEach((product) => {
+        if (typeof product.image === "string" && product.image.length > 2048) product.image = "";
+      });
+      (copy.orders || []).forEach((order) => {
+        (order.items || []).forEach((item) => {
+          if (typeof item.image === "string" && item.image.length > 2048) item.image = "";
+        });
+      });
+      localStorage.setItem(KEY, JSON.stringify(copy));
+    } catch (error) {
+      try { localStorage.removeItem(KEY); } catch (ignore) { /* the desk still runs from the server copy */ }
+    }
   }
   function publicSeed() {
     const seeded = E.createSeed(new Date());
@@ -460,9 +473,15 @@
       </section>`;
   }
 
+  function cardSrc(image) {
+    if (typeof image === "string" && image.length > 48000) {
+      return "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320"><rect width="240" height="320" fill="#4c2a6a"/></svg>');
+    }
+    return image || "";
+  }
   function card(product) {
     return `<a class="mk-card" href="#/product/${esc(product.id)}">
-      <span class="mk-photo"><img src="${esc(product.image)}" alt=""><em class="mk-stock ${product.stockStatus}">${esc(pick(STOCK[product.stockStatus]))}</em></span>
+      <span class="mk-photo"><img src="${esc(cardSrc(product.image))}" alt=""><em class="mk-stock ${product.stockStatus}">${esc(pick(STOCK[product.stockStatus]))}</em></span>
       <p class="mk-kicker">${esc(pick(CATS[product.category]))}</p>
       <h3>${esc(pick(product.name))}</h3>
       <p class="mk-shop">${esc(product.shopName)}</p>
@@ -1679,7 +1698,7 @@
       renderMarket();
     }).catch(() => {
       if (gen !== loadGen) return;
-      db = load();
+      if (!db) db = load();
       flash = tErr("cloud");
       renderMarket();
     });
