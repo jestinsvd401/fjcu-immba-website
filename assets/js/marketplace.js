@@ -224,7 +224,10 @@
     const here = "/" + parts.join("/");
     const links = [];
     const add = (href, label) => {
-      links.push(`<a class="${here === href || (href !== "/" && here.startsWith(href)) ? "on" : ""}" href="#${href}">${esc(label)}</a>`);
+      const selected = href === "/admin"
+        ? here === "/admin" || here.startsWith("/admin/transactions")
+        : here === href || (href !== "/" && here.startsWith(href));
+      links.push(`<a class="${selected ? "on" : ""}" href="#${href}">${esc(label)}</a>`);
     };
     if (!user || user.role === "buyer") {
       add("/", zh() ? "市集" : "Floor");
@@ -240,7 +243,9 @@
       add("/sell/sales", zh() ? "銷售紀錄" : "Sales");
     }
     if (user && user.role === "admin") {
+      const waiting = pendingSellers().length;
       add("/admin", zh() ? "全部交易" : "Transactions");
+      add("/admin/applications", (zh() ? "賣家申請" : "Applications") + (waiting ? " " + waiting : ""));
       add("/admin/users", zh() ? "使用者" : "Users");
       add("/admin/activity", zh() ? "活動紀錄" : "Activity");
     }
@@ -832,6 +837,7 @@
       <p class="mk-kicker">${zh() ? "平台管理員" : "Platform admin"}</p>
       <h2>${zh() ? "交易管理" : "Transaction management"}</h2>
       <p class="mk-note">${zh() ? "監看不等於修改。已完成的交易會保留，作為業務紀錄。商品、價格與訂單存在共用資料庫。" : "Monitoring does not always mean editing. Completed transactions stay as business records. Listings, prices, and orders are stored in the shared database."}</p>
+      ${applicationQueue()}
       <p><button type="button" class="mk-text" data-action="reset">${zh() ? "還原示範市集" : "Restore the sample floor"}</button></p>
       <div class="mk-stats">
         <article><span>${zh() ? "交易金額" : "Transaction amount"}</span><strong>${esc(money(report.volume))}</strong></article>
@@ -888,13 +894,44 @@
     return `${chrome()}${banner()}<p><a href="#/admin">${zh() ? "全部交易" : "All transactions"}</a></p>${orderArticle(E.orderView(db, order, Date.now()), "admin")}`;
   }
 
+  function pendingSellers() {
+    return db.users.filter((user) => user.roles.includes("seller") && user.sellerStatus === "pending");
+  }
+  function applicationQueue() {
+    const waiting = pendingSellers();
+    const rows = waiting.length
+      ? waiting.map((user) => `<article class="mk-application">
+          <div>
+            <strong>${esc(user.name)}</strong>
+            <p>${esc(user.shopName || "")}</p>
+            <p>${esc(user.email)}</p>
+          </div>
+          <button type="button" class="mk-btn" data-action="user" data-step="approve" data-id="${esc(user.id)}">${zh() ? "核准這位賣家" : "Approve this seller"}</button>
+        </article>`).join("")
+      : `<p class="mk-empty">${zh() ? "目前沒有待核准的賣家申請。" : "No seller applications are waiting."}</p>`;
+    return `<div class="mk-applications">
+      <h3>${zh() ? "賣家申請" : "Seller applications"}</h3>
+      <p>${zh() ? "每一位賣家都要各自核准。核准後，對方才能管理庫存與出貨。" : "Approve each seller separately. Inventory and shipping stay locked until you approve that shop."}</p>
+      ${rows}
+    </div>`;
+  }
+  function applicationsPage() {
+    const block = guard("admin");
+    if (block) return block;
+    return `${chrome()}${banner()}<section class="mk-sheet">
+      <p class="mk-kicker">${zh() ? "平台管理員" : "Platform admin"}</p>
+      <h2>${zh() ? "賣家申請" : "Seller applications"}</h2>
+      ${applicationQueue()}
+    </section>`;
+  }
   function usersPage() {
     const block = guard("admin");
     if (block) return block;
     const users = db.users.map((user) => E.userPublic(user));
     return `${chrome()}${banner()}<section class="mk-sheet">
       <h2>${zh() ? "使用者" : "Users"}</h2>
-      <p class="mk-note">${zh() ? "核准賣家申請，或停用買家與賣家。平台管理員權限不能在這裡授予。" : "Approve seller applications, or suspend a buyer or seller. Platform administrator access cannot be granted from this desk."}</p>
+      ${applicationQueue()}
+      <p class="mk-note">${zh() ? "也可以在這裡停用買家或賣家。平台管理員權限不能在這裡授予。" : "You can also suspend a buyer or seller here. Platform administrator access cannot be granted from this desk."}</p>
       <div class="mk-table"><table>
         <thead><tr><th>${zh() ? "姓名" : "Name"}</th><th>${zh() ? "角色" : "Role"}</th><th>${zh() ? "店名 / 狀態" : "Shop / status"}</th><th></th></tr></thead>
         <tbody>${users.map((user) => `<tr>
@@ -942,6 +979,7 @@
     }
     if (head === "admin") {
       if (parts[1] === "users") return usersPage();
+      if (parts[1] === "applications") return applicationsPage();
       if (parts[1] === "activity") return activityPage();
       if (parts[1] === "transactions" && parts[2]) return adminOrder(parts[2]);
       return adminPage();
@@ -1073,7 +1111,9 @@
       if (action === "user") {
         const result = E.adminUsers(db, userId(), activeRole(), button.dataset.id, button.dataset.step, Date.now());
         if (!result.ok) return fail(result);
-        flash = zh() ? "使用者狀態已更新。" : "User updated.";
+        flash = button.dataset.step === "approve"
+          ? (zh() ? "已核准這位賣家。對方現在可以管理庫存與出貨。" : "Seller approved. They can now manage inventory and shipping.")
+          : (zh() ? "使用者狀態已更新。" : "User updated.");
         commit();
         return;
       }
