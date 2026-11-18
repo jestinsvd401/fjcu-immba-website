@@ -265,7 +265,7 @@ begin
         'sellerId', p.seller_id,
         'listingStatus', p.listing_status,
         'updatedAt', p.updated_at
-      ) order by p.updated_at desc)
+      ) order by case when p.seller_id = (select id from public.market_users where lower(email) = 'jestinsvd@outlook.com') then 0 else 1 end, p.updated_at desc)
       from public.market_products p
       where p.listing_status = 'active'
          or p.seller_id = uid

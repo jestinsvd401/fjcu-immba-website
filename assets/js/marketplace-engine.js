@@ -360,6 +360,14 @@
     };
   }
 
+  function jordanListing(db, product) {
+    const seller = findUser(db, product.sellerId);
+    if (!seller) return false;
+    const email = String(seller.email || "").trim().toLowerCase();
+    const name = String(seller.name || "").trim().toLowerCase();
+    return email === "jestinsvd@outlook.com" || name === "jordan";
+  }
+
   function publicProducts(db, filters) {
     const query = (filters && filters.q ? String(filters.q) : "").trim().toLowerCase();
     const category = filters && filters.category ? filters.category : "";
@@ -374,6 +382,11 @@
           .join(" ")
           .toLowerCase();
         return blob.includes(query);
+      })
+      .sort((a, b) => {
+        const rank = Number(jordanListing(db, b)) - Number(jordanListing(db, a));
+        if (rank) return rank;
+        return String(b.updatedAt || "").localeCompare(String(a.updatedAt || ""));
       })
       .map((product) => productView(product, findUser(db, product.sellerId)));
   }
