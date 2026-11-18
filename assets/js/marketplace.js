@@ -301,6 +301,7 @@
     }
     if (user && user.role === "buyer") {
       add("/orders", zh() ? "我的訂單" : "My orders");
+      add("/activity", zh() ? "活動紀錄" : "Activity");
       add("/cart", (zh() ? "購物車 " : "Cart ") + cartCount());
     }
     if (user && user.role === "seller" && !sellerWaiting(user)) {
@@ -737,11 +738,31 @@
     </table></div>` : `<p class="mk-empty">${esc(empty)}</p>`;
     return `${chrome()}${banner()}<section class="mk-sheet">
       <h2>${zh() ? "我的訂單" : "My orders"}</h2>
-      <p>${zh() ? "進行中的訂單會保留狀態，直到交易完成。完成的購買會留在購買紀錄裡，不會刪除。" : "Open orders keep their order status until the sale is completed. Finished purchases move to purchase history and remain there."}</p>
+      <p>${zh()
+        ? "進行中的訂單會保留狀態，直到交易完成。賣家確認收款後，會寫進你的<a href=\"#/activity\">活動紀錄</a>。"
+        : "Open orders keep their status until the sale is completed. When the seller confirms a payment, it is written in your <a href=\"#/activity\">activity log</a>."}</p>
       <h3>${zh() ? "進行中" : "Open orders"}</h3>
       ${table(open, zh() ? "沒有進行中的訂單。回到市集開始一筆。" : "No open orders. Browse the floor to start one.")}
       <h3>${zh() ? "購買紀錄" : "Purchase history"}</h3>
       ${table(history, zh() ? "還沒有完成的購買。" : "No completed purchases yet.")}
+    </section>`;
+  }
+
+  function confirmPayment(order) {
+    if (order.status !== "waiting_payment") return "";
+    return `<button type="button" class="mk-btn" data-action="advance" data-step="payment_received" data-id="${esc(order.id)}">${zh() ? "確認已收款" : "Confirm payment received"}</button>`;
+  }
+
+  function buyerActivityPage() {
+    const block = guard("buyer");
+    if (block) return block;
+    const mine = new Set(db.orders.filter((order) => order.buyerId === userId()).map((order) => order.id));
+    const entries = db.activity.filter((entry) => entry.orderId && mine.has(entry.orderId));
+    return `${chrome()}${banner()}<section class="mk-sheet">
+      <p class="mk-kicker">${zh() ? "買家" : "Buyer"}</p>
+      <h2>${zh() ? "活動紀錄" : "Activity log"}</h2>
+      <p>${zh() ? "賣家確認收到你的付款後，這筆確認會出現在這裡，也會留在該筆訂單的狀態紀錄。" : "When a seller confirms that your payment was received, that confirmation appears here and on the order."}</p>
+      ${entries.length ? `<ol class="mk-timeline">${entries.map((entry) => `<li><strong>${esc(pick(entry.message))}</strong><span>${esc(when(entry.at))} · ${esc(entry.actorName)}</span><p><a href="#/orders/${esc(entry.orderId)}">${esc(entry.orderId)}</a></p></li>`).join("")}</ol>` : `<p class="mk-empty">${zh() ? "還沒有與你的訂單有關的活動。" : "No activity for your orders yet."}</p>`}
     </section>`;
   }
 
@@ -862,6 +883,7 @@
           <th>${zh() ? "日期" : "Date"}</th>
           <th>${zh() ? "合計" : "Total"}</th>
           <th>${zh() ? "狀態" : "Status"}</th>
+          <th>${zh() ? "收款" : "Payment"}</th>
         </tr></thead>
         <tbody>${transactions.map((order) => `<tr>
           <td><a href="#/sell/orders/${esc(order.id)}">${esc(order.id)}</a></td>
@@ -870,7 +892,8 @@
           <td>${esc(when(order.createdAt))}</td>
           <td>${esc(money(order.total))}</td>
           <td>${esc(pick(STATUS[order.status]))}</td>
-        </tr>`).join("") || `<tr><td colspan="6">${zh() ? "這個狀態沒有交易。" : "No transactions for this status."}</td></tr>`}</tbody>
+          <td>${confirmPayment(order)}</td>
+        </tr>`).join("") || `<tr><td colspan="7">${zh() ? "這個狀態沒有交易。" : "No transactions for this status."}</td></tr>`}</tbody>
       </table></div>
     </section>`;
   }
@@ -958,10 +981,10 @@
     const rows = mine.filter((order) => E.inQueue(order, current));
     return `${chrome()}${banner()}<section class="mk-sheet">
       <h2>${zh() ? "賣家訂單" : "Shop orders"}</h2>
-      <p>${zh() ? "這些是還需要你處理的訂單。已出貨與已完成的銷售留在" : "These are the orders that still need you. Shipped and completed sales stay in"} <a href="#/sell/sales">${zh() ? "銷售紀錄" : "sales history"}</a>${zh() ? "，不會刪除。" : " and are not deleted."}</p>
+      <p>${zh() ? "每一筆待收款的訂單都可以在這裡確認。確認後，買家的活動紀錄會顯示已收款。已出貨與已完成的銷售留在" : "Confirm each payment from this list. The buyer’s activity log records the confirmation. Shipped and completed sales stay in"} <a href="#/sell/sales">${zh() ? "銷售紀錄" : "sales history"}</a>${zh() ? "，不會刪除。" : " and are not deleted."}</p>
       <div class="mk-chips">${queues.map(([id, label]) => `<a class="${current === id ? "on" : ""}" href="#/sell/orders${id === "process" ? "" : "/" + id}">${esc(label)} (${mine.filter((order) => E.inQueue(order, id)).length})</a>`).join("")}</div>
       <div class="mk-table"><table>
-        <thead><tr><th>${zh() ? "訂單編號" : "Order ID"}</th><th>${zh() ? "買家" : "Buyer"}</th><th>${zh() ? "訂單日期" : "Order date"}</th><th>${zh() ? "合計" : "Total amount"}</th><th>${zh() ? "付款狀態" : "Payment status"}</th><th>${zh() ? "訂單狀態" : "Order status"}</th></tr></thead>
+        <thead><tr><th>${zh() ? "訂單編號" : "Order ID"}</th><th>${zh() ? "買家" : "Buyer"}</th><th>${zh() ? "訂單日期" : "Order date"}</th><th>${zh() ? "合計" : "Total amount"}</th><th>${zh() ? "付款狀態" : "Payment status"}</th><th>${zh() ? "訂單狀態" : "Order status"}</th><th>${zh() ? "收款" : "Payment"}</th></tr></thead>
         <tbody>${rows.map((order) => `<tr>
           <td><a href="#/sell/orders/${esc(order.id)}">${esc(order.id)}</a></td>
           <td>${esc(order.buyer.name)}</td>
@@ -969,6 +992,7 @@
           <td>${esc(money(order.total))}</td>
           <td>${esc(pick(PAY[order.paymentStatus]))}</td>
           <td>${esc(pick(STATUS[order.status]))}</td>
+          <td>${confirmPayment(order)}</td>
         </tr>`).join("")}</tbody>
       </table></div>
       ${rows.length ? "" : `<p class="mk-empty">${zh() ? "這個佇列是空的。" : "Nothing in this queue."}</p>`}
@@ -1282,6 +1306,7 @@
     if (head === "cart") return cartPage();
     if (head === "checkout") return checkoutPage();
     if (head === "orders") return parts[1] ? buyerOrder(parts[1]) : ordersPage();
+    if (head === "activity") return buyerActivityPage();
     if (head === "sell") {
       if (!parts[1]) return sellerHome();
       if (parts[1] === "inventory") return inventoryPage();

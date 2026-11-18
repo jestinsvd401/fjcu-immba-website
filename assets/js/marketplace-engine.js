@@ -700,15 +700,21 @@
     } else {
       return { ok: false, error: "step" };
     }
+    const payment = action === "payment_received";
     log(db, {
       at: moment,
-      type: action === "confirm_shipment" ? "order_shipped" : "order_status",
+      type: payment ? "payment_received" : action === "confirm_shipment" ? "order_shipped" : "order_status",
       actorName: seller.name,
       orderId: order.id,
-      message: {
-        en: seller.name + " updated order " + order.id + " (" + action.replaceAll("_", " ") + ").",
-        zh: seller.name + " 更新了訂單 " + order.id + "。"
-      }
+      message: payment
+        ? {
+          en: seller.name + " confirmed payment received for order " + order.id + ".",
+          zh: seller.name + " 已確認收到訂單 " + order.id + " 的款項。"
+        }
+        : {
+          en: seller.name + " updated order " + order.id + " (" + action.replaceAll("_", " ") + ").",
+          zh: seller.name + " 更新了訂單 " + order.id + "。"
+        }
     });
     return { ok: true, order: orderView(db, order, now || Date.now()) };
   }
