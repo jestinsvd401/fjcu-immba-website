@@ -737,8 +737,8 @@
       actorName: gate.actor.name,
       orderId: order.id,
       message: {
-        en: gate.actor.name + " completed order " + order.id + ".",
-        zh: gate.actor.name + " 完成訂單 " + order.id + "。"
+        en: gate.actor.name + " received the product for order " + order.id + ".",
+        zh: gate.actor.name + " 已收到訂單 " + order.id + " 的商品。"
       }
     });
     return { ok: true, order: orderView(db, order, now || Date.now()) };
@@ -834,10 +834,22 @@
     return { ok: true, product: productView(product, gate.actor) };
   }
 
+  function inStage(order, stage) {
+    const wanted = String(stage || "");
+    if (!wanted) return true;
+    if (wanted === "shipping" || wanted === "shipped" || wanted === "ready_to_ship") {
+      return order.status === "ready_to_ship" || order.status === "shipped";
+    }
+    if (wanted === "payment_confirmed") {
+      return order.paymentStatus === "received" && order.status !== "waiting_payment" && order.status !== "completed";
+    }
+    return order.status === wanted;
+  }
+
   function inQueue(order, queue) {
     if (queue === "payments") return order.status === "waiting_payment";
-    if (queue === "ship") return order.status === "payment_confirmed" || order.status === "ready_to_ship";
-    return order.status === "waiting_payment" || order.status === "payment_confirmed" || order.status === "ready_to_ship";
+    if (queue === "ship") return order.status === "payment_confirmed" || order.status === "ready_to_ship" || order.status === "shipped";
+    return order.status !== "completed";
   }
 
   function salesSummary(db, sellerId, now) {
@@ -863,7 +875,7 @@
       completedOrders: completed.length,
       pendingPayments: pending.length,
       pendingPaymentAmount: pending.reduce((sum, order) => sum + order.total, 0),
-      waitingShipment: mine.filter((order) => order.status === "ready_to_ship").length,
+      waitingShipment: mine.filter((order) => order.status === "ready_to_ship" || order.status === "shipped").length,
       completedTotal: completed.reduce((sum, order) => sum + order.total, 0)
     };
   }
@@ -888,7 +900,7 @@
       "Completed at"
     ]];
     db.orders
-      .filter((order) => order.sellerId === sellerId && (!wanted || order.status === wanted))
+      .filter((order) => order.sellerId === sellerId && inStage(order, wanted))
       .forEach((order) => {
         const buyer = findUser(db, order.buyerId);
         const products = order.items.map((item) => (item.name.en || item.name) + " x " + item.quantity).join("; ");
@@ -916,7 +928,9 @@
     const moment = now || Date.now();
     const orders = db.orders
       .map((order) => orderView(db, order, moment))
-      .filter((order) => !status || order.status === status)
+      .filter((order) => !status || (status === "shipping" || status === "shipped" || status === "ready_to_ship"
+        ? order.status === "ready_to_ship" || order.status === "shipped"
+        : order.status === status))
       .filter((order) => !query || order.id.toLowerCase().includes(query))
       .filter((order) => {
         const day = order.createdAt.slice(0, 10);
@@ -1037,6 +1051,7 @@
     setQuantity,
     setVisibility,
     inQueue,
+    inStage,
     salesSummary,
     salesCsv,
     adminOrders,
