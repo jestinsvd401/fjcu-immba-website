@@ -360,7 +360,17 @@
     ];
   }
 
-  function stepper(status) {
+  function canConfirmReceipt(order) {
+    return !!order && (order.status === "shipped" || order.status === "ready_to_ship");
+  }
+
+  function receiptIcon(order) {
+    if (!canConfirmReceipt(order)) return "";
+    const label = zh() ? "確認收貨" : "Confirm receipt";
+    return `<button type="button" class="mk-receipt" data-action="complete" data-id="${esc(order.id)}" aria-label="${esc(label)}"><span>✓</span><strong>${esc(label)}</strong></button>`;
+  }
+
+  function stepper(status, order, mode) {
     const stages = [
       { en: "Payment sent", zh: "已付款" },
       { en: "Payment confirmed", zh: "已確認付款" },
@@ -371,7 +381,12 @@
     return `<ol class="mk-steps">${stages.map((stage, index) => {
       const state = index < at ? "done" : index === at ? "now" : "later";
       const mark = index < at ? "✓" : String(index + 1);
-      return `<li class="${state}"><span>${mark}</span><strong>${esc(zh() ? stage.zh : stage.en)}</strong></li>`;
+      const label = zh() ? stage.zh : stage.en;
+      if (mode === "buyer" && index === 3 && canConfirmReceipt(order)) {
+        const receipt = zh() ? "確認收貨" : "Confirm receipt";
+        return `<li class="now"><button type="button" class="mk-receipt" data-action="complete" data-id="${esc(order.id)}" aria-label="${esc(receipt)}"><span>✓</span><strong>${esc(receipt)}</strong></button></li>`;
+      }
+      return `<li class="${state}"><span>${mark}</span><strong>${esc(label)}</strong></li>`;
     }).join("")}</ol>`;
   }
 
@@ -762,20 +777,21 @@
     const open = orders.filter((order) => order.status !== "completed");
     const history = orders.filter((order) => order.status === "completed");
     const table = (list, empty) => list.length ? `<div class="mk-table"><table>
-      <thead><tr><th>${zh() ? "訂單編號" : "Order ID"}</th><th>${zh() ? "賣家" : "Seller"}</th><th>${zh() ? "日期" : "Date"}</th><th>${zh() ? "金額" : "Total"}</th><th>${zh() ? "狀態" : "Status"}</th></tr></thead>
+      <thead><tr><th>${zh() ? "訂單編號" : "Order ID"}</th><th>${zh() ? "賣家" : "Seller"}</th><th>${zh() ? "日期" : "Date"}</th><th>${zh() ? "金額" : "Total"}</th><th>${zh() ? "狀態" : "Status"}</th><th>${zh() ? "收貨" : "Receipt"}</th></tr></thead>
       <tbody>${list.map((order) => `<tr>
         <td><a href="#/orders/${esc(order.id)}">${esc(order.id)}</a></td>
         <td>${esc(order.seller.shopName)}</td>
         <td>${esc(when(order.createdAt))}</td>
         <td>${esc(money(order.total))}</td>
         <td>${esc(pick(STATUS[order.status]))}</td>
+        <td>${receiptIcon(order)}</td>
       </tr>`).join("")}</tbody>
     </table></div>` : `<p class="mk-empty">${esc(empty)}</p>`;
     return `${chrome()}${banner()}<section class="mk-sheet">
       <h2>${zh() ? "我的訂單" : "My orders"}</h2>
       <p>${zh()
-        ? "進行中的訂單會保留狀態，直到交易完成。賣家確認收款後，會寫進你的<a href=\"#/activity\">活動紀錄</a>。"
-        : "Open orders keep their status until the sale is completed. When the seller confirms a payment, it is written in your <a href=\"#/activity\">activity log</a>."}</p>
+        ? "商品送到後，點紅色的確認收貨圖示。賣家的交易完成圖示會一併更新。"
+        : "When the product is in hand, use the red receipt icon. The seller’s Transaction complete icon updates as well."}</p>
       <h3>${zh() ? "進行中" : "Open orders"}</h3>
       ${table(open, zh() ? "沒有進行中的訂單。回到市集開始一筆。" : "No open orders. Browse the floor to start one.")}
       <h3>${zh() ? "購買紀錄" : "Purchase history"}</h3>
@@ -816,8 +832,8 @@
         ${order.status === "completed" ? `<p class="mk-note">${zh() ? "這筆交易已完成，紀錄會保留。" : "This transaction is complete and stays on record."}</p>` : ""}
       </div>`;
     }
-    if (mode === "buyer" && (order.status === "shipped" || order.status === "ready_to_ship")) {
-      actions = `<p class="mk-note">${zh() ? "賣家已確認收款，商品正在出貨。你收到商品後，賣家的交易完成圖示會更新。" : "The seller confirmed the payment and the product is in shipping. When you have it in hand, the seller’s completed icon updates."}</p><button type="button" class="mk-btn" data-action="complete" data-id="${esc(order.id)}">${zh() ? "我已收到商品" : "I have received the product"}</button>`;
+    if (mode === "buyer" && canConfirmReceipt(order)) {
+      actions = `<p class="mk-note">${zh() ? "收到商品後，點確認收貨。賣家的交易完成圖示會顯示這筆訂單。" : "When you have the product, use Confirm receipt. It then shows on the seller’s Transaction complete icon."}</p>${receiptIcon(order)}`;
     }
     if (mode === "admin") {
       actions = `<p class="mk-note">${zh() ? "監看不等於修改。管理員不能代為確認付款或出貨。" : "Monitoring does not mean editing. The admin does not confirm payment or shipment."}</p>`;
@@ -830,7 +846,7 @@
     return `<section class="mk-sheet">
       <p class="mk-kicker">${esc(order.id)}</p>
       <h2>${esc(pick(order.items[0] ? order.items[0].name : { en: "Order", zh: "訂單" }))}</h2>
-      ${stepper(order.status)}
+      ${stepper(order.status, order, mode)}
       <div class="mk-split">
         <div>
           <h3>${mode === "seller" ? (zh() ? "買家" : "Buyer") : (zh() ? "賣家" : "Seller")}</h3>
