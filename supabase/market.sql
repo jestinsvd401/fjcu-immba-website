@@ -45,10 +45,14 @@ create table if not exists public.market_orders (
   prepared boolean not null default false,
   shipment_note text not null default '',
   address jsonb not null,
+  service_charge numeric not null default 0 check (service_charge >= 0),
+  delivery_charge numeric not null default 0 check (delivery_charge >= 0),
+  delivery_method text,
   created_at timestamptz not null,
   updated_at timestamptz not null,
   completed_at timestamptz,
-  timeline jsonb not null default '[]'::jsonb
+  timeline jsonb not null default '[]'::jsonb,
+  constraint market_orders_delivery_method_chk check (delivery_method is null or delivery_method in ('home', 'pickup'))
 );
 
 create table if not exists public.market_activity (
@@ -165,7 +169,7 @@ begin
     coalesce((item->>'updatedAt')::timestamptz, now())
   from jsonb_array_elements(p_state->'products') as item;
 
-  insert into public.market_orders (id, buyer_id, seller_id, items, total, status, payment_status, prepared, shipment_note, address, created_at, updated_at, completed_at, timeline)
+  insert into public.market_orders (id, buyer_id, seller_id, items, total, status, payment_status, prepared, shipment_note, address, service_charge, delivery_charge, delivery_method, created_at, updated_at, completed_at, timeline)
   select
     item->>'id',
     item->>'buyerId',
@@ -177,6 +181,9 @@ begin
     coalesce((item->>'prepared')::boolean, false),
     coalesce(item->>'shipmentNote', ''),
     coalesce(item->'address', '{}'::jsonb),
+    coalesce((item->'address'->>'serviceCharge')::numeric, (item->>'serviceCharge')::numeric, 0),
+    coalesce((item->'address'->>'deliveryCharge')::numeric, (item->>'deliveryCharge')::numeric, 0),
+    nullif(coalesce(item->'address'->>'deliveryMethod', item->>'deliveryMethod'), ''),
     (item->>'createdAt')::timestamptz,
     (item->>'updatedAt')::timestamptz,
     nullif(item->>'completedAt', '')::timestamptz,
@@ -283,6 +290,9 @@ begin
         'prepared', o.prepared,
         'shipmentNote', o.shipment_note,
         'address', o.address,
+        'serviceCharge', o.service_charge,
+        'deliveryCharge', o.delivery_charge,
+        'deliveryMethod', o.delivery_method,
         'createdAt', o.created_at,
         'updatedAt', o.updated_at,
         'completedAt', o.completed_at,
@@ -453,6 +463,15 @@ begin
 end;
 $$;
 
+create or replace function public.market_order_goods(p_items jsonb)
+returns numeric
+language sql
+immutable
+as $$
+  select coalesce(sum((line->>'price')::numeric * (line->>'quantity')::integer), 0)
+  from jsonb_array_elements(coalesce(p_items, '[]'::jsonb)) as line;
+$$;
+
 create or replace function public.market_save(p_token text, p_state jsonb)
 returns jsonb
 language plpgsql
@@ -471,6 +490,10 @@ declare
   actor_status text;
   actor_roles text[];
   seller_locked boolean := false;
+  goods numeric;
+  service_fee numeric;
+  delivery_fee numeric;
+  method text;
 begin
   select u.id, ('admin' = any(u.roles))
     into uid, is_admin
@@ -590,15 +613,56 @@ begin
   for rec in select value from jsonb_array_elements(coalesce(p_state->'orders', '[]'::jsonb)) as value
   loop
     select * into old_order from public.market_orders where id = rec->>'id';
+    goods := public.market_order_goods(rec->'items');
+    method := nullif(coalesce(rec->'address'->>'deliveryMethod', rec->>'deliveryMethod'), '');
+    service_fee := coalesce((rec->'address'->>'serviceCharge')::numeric, (rec->>'serviceCharge')::numeric, 0);
+    delivery_fee := coalesce((rec->'address'->>'deliveryCharge')::numeric, (rec->>'deliveryCharge')::numeric, 0);
     if not found then
       if rec->>'buyerId' is distinct from uid and not is_admin then
         return jsonb_build_object('ok', false, 'error', 'buyer_only');
       end if;
-      if rec->>'status' is distinct from 'waiting_payment' and not is_admin then
+      if rec->>'status' is distinct from 'waiting_payment' or rec->>'paymentStatus' is distinct from 'waiting' then
         return jsonb_build_object('ok', false, 'error', 'step');
+      end if;
+      if goods <= 0 then
+        return jsonb_build_object('ok', false, 'error', 'empty');
+      end if;
+      if method is null or method not in ('home', 'pickup') then
+        return jsonb_build_object('ok', false, 'error', 'delivery');
+      end if;
+      if service_fee is distinct from 4 then
+        return jsonb_build_object('ok', false, 'error', 'charge');
+      end if;
+      if delivery_fee is distinct from (case when method = 'home' then 40 else 0 end) then
+        return jsonb_build_object('ok', false, 'error', 'delivery');
+      end if;
+      if (rec->>'total')::numeric is distinct from goods + service_fee + delivery_fee then
+        return jsonb_build_object('ok', false, 'error', 'charge');
       end if;
     elsif not is_admin and rec->>'buyerId' is distinct from uid and rec->>'sellerId' is distinct from uid then
       return jsonb_build_object('ok', false, 'error', 'locked');
+    elsif not is_admin then
+      if old_order.items is distinct from rec->'items'
+         or old_order.total is distinct from (rec->>'total')::numeric
+         or coalesce((old_order.address->>'serviceCharge')::numeric, old_order.service_charge) is distinct from service_fee
+         or coalesce((old_order.address->>'deliveryCharge')::numeric, old_order.delivery_charge) is distinct from delivery_fee
+         or coalesce(old_order.address->>'deliveryMethod', old_order.delivery_method, '') is distinct from coalesce(method, '')
+      then
+        return jsonb_build_object('ok', false, 'error', 'locked');
+      end if;
+      if old_order.status is distinct from rec->>'status' and not (
+        (old_order.status = 'waiting_payment' and rec->>'status' in ('payment_confirmed', 'shipped') and rec->>'paymentStatus' = 'received' and rec->>'sellerId' = uid)
+        or (old_order.status = 'payment_confirmed' and rec->>'status' = 'ready_to_ship' and rec->>'sellerId' = uid)
+        or (old_order.status = 'ready_to_ship' and rec->>'status' = 'shipped' and rec->>'sellerId' = uid)
+        or (old_order.status = 'shipped' and rec->>'status' = 'completed' and (rec->>'buyerId' = uid or rec->>'sellerId' = uid))
+      ) then
+        return jsonb_build_object('ok', false, 'error', 'step');
+      end if;
+      if old_order.payment_status is distinct from rec->>'paymentStatus'
+         and not (old_order.status = 'waiting_payment' and rec->>'paymentStatus' = 'received' and rec->>'sellerId' = uid)
+      then
+        return jsonb_build_object('ok', false, 'error', 'step');
+      end if;
     end if;
   end loop;
 
@@ -642,7 +706,7 @@ begin
     listing_status = excluded.listing_status,
     updated_at = excluded.updated_at;
 
-  insert into public.market_orders (id, buyer_id, seller_id, items, total, status, payment_status, prepared, shipment_note, address, created_at, updated_at, completed_at, timeline)
+  insert into public.market_orders (id, buyer_id, seller_id, items, total, status, payment_status, prepared, shipment_note, address, service_charge, delivery_charge, delivery_method, created_at, updated_at, completed_at, timeline)
   select
     item->>'id',
     item->>'buyerId',
@@ -654,6 +718,9 @@ begin
     coalesce((item->>'prepared')::boolean, false),
     coalesce(item->>'shipmentNote', ''),
     coalesce(item->'address', '{}'::jsonb),
+    coalesce((item->'address'->>'serviceCharge')::numeric, (item->>'serviceCharge')::numeric, 0),
+    coalesce((item->'address'->>'deliveryCharge')::numeric, (item->>'deliveryCharge')::numeric, 0),
+    nullif(coalesce(item->'address'->>'deliveryMethod', item->>'deliveryMethod'), ''),
     coalesce((item->>'createdAt')::timestamptz, now()),
     coalesce((item->>'updatedAt')::timestamptz, now()),
     nullif(item->>'completedAt', '')::timestamptz,
@@ -667,6 +734,9 @@ begin
     prepared = excluded.prepared,
     shipment_note = excluded.shipment_note,
     address = excluded.address,
+    service_charge = excluded.service_charge,
+    delivery_charge = excluded.delivery_charge,
+    delivery_method = excluded.delivery_method,
     updated_at = excluded.updated_at,
     completed_at = excluded.completed_at,
     timeline = excluded.timeline;
@@ -730,6 +800,7 @@ $$;
 revoke all on function public.market_roles(jsonb) from public, anon, authenticated;
 revoke all on function public.market_public_user(public.market_users, text, boolean) from public, anon, authenticated;
 revoke all on function public.market_replace(jsonb, text) from public, anon, authenticated;
+revoke all on function public.market_order_goods(jsonb) from public, anon, authenticated;
 revoke all on function public.market_seed() from public, anon, authenticated;
 
 grant execute on function public.market_load(text) to anon, authenticated;

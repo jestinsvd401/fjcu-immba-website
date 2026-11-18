@@ -52,6 +52,7 @@
     confirm: { en: "Confirm the payment before buying.", zh: "付款後才能買下。" },
     payment: { en: "Choose how you paid and add the payment reference.", zh: "請選擇付款方式並填上付款參考。" },
     delivery: { en: "Choose home delivery or self collection.", zh: "請選擇宅配或自取。" },
+    charge: { en: "Every order includes the NT$4 service charge, and the total must include the delivery choice.", zh: "每筆訂單都要加 NT$4 服務費，合計也要包含所選的運費。" },
     address: { en: "Recipient, address, and city are required.", zh: "請填收件人、地址與城市。" },
     phone: { en: "Enter a phone number with 8 to 15 digits.", zh: "請填 8 到 15 碼的電話號碼。" },
     missing: { en: "That record is not on this desk.", zh: "這個工作台找不到該筆資料。" },
