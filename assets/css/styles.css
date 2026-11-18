@@ -2914,6 +2914,24 @@ button.mk-signup {
   padding: 0;
 }
 
+.mk-contact {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.mk-contact legend {
+  margin-bottom: 2px;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #b71939;
+}
+
 .mk-panel label,
 .mk-sheet label,
 .mk-filters label,
@@ -3320,6 +3338,7 @@ button.mk-signup {
   .mk-row-actions,
   .mk-signup,
   .mk-application,
+  .mk-panel form,
   .footer-grid,
   .footer-bottom {
     padding-right: 76px;

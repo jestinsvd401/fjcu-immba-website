@@ -393,6 +393,24 @@
     if (password.length < 4) return { ok: false, error: "password" };
     if (db.users.some((user) => user.email === email)) return { ok: false, error: "taken" };
     if (role === "seller" && shopName.length < 2) return { ok: false, error: "shop" };
+    let address = null;
+    if (role === "buyer") {
+      const phone = String(input.phone || "").trim();
+      const line1 = String(input.line1 || "").trim();
+      const city = String(input.city || "").trim();
+      const digits = phone.replace(/\D/g, "");
+      if (digits.length < 8 || digits.length > 15) return { ok: false, error: "phone" };
+      if (line1.length < 4 || city.length < 2 || String(input.postal || "").trim().length < 3) return { ok: false, error: "address" };
+      address = {
+        recipient: name,
+        phone,
+        line1,
+        city,
+        region: String(input.region || "Taiwan").trim() || "Taiwan",
+        postal: String(input.postal || "").trim(),
+        country: String(input.country || "Taiwan").trim() || "Taiwan"
+      };
+    }
     const user = {
       id: "u_" + Date.now().toString(36),
       name,
@@ -402,7 +420,7 @@
       shopName: role === "seller" ? shopName : null,
       sellerStatus: role === "seller" ? "pending" : null,
       suspended: false,
-      address: null,
+      address,
       cart: [],
       createdAt: iso(now || Date.now())
     };
@@ -544,7 +562,8 @@
           city,
           region: String(address.region || "").trim(),
           postal: String(address.postal || "").trim(),
-          country: String(address.country || "Taiwan").trim()
+          country: String(address.country || "Taiwan").trim(),
+          phone: String(address.phone || "").trim()
         },
         createdAt: moment,
         updatedAt: moment,

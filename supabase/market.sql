@@ -349,6 +349,13 @@ declare
   person_password text := coalesce(p_input->>'password', '');
   person_role text := case when p_input->>'role' = 'seller' then 'seller' else 'buyer' end;
   shop text := trim(coalesce(p_input->>'shopName', ''));
+  buyer_phone text := trim(coalesce(p_input->>'phone', ''));
+  buyer_line text := trim(coalesce(p_input->>'line1', ''));
+  buyer_city text := trim(coalesce(p_input->>'city', ''));
+  buyer_region text := coalesce(nullif(trim(coalesce(p_input->>'region', '')), ''), 'Taiwan');
+  buyer_postal text := trim(coalesce(p_input->>'postal', ''));
+  buyer_country text := coalesce(nullif(trim(coalesce(p_input->>'country', '')), ''), 'Taiwan');
+  buyer_address jsonb := null;
   new_id text;
   activity_id text;
   assigned text[];
@@ -374,6 +381,23 @@ begin
   if person_role = 'seller' and char_length(shop) < 2 then
     return jsonb_build_object('ok', false, 'error', 'shop');
   end if;
+  if person_role = 'buyer' then
+    if regexp_replace(buyer_phone, '[^0-9]', '', 'g') !~ '^[0-9]{8,15}$' then
+      return jsonb_build_object('ok', false, 'error', 'phone');
+    end if;
+    if char_length(buyer_line) < 4 or char_length(buyer_city) < 2 or char_length(buyer_postal) < 3 then
+      return jsonb_build_object('ok', false, 'error', 'address');
+    end if;
+    buyer_address := jsonb_build_object(
+      'recipient', person_name,
+      'phone', buyer_phone,
+      'line1', buyer_line,
+      'city', buyer_city,
+      'region', buyer_region,
+      'postal', buyer_postal,
+      'country', buyer_country
+    );
+  end if;
   new_id := 'u_' || substr(encode(gen_random_bytes(9), 'hex'), 1, 12);
   assigned := case when person_role = 'seller' then array['buyer', 'seller'] else array['buyer'] end;
   insert into public.market_users (id, name, email, password_hash, roles, shop_name, seller_status, suspended, address, cart, created_at)
@@ -386,7 +410,7 @@ begin
     case when person_role = 'seller' then shop else null end,
     case when person_role = 'seller' then 'pending' else null end,
     false,
-    null,
+    buyer_address,
     '[]'::jsonb,
     now()
   )

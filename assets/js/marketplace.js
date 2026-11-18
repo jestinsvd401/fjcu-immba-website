@@ -51,6 +51,7 @@
     empty: { en: "The cart is empty.", zh: "購物車是空的。" },
     confirm: { en: "Confirm the quantities before submitting the order.", zh: "送出訂單前請先確認數量。" },
     address: { en: "Recipient, address, and city are required.", zh: "請填收件人、地址與城市。" },
+    phone: { en: "Enter a phone number with 8 to 15 digits.", zh: "請填 8 到 15 碼的電話號碼。" },
     missing: { en: "That record is not on this desk.", zh: "這個工作台找不到該筆資料。" },
     step: { en: "That step is not available for this order.", zh: "這筆訂單現在不能做這個動作。" },
     name: { en: "Add a name.", zh: "請填名稱。" },
@@ -536,7 +537,7 @@
       : (zh() ? "註冊買家" : "Sign up as a buyer");
     const note = chosen === "seller"
       ? (zh() ? "賣家帳號會先停在待核准。超級管理員核准後才能改庫存和出貨。" : "A seller account stays pending until the super admin approves the shop. Inventory and shipping unlock after that.")
-      : (zh() ? "買家帳號建立後就可以把書放進購物車並送出訂單。" : "A buyer account can add books to a cart and submit orders as soon as it is created.");
+      : (zh() ? "買家註冊時要留下地址和電話。帳號建立後就可以把書放進購物車並送出訂單。" : "Buyers leave an address and phone number when they register. The account can add books to a cart and submit orders right away.");
     return `${chrome()}${banner()}<section class="mk-panel mk-narrow">
       <p><a href="#/register">${zh() ? "註冊入口" : "Sign-up choices"}</a></p>
       ${roleIcon(chosen)}
@@ -548,7 +549,15 @@
         <label>${zh() ? "姓名" : "Name"}<input name="name" required></label>
         <label>${zh() ? "電子郵件" : "Email"}<input name="email" type="email" required autocomplete="username"></label>
         <label>${zh() ? "密碼" : "Password"}<input name="password" type="password" required minlength="4" autocomplete="new-password"></label>
-        ${chosen === "seller" ? `<label>${zh() ? "店名" : "Shop name"}<input name="shopName" required minlength="2" placeholder="${zh() ? "買家會看到的名稱" : "The name buyers will see"}"></label>` : ""}
+        ${chosen === "seller" ? `<label>${zh() ? "店名" : "Shop name"}<input name="shopName" required minlength="2" placeholder="${zh() ? "買家會看到的名稱" : "The name buyers will see"}"></label>` : `<fieldset class="mk-contact">
+          <legend>${zh() ? "收件地址與電話" : "Delivery address and phone"}</legend>
+          <label>${zh() ? "電話" : "Phone"}<input name="phone" type="tel" required inputmode="tel" autocomplete="tel" placeholder="0912 345 678"></label>
+          <label>${zh() ? "地址" : "Address"}<input name="line1" required autocomplete="address-line1" placeholder="${zh() ? "路名與門牌" : "Street and number"}"></label>
+          <label>${zh() ? "城市" : "City"}<input name="city" required autocomplete="address-level2"></label>
+          <label>${zh() ? "地區" : "Region"}<input name="region" required autocomplete="address-level1" value="Taiwan"></label>
+          <label>${zh() ? "郵遞區號" : "Postal code"}<input name="postal" required autocomplete="postal-code"></label>
+          <label>${zh() ? "國家" : "Country"}<input name="country" required autocomplete="country-name" value="Taiwan"></label>
+        </fieldset>`}
         <button class="mk-btn" type="submit">${zh() ? "註冊" : "Sign up"}</button>
       </form>
     </section>`;
@@ -604,8 +613,9 @@
           ["city", zh() ? "城市" : "City", address.city],
           ["region", zh() ? "地區" : "Region", address.region],
           ["postal", zh() ? "郵遞區號" : "Postal code", address.postal],
-          ["country", zh() ? "國家" : "Country", address.country]
-        ].map(([name, label, value]) => `<label>${esc(label)}<input name="${name}" value="${esc(value || "")}"></label>`).join("")}
+          ["country", zh() ? "國家" : "Country", address.country],
+          ["phone", zh() ? "電話" : "Phone", address.phone]
+        ].map(([name, label, value]) => `<label>${esc(label)}<input name="${name}" ${name === "phone" ? 'type="tel" inputmode="tel"' : ""} value="${esc(value || "")}"></label>`).join("")}
         <label class="mk-check"><input type="checkbox" name="confirm" required> ${zh() ? "我已確認數量" : "I confirm these quantities"}</label>
         <p class="mk-total">${zh() ? "合計" : "Total"} <strong>${esc(money(cart.subtotal))}</strong></p>
         <button class="mk-btn" type="submit" ${buyable.length ? "" : "disabled"}>${zh() ? "送出訂單" : "Submit the order"}</button>
@@ -680,7 +690,7 @@
           <h3>${zh() ? "訂單資料" : "Order"}</h3>
           <p>${zh() ? "訂單日期" : "Order date"}: ${esc(when(order.createdAt))}</p>
           <p>${zh() ? "付款狀態" : "Payment status"}: ${esc(pick(PAY[order.paymentStatus]))}</p>
-          <p>${zh() ? "送到" : "Ship to"}:<br>${esc([order.address.recipient, order.address.line1, order.address.city, order.address.region, order.address.postal, order.address.country].filter(Boolean).join(", "))}</p>
+          <p>${zh() ? "送到" : "Ship to"}:<br>${esc([order.address.recipient, order.address.phone, order.address.line1, order.address.city, order.address.region, order.address.postal, order.address.country].filter(Boolean).join(", "))}</p>
           ${order.shipmentNote ? `<p>${zh() ? "出貨備註" : "Shipment note"}: ${esc(order.shipmentNote)}</p>` : ""}
           ${order.status === "ready_to_ship" ? `<p class="mk-note">${order.prepared ? (zh() ? "商品已備好。" : "Product prepared.") : (zh() ? "商品還需要準備。" : "Product still needs to be prepared.")}</p>` : ""}
           ${actions}
@@ -963,7 +973,7 @@
       <div class="mk-table"><table>
         <thead><tr><th>${zh() ? "姓名" : "Name"}</th><th>${zh() ? "角色" : "Role"}</th><th>${zh() ? "店名 / 狀態" : "Shop / status"}</th><th></th></tr></thead>
         <tbody>${users.map((user) => `<tr>
-          <td>${esc(user.name)}<br><small>${esc(user.email)}</small></td>
+          <td>${esc(user.name)}<br><small>${esc(user.email)}</small>${user.address && user.address.phone ? `<br><small>${esc(user.address.phone)}</small>` : ""}</td>
           <td>${esc(user.roles.map(roleLabel).join(" / "))}</td>
           <td>${user.roles.includes("seller") ? esc(user.shopName || "") + " · " + esc(user.sellerStatus || "") : "—"}${user.suspended ? (zh() ? " · 已停用" : " · suspended") : ""}</td>
           <td class="mk-row-actions">
@@ -1192,7 +1202,13 @@
           email: data.get("email"),
           password: data.get("password"),
           role: data.get("role"),
-          shopName: data.get("shopName")
+          shopName: data.get("shopName"),
+          phone: data.get("phone"),
+          line1: data.get("line1"),
+          city: data.get("city"),
+          region: data.get("region"),
+          postal: data.get("postal"),
+          country: data.get("country")
         };
         if (!window.MarketCloud) {
           const result = E.register(db, input, Date.now());
@@ -1226,7 +1242,8 @@
             city: data.get("city"),
             region: data.get("region"),
             postal: data.get("postal"),
-            country: data.get("country")
+            country: data.get("country"),
+            phone: data.get("phone")
           },
           items: cart.items.filter((item) => item.purchasable).map((item) => ({ productId: item.productId, quantity: item.quantity }))
         }, Date.now());
