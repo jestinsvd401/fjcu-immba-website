@@ -2894,7 +2894,10 @@ button.mk-signup {
 .mk-stock.low_stock,
 .mk-pill.low_stock { color: #8a5a12; }
 .mk-stock.out_of_stock,
-.mk-pill.out_of_stock { color: #b71939; }
+.mk-pill.out_of_stock,
+.mk-pill.rejected { color: #b71939; }
+.mk-pill.pending { color: #8a5a12; }
+.mk-pill.approved { color: #0e6b62; }
 
 .mk-price {
   font-weight: 700;

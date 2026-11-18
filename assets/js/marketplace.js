@@ -27,6 +27,11 @@
     hidden: { en: "Hidden", zh: "已隱藏" },
     removed: { en: "Removed", zh: "已下架" }
   };
+  const SELLER_STATUS = {
+    pending: { en: "Pending", zh: "待核准" },
+    approved: { en: "Approved", zh: "已核准" },
+    rejected: { en: "Declined", zh: "未核准" }
+  };
   const CATS = {
     textbooks: { en: "Textbooks", zh: "教科書" },
     packs: { en: "Course packs", zh: "課程講義" },
@@ -1005,7 +1010,7 @@
       <p class="mk-kicker">${zh() ? "平台管理員" : "Platform admin"}</p>
       <h2>${zh() ? "交易管理" : "Transaction management"}</h2>
       <p class="mk-note">${zh() ? `這裡列出每一間店的每一筆買家交易，目前顯示 ${report.orders.length} 筆，資料庫共 ${db.orders.length} 筆。監看不會刪除已完成的交易。` : `Every buyer purchase from every shop is listed here. Showing ${report.orders.length} of ${db.orders.length} transactions. Monitoring does not delete a completed sale.`}</p>
-      ${applicationQueue()}
+      ${applicationSummary()}
       <p><button type="button" class="mk-text" data-action="reset">${zh() ? "還原示範市集" : "Restore the sample floor"}</button></p>
       <div class="mk-stats">
         <article><span>${zh() ? "交易金額" : "Transaction amount"}</span><strong>${esc(money(report.volume))}</strong></article>
@@ -1063,26 +1068,94 @@
   }
 
   function pendingSellers() {
-    return db.users.filter((user) => user.roles.includes("seller") && user.sellerStatus === "pending");
+    return sellerApplications("pending");
   }
-  function applicationQueue() {
-    const waiting = pendingSellers();
-    const rows = waiting.length
-      ? waiting.map((user) => `<article class="mk-application">
-          <div>
-            <strong>${esc(user.name)}</strong>
-            <p>${esc(user.shopName || "")}</p>
-            <p>${esc(user.email)}</p>
-            ${user.address && user.address.phone ? `<p>${esc(user.address.phone)}</p>` : ""}
-            ${user.address && user.address.line1 ? `<p>${esc([user.address.line1, user.address.city, user.address.region, user.address.postal, user.address.country].filter(Boolean).join(", "))}</p>` : ""}
-          </div>
-          <button type="button" class="mk-btn" data-action="user" data-step="approve" data-id="${esc(user.id)}">${zh() ? "核准這位賣家" : "Approve this seller"}</button>
-        </article>`).join("")
-      : `<p class="mk-empty">${zh() ? "目前沒有待核准的賣家申請。" : "No seller applications are waiting."}</p>`;
+  function sellerStatusLabel(status) {
+    const label = SELLER_STATUS[status];
+    return label ? pick(label) : status || "";
+  }
+  function sellerApplications(status) {
+    return db.users
+      .filter((user) => user.roles.includes("seller") && user.sellerStatus)
+      .filter((user) => !status || user.sellerStatus === status)
+      .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+  }
+  function applicationCounts() {
+    const counts = { pending: 0, approved: 0, rejected: 0 };
+    sellerApplications().forEach((user) => {
+      if (counts[user.sellerStatus] != null) counts[user.sellerStatus] += 1;
+    });
+    return counts;
+  }
+  function applicationFilter() {
+    const status = new URLSearchParams(location.hash.split("?")[1] || "").get("status") || "";
+    return SELLER_STATUS[status] ? status : "";
+  }
+  function applicationCard(user) {
+    const address = user.address && user.address.line1
+      ? [user.address.line1, user.address.city, user.address.region, user.address.postal, user.address.country].filter(Boolean).join(", ")
+      : "";
+    const action = user.sellerStatus === "pending"
+      ? `<button type="button" class="mk-btn" data-action="user" data-step="approve" data-id="${esc(user.id)}">${zh() ? "核准這位賣家" : "Approve this seller"}</button>`
+      : "";
+    return `<article class="mk-application">
+      <div>
+        <strong>${esc(user.name)}</strong>
+        <p><em class="mk-pill ${esc(user.sellerStatus)}">${esc(sellerStatusLabel(user.sellerStatus))}</em>${user.suspended ? (zh() ? " · 已停用" : " · Suspended") : ""}</p>
+        <p>${esc(user.shopName || (zh() ? "未填店名" : "No shop name"))}</p>
+        <p>${esc(user.email)}</p>
+        ${user.address && user.address.phone ? `<p>${esc(user.address.phone)}</p>` : ""}
+        ${address ? `<p>${esc(address)}</p>` : ""}
+        ${user.createdAt ? `<p>${esc(when(user.createdAt))}</p>` : ""}
+      </div>
+      ${action}
+    </article>`;
+  }
+  function applicationGroup(status) {
+    const headings = {
+      pending: { en: "Pending applications", zh: "待核准申請" },
+      approved: { en: "Approved applications", zh: "已核准申請" },
+      rejected: { en: "Declined applications", zh: "未核准申請" }
+    };
+    const empty = {
+      pending: { en: "No seller applications are waiting.", zh: "目前沒有待核准的賣家申請。" },
+      approved: { en: "No shops have been approved yet.", zh: "目前沒有已核准的賣家。" },
+      rejected: { en: "No applications have been declined.", zh: "目前沒有被拒絕的申請。" }
+    };
+    const rows = sellerApplications(status);
+    return `<section>
+      <h3>${esc(pick(headings[status]))} (${rows.length})</h3>
+      ${rows.length ? rows.map(applicationCard).join("") : `<p class="mk-empty">${esc(pick(empty[status]))}</p>`}
+    </section>`;
+  }
+  function applicationsBoard() {
+    const selected = applicationFilter();
+    const counts = applicationCounts();
+    const chips = [
+      ["", { en: "All applications", zh: "全部申請" }],
+      ["pending", SELLER_STATUS.pending],
+      ["approved", SELLER_STATUS.approved],
+      ["rejected", SELLER_STATUS.rejected]
+    ];
+    const groups = selected ? [selected] : ["pending", "approved", "rejected"];
+    return `<div class="mk-applications">
+      <div class="mk-stats">
+        <article><span>${esc(pick(SELLER_STATUS.pending))}</span><strong>${counts.pending}</strong></article>
+        <article><span>${esc(pick(SELLER_STATUS.approved))}</span><strong>${counts.approved}</strong></article>
+        <article><span>${esc(pick(SELLER_STATUS.rejected))}</span><strong>${counts.rejected}</strong></article>
+      </div>
+      <div class="mk-chips">${chips.map(([id, label]) => `<a class="${selected === id ? "on" : ""}" href="#/admin/applications${id ? "?status=" + id : ""}">${esc(pick(label))} ${id ? counts[id] : counts.pending + counts.approved + counts.rejected}</a>`).join("")}</div>
+      ${groups.map(applicationGroup).join("")}
+    </div>`;
+  }
+  function applicationSummary() {
+    const counts = applicationCounts();
     return `<div class="mk-applications">
       <h3>${zh() ? "賣家申請" : "Seller applications"}</h3>
-      <p>${zh() ? "超級管理員逐一核准賣家。核准前，對方可以購物，但不能上架、管理庫存或出貨。" : "The super admin approves each seller. Until then they can buy, but they cannot list, manage inventory, or ship."}</p>
-      ${rows}
+      <p>${zh()
+        ? `待核准 ${counts.pending}、已核准 ${counts.approved}、未核准 ${counts.rejected}。核准前，申請人可以購物，但不能上架或出貨。`
+        : `Pending ${counts.pending}, approved ${counts.approved}, declined ${counts.rejected}. Until approval, an applicant can buy, but cannot list or ship.`}</p>
+      <p><a class="mk-btn" href="#/admin/applications">${zh() ? "查看申請" : "Review applications"}</a></p>
     </div>`;
   }
   function applicationsPage() {
@@ -1091,7 +1164,10 @@
     return `${chrome()}${banner()}<section class="mk-sheet">
       <p class="mk-kicker">${zh() ? "平台管理員" : "Platform admin"}</p>
       <h2>${zh() ? "賣家申請" : "Seller applications"}</h2>
-      ${applicationQueue()}
+      <p>${zh()
+        ? "待核准、已核准和未核准的賣家申請都留在這裡。待核准的申請可以在這頁核准。"
+        : "Pending, approved, and declined seller applications stay on this desk. Approve a pending application from its card."}</p>
+      ${applicationsBoard()}
     </section>`;
   }
   function usersPage() {
@@ -1100,14 +1176,14 @@
     const users = db.users.map((user) => E.userPublic(user));
     return `${chrome()}${banner()}<section class="mk-sheet">
       <h2>${zh() ? "使用者" : "Users"}</h2>
-      ${applicationQueue()}
+      ${applicationSummary()}
       <p class="mk-note">${zh() ? "也可以在這裡停用買家或賣家。平台管理員權限不能在這裡授予。" : "You can also suspend a buyer or seller here. Platform administrator access cannot be granted from this desk."}</p>
       <div class="mk-table"><table>
         <thead><tr><th>${zh() ? "姓名" : "Name"}</th><th>${zh() ? "角色" : "Role"}</th><th>${zh() ? "店名 / 狀態" : "Shop / status"}</th><th></th></tr></thead>
         <tbody>${users.map((user) => `<tr>
           <td>${esc(user.name)}<br><small>${esc(user.email)}</small>${user.address && user.address.phone ? `<br><small>${esc(user.address.phone)}</small>` : ""}</td>
           <td>${esc(user.roles.map(roleLabel).join(" / "))}</td>
-          <td>${user.roles.includes("seller") ? esc(user.shopName || "") + " · " + esc(user.sellerStatus || "") : "—"}${user.suspended ? (zh() ? " · 已停用" : " · suspended") : ""}</td>
+          <td>${user.roles.includes("seller") ? esc(user.shopName || "") + " · " + esc(sellerStatusLabel(user.sellerStatus)) : "—"}${user.suspended ? (zh() ? " · 已停用" : " · suspended") : ""}</td>
           <td class="mk-row-actions">
             ${user.roles.includes("seller") && user.sellerStatus === "pending" ? `<button type="button" data-action="user" data-step="approve" data-id="${esc(user.id)}">${zh() ? "核准賣家" : "Approve seller"}</button>` : ""}
             ${!user.roles.includes("admin") && !user.suspended ? `<button type="button" data-action="user" data-step="suspend" data-id="${esc(user.id)}">${zh() ? "停用" : "Suspend"}</button>` : ""}
