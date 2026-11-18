@@ -536,7 +536,7 @@
       ? (zh() ? "註冊賣家" : "Sign up as a seller")
       : (zh() ? "註冊買家" : "Sign up as a buyer");
     const note = chosen === "seller"
-      ? (zh() ? "賣家帳號會先停在待核准。超級管理員核准後才能改庫存和出貨。" : "A seller account stays pending until the super admin approves the shop. Inventory and shipping unlock after that.")
+      ? (zh() ? "賣家註冊時要留下地址和電話。帳號會先停在待核准，超級管理員核准後才能改庫存和出貨。" : "Sellers leave an address and phone number when they register. The account stays pending until the super admin approves the shop.")
       : (zh() ? "買家註冊時要留下地址和電話。帳號建立後就可以把書放進購物車並送出訂單。" : "Buyers leave an address and phone number when they register. The account can add books to a cart and submit orders right away.");
     return `${chrome()}${banner()}<section class="mk-panel mk-narrow">
       <p><a href="#/register">${zh() ? "註冊入口" : "Sign-up choices"}</a></p>
@@ -549,15 +549,16 @@
         <label>${zh() ? "姓名" : "Name"}<input name="name" required></label>
         <label>${zh() ? "電子郵件" : "Email"}<input name="email" type="email" required autocomplete="username"></label>
         <label>${zh() ? "密碼" : "Password"}<input name="password" type="password" required minlength="4" autocomplete="new-password"></label>
-        ${chosen === "seller" ? `<label>${zh() ? "店名" : "Shop name"}<input name="shopName" required minlength="2" placeholder="${zh() ? "買家會看到的名稱" : "The name buyers will see"}"></label>` : `<fieldset class="mk-contact">
-          <legend>${zh() ? "收件地址與電話" : "Delivery address and phone"}</legend>
+        ${chosen === "seller" ? `<label>${zh() ? "店名" : "Shop name"}<input name="shopName" required minlength="2" placeholder="${zh() ? "買家會看到的名稱" : "The name buyers will see"}"></label>` : ""}
+        <fieldset class="mk-contact">
+          <legend>${zh() ? "地址與電話" : "Address and phone"}</legend>
           <label>${zh() ? "電話" : "Phone"}<input name="phone" type="tel" required inputmode="tel" autocomplete="tel" placeholder="0912 345 678"></label>
           <label>${zh() ? "地址" : "Address"}<input name="line1" required autocomplete="address-line1" placeholder="${zh() ? "路名與門牌" : "Street and number"}"></label>
           <label>${zh() ? "城市" : "City"}<input name="city" required autocomplete="address-level2"></label>
           <label>${zh() ? "地區" : "Region"}<input name="region" required autocomplete="address-level1" value="Taiwan"></label>
           <label>${zh() ? "郵遞區號" : "Postal code"}<input name="postal" required autocomplete="postal-code"></label>
           <label>${zh() ? "國家" : "Country"}<input name="country" required autocomplete="country-name" value="Taiwan"></label>
-        </fieldset>`}
+        </fieldset>
         <button class="mk-btn" type="submit">${zh() ? "註冊" : "Sign up"}</button>
       </form>
     </section>`;
@@ -943,6 +944,8 @@
             <strong>${esc(user.name)}</strong>
             <p>${esc(user.shopName || "")}</p>
             <p>${esc(user.email)}</p>
+            ${user.address && user.address.phone ? `<p>${esc(user.address.phone)}</p>` : ""}
+            ${user.address && user.address.line1 ? `<p>${esc([user.address.line1, user.address.city, user.address.region, user.address.postal, user.address.country].filter(Boolean).join(", "))}</p>` : ""}
           </div>
           <button type="button" class="mk-btn" data-action="user" data-step="approve" data-id="${esc(user.id)}">${zh() ? "核准這位賣家" : "Approve this seller"}</button>
         </article>`).join("")

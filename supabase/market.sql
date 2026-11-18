@@ -381,23 +381,21 @@ begin
   if person_role = 'seller' and char_length(shop) < 2 then
     return jsonb_build_object('ok', false, 'error', 'shop');
   end if;
-  if person_role = 'buyer' then
-    if regexp_replace(buyer_phone, '[^0-9]', '', 'g') !~ '^[0-9]{8,15}$' then
-      return jsonb_build_object('ok', false, 'error', 'phone');
-    end if;
-    if char_length(buyer_line) < 4 or char_length(buyer_city) < 2 or char_length(buyer_postal) < 3 then
-      return jsonb_build_object('ok', false, 'error', 'address');
-    end if;
-    buyer_address := jsonb_build_object(
-      'recipient', person_name,
-      'phone', buyer_phone,
-      'line1', buyer_line,
-      'city', buyer_city,
-      'region', buyer_region,
-      'postal', buyer_postal,
-      'country', buyer_country
-    );
+  if regexp_replace(buyer_phone, '[^0-9]', '', 'g') !~ '^[0-9]{8,15}$' then
+    return jsonb_build_object('ok', false, 'error', 'phone');
   end if;
+  if char_length(buyer_line) < 4 or char_length(buyer_city) < 2 or char_length(buyer_postal) < 3 then
+    return jsonb_build_object('ok', false, 'error', 'address');
+  end if;
+  buyer_address := jsonb_build_object(
+    'recipient', person_name,
+    'phone', buyer_phone,
+    'line1', buyer_line,
+    'city', buyer_city,
+    'region', buyer_region,
+    'postal', buyer_postal,
+    'country', buyer_country
+  );
   new_id := 'u_' || substr(encode(gen_random_bytes(9), 'hex'), 1, 12);
   assigned := case when person_role = 'seller' then array['buyer', 'seller'] else array['buyer'] end;
   insert into public.market_users (id, name, email, password_hash, roles, shop_name, seller_status, suspended, address, cart, created_at)
