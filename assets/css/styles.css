@@ -3035,6 +3035,14 @@ button.mk-signup {
   border-radius: 8px;
 }
 
+.mk-line-plain {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.mk-line-plain input {
+  width: 5rem;
+}
+
 .mk-total {
   font-size: 1.2rem;
 }

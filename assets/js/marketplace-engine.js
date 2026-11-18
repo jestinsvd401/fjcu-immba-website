@@ -8,6 +8,7 @@
   const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
   const LOW_STOCK = 5;
   const STATUSES = ["waiting_payment", "payment_confirmed", "ready_to_ship", "shipped", "completed"];
+  const PAYMENT_METHODS = ["bank_transfer", "cash", "line_pay"];
   const CATEGORIES = ["textbooks", "packs", "notes", "stationery", "electronics"];
   const DEMO_PASSWORD = "immba-demo";
 
@@ -508,6 +509,9 @@
     if (!gate.ok) return gate;
     if (gate.actor.role !== "buyer") return { ok: false, error: "buyer_only" };
     if (!input || input.quantitiesConfirmed !== true) return { ok: false, error: "confirm" };
+    const paymentMethod = PAYMENT_METHODS.includes(input.paymentMethod) ? input.paymentMethod : "";
+    const paymentReference = String(input.paymentReference || "").trim();
+    if (!paymentMethod || paymentReference.length < 2) return { ok: false, error: "payment" };
     const address = input.address || {};
     const recipient = String(address.recipient || "").trim();
     const line1 = String(address.line1 || "").trim();
@@ -561,14 +565,16 @@
           region: String(address.region || "").trim(),
           postal: String(address.postal || "").trim(),
           country: String(address.country || "Taiwan").trim(),
-          phone: String(address.phone || "").trim()
+          phone: String(address.phone || "").trim(),
+          paymentMethod,
+          paymentReference
         },
         createdAt: moment,
         updatedAt: moment,
         completedAt: null,
         timeline: []
       };
-      timeline(order, "waiting_payment", user, "Order submitted. Waiting for payment confirmation.");
+      timeline(order, "waiting_payment", user, "Buyer paid by " + paymentMethod.replaceAll("_", " ") + " (" + paymentReference + "). Waiting for the seller to confirm receipt.");
       db.orders.unshift(order);
       created.push(order);
       log(db, {
@@ -599,10 +605,18 @@
     const seller = gate.actor;
     if (action === "payment_received") {
       if (order.status !== "waiting_payment") return { ok: false, error: "step" };
-      order.status = "payment_confirmed";
       order.paymentStatus = "received";
+      order.status = "shipped";
+      order.prepared = true;
       order.updatedAt = moment;
-      timeline(order, "payment_confirmed", seller, "Payment received.");
+      timeline(order, "payment_confirmed", seller, "Seller confirmed the payment was received.");
+      timeline(order, "shipped", seller, "Payment confirmed. The order moved to shipping.");
+    } else if (action === "transaction_complete") {
+      if (order.status !== "shipped" && order.status !== "ready_to_ship") return { ok: false, error: "step" };
+      order.status = "completed";
+      order.completedAt = moment;
+      order.updatedAt = moment;
+      timeline(order, "completed", seller, "Transaction complete.");
     } else if (action === "ready_to_ship") {
       if (order.status !== "payment_confirmed") return { ok: false, error: "step" };
       order.status = "ready_to_ship";
@@ -920,6 +934,7 @@
     WEEK_MS,
     LOW_STOCK,
     STATUSES,
+    PAYMENT_METHODS,
     CATEGORIES,
     createSeed,
     stockStatus,

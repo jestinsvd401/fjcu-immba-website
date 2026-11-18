@@ -8,13 +8,13 @@
 
   const STATUS = {
     waiting_payment: { en: "Waiting for payment confirmation", zh: "等待確認付款" },
-    payment_confirmed: { en: "Payment Confirmed", zh: "已確認付款" },
-    ready_to_ship: { en: "Ready to ship", zh: "待出貨" },
-    shipped: { en: "Shipped", zh: "已出貨" },
-    completed: { en: "Completed", zh: "已完成" }
+    payment_confirmed: { en: "Payment confirmed", zh: "已確認付款" },
+    ready_to_ship: { en: "Shipping", zh: "出貨中" },
+    shipped: { en: "Shipping", zh: "出貨中" },
+    completed: { en: "Transaction complete", zh: "交易完成" }
   };
   const PAY = {
-    waiting: { en: "Waiting for payment", zh: "待付款" },
+    waiting: { en: "Payment sent", zh: "已付款" },
     received: { en: "Payment received", zh: "已收款" }
   };
   const STOCK = {
@@ -49,7 +49,8 @@
     stock: { en: "That quantity is no longer available.", zh: "這個數量目前沒有足夠庫存。" },
     quantity: { en: "Enter a valid quantity.", zh: "請輸入有效數量。" },
     empty: { en: "The cart is empty.", zh: "購物車是空的。" },
-    confirm: { en: "Confirm the quantities before submitting the order.", zh: "送出訂單前請先確認數量。" },
+    confirm: { en: "Confirm the payment before buying.", zh: "付款後才能買下。" },
+    payment: { en: "Choose how you paid and add the payment reference.", zh: "請選擇付款方式並填上付款參考。" },
     address: { en: "Recipient, address, and city are required.", zh: "請填收件人、地址與城市。" },
     phone: { en: "Enter a phone number with 8 to 15 digits.", zh: "請填 8 到 15 碼的電話號碼。" },
     missing: { en: "That record is not on this desk.", zh: "這個工作台找不到該筆資料。" },
@@ -287,20 +288,37 @@
   }
 
   function stepper(status) {
-    return `<ol class="mk-steps">${E.STATUSES.map((key, index) => {
-      const at = E.STATUSES.indexOf(status);
+    const stages = [
+      { en: "Payment sent", zh: "已付款" },
+      { en: "Payment confirmed", zh: "已確認付款" },
+      { en: "Shipping", zh: "出貨" },
+      { en: "Transaction complete", zh: "交易完成" }
+    ];
+    const at = status === "completed" ? 3 : status === "shipped" || status === "ready_to_ship" ? 2 : status === "payment_confirmed" ? 1 : 0;
+    return `<ol class="mk-steps">${stages.map((stage, index) => {
       const state = index < at ? "done" : index === at ? "now" : "later";
-      return `<li class="${state}"><span>${index + 1}</span><strong>${esc(pick(STATUS[key]))}</strong></li>`;
+      return `<li class="${state}"><span>${index + 1}</span><strong>${esc(zh() ? stage.zh : stage.en)}</strong></li>`;
     }).join("")}</ol>`;
+  }
+
+  function paymentDetail(order) {
+    const labels = {
+      bank_transfer: { en: "Bank transfer", zh: "銀行轉帳" },
+      cash: { en: "Cash", zh: "現金" },
+      line_pay: { en: "LINE Pay", zh: "LINE Pay" }
+    };
+    const method = order.address && labels[order.address.paymentMethod];
+    const reference = order.address && order.address.paymentReference;
+    if (!method) return "";
+    return `${pick(method)}${reference ? " · " + reference : ""}`;
   }
 
   function workflow() {
     const steps = [
-      [zh() ? "等待確認付款" : "Waiting for payment confirmation", zh() ? "買家送出訂單。賣家還沒確認付款。" : "The buyer submits the order. The seller has not confirmed payment yet."],
-      [zh() ? "已確認付款" : "Payment Confirmed", zh() ? "賣家按下已收款。在這之前訂單維持等待付款。" : "The seller marks Payment Received. Waiting for payment stays on the order until then."],
-      [zh() ? "待出貨" : "Ready to ship", zh() ? "賣家把訂單往前推，並準備商品。" : "The seller moves the order forward and prepares the product."],
-      [zh() ? "已出貨" : "Shipped", zh() ? "賣家確認出貨。買家可在訂單紀錄裡追蹤。" : "The seller confirms shipment. The buyer can follow it from order history."],
-      [zh() ? "已完成" : "Completed", zh() ? "買家確認書已收到。平台管理員只監看這條紀錄。" : "The buyer confirms the goods arrived. The platform admin only monitors this trail."]
+      [zh() ? "加入購物車並付款" : "Add to cart and pay", zh() ? "買家選好書或教材，加入購物車，從購物車付款並買下。" : "The buyer chooses a book or material, adds it to the cart, then pays and buys from the cart."],
+      [zh() ? "賣家確認收款" : "Seller confirms the payment", zh() ? "賣家核對付款參考，確認已經收到款項。" : "The seller checks the payment reference and confirms the money arrived."],
+      [zh() ? "出貨" : "Shipping", zh() ? "確認收款後，訂單進入出貨。" : "Once the payment is confirmed, the order moves to shipping."],
+      [zh() ? "交易完成" : "Transaction complete", zh() ? "出貨之後，這筆交易標成完成並保留紀錄。" : "After shipping, the sale is marked transaction complete and the record stays."]
     ];
     return `<ol class="mk-workflow">${steps.map((step, index) => `<li><span>${index + 1}</span><div><strong>${esc(step[0])}</strong><p>${esc(step[1])}</p></div></li>`).join("")}</ol>`;
   }
@@ -420,7 +438,8 @@
               <input name="quantity" type="number" min="1" max="${max}" value="1">
             </label>
             <button class="mk-btn" type="submit">${zh() ? "加入購物車" : "Add to cart"}</button>
-          </form>`
+          </form>
+          <p class="mk-note">${zh() ? "先加入購物車。付款與購買在購物車進行。" : "Add it to the cart. Payment and purchase happen from the cart."}</p>`
         : `<p>${zh() ? "目前缺貨。" : "None are left on hand."}</p>`;
     } else if (user.role === "seller") {
       box = `<p>${zh() ? "賣家不從這個帳號購買。庫存與出貨在賣家工作台。" : "Sellers do not purchase from this account. Inventory and order fulfillment live on the seller desk."}</p><a class="mk-btn" href="#/sell/inventory">${zh() ? "打開庫存" : "Open inventory"}</a>`;
@@ -588,7 +607,7 @@
         <button type="button" class="mk-text" data-action="cart-remove" data-id="${esc(item.productId)}">${zh() ? "移除" : "Remove"}</button>
       </div>`).join("") : `<p class="mk-empty">${zh() ? "購物車是空的。" : "Nothing in the cart yet."}</p>`}
       <p class="mk-total">${zh() ? "小計" : "Subtotal"} <strong>${esc(money(cart.subtotal))}</strong></p>
-      ${cart.items.some((item) => item.purchasable) ? `<a class="mk-btn" href="#/checkout">${zh() ? "確認數量" : "Confirm quantity"}</a>` : ""}
+      ${cart.items.some((item) => item.purchasable) ? `<a class="mk-btn" href="#/checkout">${zh() ? "付款並購買" : "Pay and buy"}</a>` : ""}
     </section>`;
   }
 
@@ -600,9 +619,9 @@
     const address = user.address || { recipient: user.name, line1: "", city: "", region: "Taiwan", postal: "", country: "Taiwan" };
     const buyable = cart.items.filter((item) => item.purchasable && item.quantity > 0);
     return `${chrome()}${banner()}<section class="mk-sheet">
-      <h2>${zh() ? "確認並送出訂單" : "Review and submit the order"}</h2>
-      <p>${zh() ? "送出後會依賣家拆成多筆訂單，並通知對應的賣家。可售庫存會立刻扣除已購買的數量。" : "Submitting splits the cart by seller and notifies each shop. Available stock drops by the purchased quantity."}</p>
-      ${buyable.map((item) => `<div class="mk-line">
+      <h2>${zh() ? "付款並購買" : "Pay and buy"}</h2>
+      <p>${zh() ? "從購物車付款後，訂單會送給賣家。賣家確認收到款項後，商品才進入出貨，接著交易完成。" : "Pay from the cart and the order goes to the seller. After the seller confirms the payment, the product moves to shipping and then to transaction complete."}</p>
+      ${buyable.map((item) => `<div class="mk-line mk-line-plain">
         <div><strong>${esc(pick(item.name))}</strong><p>${esc(item.shopName)}</p></div>
         <label>${zh() ? "數量" : "Qty"}
           <input data-cart-qty="${esc(item.productId)}" type="number" min="1" max="${Math.max(item.available, 1)}" value="${item.quantity}">
@@ -610,6 +629,15 @@
         <strong>${esc(money(item.price * item.quantity))}</strong>
       </div>`).join("")}
       <form data-action="checkout">
+        <h3>${zh() ? "付款" : "Payment"}</h3>
+        <label>${zh() ? "付款方式" : "Payment method"}
+          <select name="paymentMethod" required>
+            <option value="bank_transfer">${zh() ? "銀行轉帳" : "Bank transfer"}</option>
+            <option value="cash">${zh() ? "現金" : "Cash"}</option>
+            <option value="line_pay">LINE Pay</option>
+          </select>
+        </label>
+        <label>${zh() ? "付款參考" : "Payment reference"}<input name="paymentReference" required minlength="2" placeholder="${zh() ? "轉帳末五碼或收據編號" : "Transfer number or receipt note"}"></label>
         <h3>${zh() ? "送到" : "Ship to"}</h3>
         ${[
           ["recipient", zh() ? "收件人" : "Recipient", address.recipient],
@@ -620,9 +648,9 @@
           ["country", zh() ? "國家" : "Country", address.country],
           ["phone", zh() ? "電話" : "Phone", address.phone]
         ].map(([name, label, value]) => `<label>${esc(label)}<input name="${name}" ${name === "phone" ? 'type="tel" inputmode="tel"' : ""} value="${esc(value || "")}"></label>`).join("")}
-        <label class="mk-check"><input type="checkbox" name="confirm" required> ${zh() ? "我已確認數量" : "I confirm these quantities"}</label>
+        <label class="mk-check"><input type="checkbox" name="confirm" required> ${zh() ? "我已支付這筆金額" : "I have paid this amount"}</label>
         <p class="mk-total">${zh() ? "合計" : "Total"} <strong>${esc(money(cart.subtotal))}</strong></p>
-        <button class="mk-btn" type="submit" ${buyable.length ? "" : "disabled"}>${zh() ? "送出訂單" : "Submit the order"}</button>
+        <button class="mk-btn" type="submit" ${buyable.length ? "" : "disabled"}>${zh() ? "付款並購買" : "Pay and buy"}</button>
       </form>
     </section>`;
   }
@@ -659,16 +687,16 @@
     if (mode === "seller" && user) {
       actions = `<div class="mk-actions">
         <p>${zh() ? "付款" : "Payment"}: <strong>${esc(pick(PAY[order.paymentStatus]))}</strong></p>
-        ${order.status === "waiting_payment" ? `<p>${zh() ? "還在等待付款。記錄收款之前，不能改成待出貨。" : "Waiting for payment. Ready to Ship stays locked until you record payment."}</p><button type="button" class="mk-btn" data-action="advance" data-step="payment_received" data-id="${esc(order.id)}">${zh() ? "已收款" : "Payment Received"}</button>` : ""}
-        ${order.status === "payment_confirmed" ? `<button type="button" class="mk-btn" data-action="advance" data-step="ready_to_ship" data-id="${esc(order.id)}">${zh() ? "改為待出貨" : "Move to Ready to Ship"}</button>` : ""}
+        ${order.status === "waiting_payment" ? `<p>${zh() ? "買家已付款。確認收款後，訂單會進入出貨。" : "The buyer has paid. Confirm the receipt and the order moves to shipping."}</p>${paymentDetail(order) ? `<p>${zh() ? "付款" : "Payment"}: <strong>${esc(paymentDetail(order))}</strong></p>` : ""}<button type="button" class="mk-btn" data-action="advance" data-step="payment_received" data-id="${esc(order.id)}">${zh() ? "確認已收款" : "Confirm payment received"}</button>` : ""}
+        ${order.status === "payment_confirmed" ? `<button type="button" class="mk-btn" data-action="advance" data-step="ready_to_ship" data-id="${esc(order.id)}">${zh() ? "進入出貨" : "Move to shipping"}</button>` : ""}
         ${order.status === "ready_to_ship" && !order.prepared ? `<button type="button" class="mk-btn" data-action="advance" data-step="prepare" data-id="${esc(order.id)}">${zh() ? "準備商品" : "Prepare the product"}</button>` : ""}
         ${order.status === "ready_to_ship" && order.prepared ? `<label>${zh() ? "出貨備註" : "Shipment note"}<input id="ship-note" placeholder="${zh() ? "例如：下課交給學程辦公室" : "Carrier or packing note"}"></label><button type="button" class="mk-btn" data-action="advance" data-step="confirm_shipment" data-id="${esc(order.id)}">${zh() ? "確認出貨" : "Confirm shipment"}</button>` : ""}
-        ${order.status === "shipped" ? `<p class="mk-note">${zh() ? "已出貨。買家收到後會把訂單標成完成。" : "Shipped. The buyer marks the order completed on arrival."}</p>` : ""}
-        ${order.status === "completed" ? `<p class="mk-note">${zh() ? "這筆銷售已完成，紀錄會保留。" : "This sale is complete and stays on record."}</p>` : ""}
+        ${order.status === "shipped" ? `<p class="mk-note">${zh() ? "這筆訂單正在出貨。" : "This order is in shipping."}</p><button type="button" class="mk-btn" data-action="advance" data-step="transaction_complete" data-id="${esc(order.id)}">${zh() ? "交易完成" : "Transaction complete"}</button>` : ""}
+        ${order.status === "completed" ? `<p class="mk-note">${zh() ? "這筆交易已完成，紀錄會保留。" : "This transaction is complete and stays on record."}</p>` : ""}
       </div>`;
     }
     if (mode === "buyer" && order.status === "shipped") {
-      actions = `<button type="button" class="mk-btn" data-action="complete" data-id="${esc(order.id)}">${zh() ? "確認已收到" : "Mark completed"}</button>`;
+      actions = `<p class="mk-note">${zh() ? "賣家已確認收款，商品正在出貨。收到後可以把交易標成完成。" : "The seller confirmed the payment and the product is in shipping. Mark the transaction complete when it arrives."}</p><button type="button" class="mk-btn" data-action="complete" data-id="${esc(order.id)}">${zh() ? "交易完成" : "Transaction complete"}</button>`;
     }
     if (mode === "admin") {
       actions = `<p class="mk-note">${zh() ? "監看不等於修改。管理員不能代為確認付款或出貨。" : "Monitoring does not mean editing. The admin does not confirm payment or shipment."}</p>`;
@@ -694,6 +722,7 @@
           <h3>${zh() ? "訂單資料" : "Order"}</h3>
           <p>${zh() ? "訂單日期" : "Order date"}: ${esc(when(order.createdAt))}</p>
           <p>${zh() ? "付款狀態" : "Payment status"}: ${esc(pick(PAY[order.paymentStatus]))}</p>
+          ${paymentDetail(order) ? `<p>${zh() ? "付款方式" : "Paid by"}: ${esc(paymentDetail(order))}</p>` : ""}
           <p>${zh() ? "送到" : "Ship to"}:<br>${esc([order.address.recipient, order.address.phone, order.address.line1, order.address.city, order.address.region, order.address.postal, order.address.country].filter(Boolean).join(", "))}</p>
           ${order.shipmentNote ? `<p>${zh() ? "出貨備註" : "Shipment note"}: ${esc(order.shipmentNote)}</p>` : ""}
           ${order.status === "ready_to_ship" ? `<p class="mk-note">${order.prepared ? (zh() ? "商品已備好。" : "Product prepared.") : (zh() ? "商品還需要準備。" : "Product still needs to be prepared.")}</p>` : ""}
@@ -1155,6 +1184,8 @@
         commit();
       });
     });
+    if (root.dataset.bound === "yes") return;
+    root.dataset.bound = "yes";
     root.addEventListener("click", async (event) => {
       const button = event.target.closest("[data-action]");
       if (!button || button.tagName === "FORM") return;
@@ -1219,7 +1250,11 @@
         const note = document.getElementById("ship-note");
         const result = E.advance(db, userId(), activeRole(), button.dataset.id, button.dataset.step, note ? note.value : "", Date.now());
         if (!result.ok) return fail(result);
-        flash = zh() ? "訂單狀態已更新。賣家與買家會看到同一筆紀錄。" : "Order status updated. Buyer and seller share this record.";
+        flash = button.dataset.step === "payment_received"
+          ? (zh() ? "已確認收款，訂單進入出貨。" : "Payment confirmed. The order is now in shipping.")
+          : button.dataset.step === "transaction_complete"
+            ? (zh() ? "交易已完成，紀錄會保留。" : "Transaction complete. The record stays.")
+            : (zh() ? "訂單狀態已更新。賣家與買家會看到同一筆紀錄。" : "Order status updated. Buyer and seller share this record.");
         commit();
         return;
       }
@@ -1342,6 +1377,8 @@
         const cart = E.cartView(db, user);
         const result = E.placeOrders(db, userId(), activeRole(), {
           quantitiesConfirmed: true,
+          paymentMethod: data.get("paymentMethod"),
+          paymentReference: data.get("paymentReference"),
           address: {
             recipient: data.get("recipient"),
             line1: data.get("line1"),
@@ -1354,7 +1391,7 @@
           items: cart.items.filter((item) => item.purchasable).map((item) => ({ productId: item.productId, quantity: item.quantity }))
         }, Date.now());
         if (!result.ok) return fail(result);
-        flash = zh() ? "訂單已建立，賣家會在待處理訂單裡看到它。" : "Order created. The seller can see it in orders to process.";
+        flash = zh() ? "已付款。賣家確認收款後，訂單才會進入出貨。" : "Payment sent. Shipping starts after the seller confirms it.";
         commit(() => go(result.orders.length === 1 ? "/orders/" + result.orders[0].id : "/orders"));
         return;
       }
