@@ -393,12 +393,11 @@
   function transactionBar(orders, selected, hrefFor) {
     const current = selected === "shipped" || selected === "ready_to_ship" ? "shipping" : (selected || "");
     const stages = [{ id: "", en: "All transactions", zh: "全部交易" }].concat(txStages());
-    return `<ol class="mk-steps mk-tx">${stages.map((stage, index) => {
+    return `<ol class="mk-steps mk-tx">${stages.map((stage) => {
       const count = orders.filter((order) => E.inStage(order, stage.id)).length;
       const state = current === stage.id ? "now" : "";
       const marked = (stage.id === "payment_confirmed" || stage.id === "completed") && count > 0;
-      const mark = marked ? "✓" : (stage.id ? String(index) : "·");
-      return `<li class="${state}${marked ? " done" : ""}"><a href="${hrefFor(stage.id)}"><span>${mark}</span><strong>${esc(zh() ? stage.zh : stage.en)}</strong><small>${count}</small></a></li>`;
+      return `<li class="${state}${marked ? " done" : ""}"><a href="${hrefFor(stage.id)}">${marked ? "<span>✓</span>" : ""}<strong>${esc(zh() ? stage.zh : stage.en)}</strong><small>${count}</small></a></li>`;
     }).join("")}</ol>`;
   }
 
