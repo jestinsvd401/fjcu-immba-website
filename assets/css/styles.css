@@ -2732,6 +2732,13 @@ a.alumni-op:hover {
   color: var(--ink-soft);
 }
 
+button.mk-signup {
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+}
+
 .mk-signup-icon {
   display: grid;
   place-items: center;

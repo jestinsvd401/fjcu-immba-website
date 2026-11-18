@@ -104,8 +104,12 @@ function adminSessionBar(lang) {
   const a = authCopy(lang);
   const state = window.immbaAuthState || {};
   const email = (state.user && state.user.email) || "";
+  const marketplace = state.role === "super_admin"
+    ? `<a class="btn btn-action" href="${withLang("marketplace.html")}">${lang === "zh" ? "市集管理" : "Marketplace desk"}</a>`
+    : "";
   return `<div class="admin-session">
     <p>${a.signedInAs}: <strong>${escapeHtml(email)}</strong> · ${a.roleLabel}: <strong>${escapeHtml(state.role || "")}</strong></p>
+    ${marketplace}
     <button class="btn btn-action-secondary" type="button" id="auth-signout">${t.signOut}</button>
   </div>`;
 }

@@ -307,7 +307,8 @@ function bindAuthForms() {
       password: String(data.get("password") || "")
     });
     if (error) return showAuthError(error, t.error);
-    location.href = withLang("admin.html");
+    const next = new URLSearchParams(location.search).get("next");
+    location.href = next === "marketplace" ? withLang("marketplace.html") : withLang("admin.html");
   });
   document.getElementById("auth-register-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();

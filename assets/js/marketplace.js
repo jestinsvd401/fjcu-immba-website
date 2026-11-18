@@ -255,8 +255,13 @@
           <select data-role-switch>${user.roles.map((role) => `<option value="${role}" ${role === user.role ? "selected" : ""}>${esc(roleLabel(role))}</option>`).join("")}</select>
         </label>`
       : "";
+    const whoLabel = user && user.platformOwner
+      ? (zh() ? "超級管理員" : "Super admin")
+      : user
+        ? `${user.name} · ${roleLabel(user.role)}${user.role === "seller" && user.shopName ? " · " + user.shopName : ""}`
+        : "";
     const who = user
-      ? `<span class="mk-who">${esc(user.name)} · ${esc(roleLabel(user.role))}${user.role === "seller" && user.shopName ? " · " + esc(user.shopName) : ""}</span>
+      ? `<span class="mk-who">${esc(whoLabel)}</span>
          <button type="button" class="mk-text" data-action="logout">${zh() ? "登出" : "Sign out"}</button>`
       : `<span class="mk-who">${zh() ? "訪客可以先瀏覽商品" : "Visitors can browse the floor"}</span>`;
     return `<div class="mk-bar">
@@ -443,18 +448,36 @@
     };
     return `<span class="mk-signup-icon"><svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${paths[role] || ""}</svg></span>`;
   }
+  function superDeskCard() {
+    const signedIn = typeof isSuperAdmin === "function" && isSuperAdmin();
+    const detail = zh() ? "核准賣家並監看每一筆交易" : "Approve sellers and monitor every transaction";
+    if (signedIn) {
+      return `<button type="button" class="mk-signup" data-action="super">
+        ${roleIcon("admin")}
+        <strong>${zh() ? "超級管理員" : "Super admin"}</strong>
+        <em>${zh() ? "進入工作台" : "Open the desk"}</em>
+        <span>${esc(detail)}</span>
+      </button>`;
+    }
+    const href = typeof withLang === "function" ? withLang("auth.html?next=marketplace") : "auth.html?next=marketplace";
+    return `<a class="mk-signup" href="${esc(href)}">
+      ${roleIcon("admin")}
+      <strong>${zh() ? "超級管理員" : "Super admin"}</strong>
+      <em>${zh() ? "登入" : "Sign in"}</em>
+      <span>${esc(detail)}</span>
+    </a>`;
+  }
   function signupChoices() {
     const items = [
       ["buyer", zh() ? "買家" : "Buyer", zh() ? "立刻加入購物車並下單" : "Add to a cart and place orders"],
-      ["seller", zh() ? "賣家" : "Seller", zh() ? "申請開店，核准後即可上架" : "Apply for a shop, then list after approval"],
-      ["admin", zh() ? "平台管理員" : "Administrator", zh() ? "監看交易並核准賣家" : "Monitor transactions and approve sellers"]
+      ["seller", zh() ? "賣家" : "Seller", zh() ? "申請開店，核准後即可上架" : "Apply for a shop, then list after approval"]
     ];
     return `<div class="mk-signup-row">${items.map(([role, title, detail]) => `<a class="mk-signup" href="#/register/${role}">
       ${roleIcon(role)}
       <strong>${esc(title)}</strong>
       <em>${zh() ? "註冊" : "Sign up"}</em>
       <span>${esc(detail)}</span>
-    </a>`).join("")}</div>`;
+    </a>`).join("")}${superDeskCard()}</div>`;
   }
   function loginPage() {
     const demos = [
@@ -476,7 +499,7 @@
           <button class="mk-btn" type="submit">${zh() ? "登入" : "Sign in"}</button>
         </form>
         <h3>${zh() ? "註冊" : "Sign up"}</h3>
-        <p>${zh() ? "買家、賣家和平台管理員各自註冊，帳號互不共用。" : "Buyers, sellers, and administrators each register on their own."}</p>
+        <p>${zh() ? "買家和賣家各自註冊。超級管理員用後台帳號登入，核准賣家並監看交易。" : "Buyers and sellers each register. The super admin signs in with the back-office account to approve sellers and monitor transactions."}</p>
         ${signupChoices()}
       </section>
       <section class="mk-panel">
@@ -490,27 +513,32 @@
   }
 
   function registerPage(role) {
-    const chosen = role === "seller" || role === "admin" ? role : role === "buyer" ? "buyer" : "";
+    if (role === "admin") {
+      return `${chrome()}${banner()}<section class="mk-panel mk-narrow">
+        <p><a href="#/register">${zh() ? "註冊入口" : "Sign-up choices"}</a></p>
+        <p class="mk-kicker">${zh() ? "超級管理員" : "Super admin"}</p>
+        <h2>${zh() ? "用後台帳號進入市集" : "Enter the marketplace as the super admin"}</h2>
+        <p>${zh() ? "超級管理員維持為市集的主要管理者，可以核准每一位賣家，並監看全部交易。這個帳號不能在市集裡另行註冊。" : "The super admin remains the main administrator of the marketplace. That account approves each seller and monitors every transaction. It is not created from a marketplace sign-up."}</p>
+        <div class="mk-signup-row">${superDeskCard()}</div>
+      </section>`;
+    }
+    const chosen = role === "seller" ? "seller" : role === "buyer" ? "buyer" : "";
     if (!chosen) {
       return `${chrome()}${banner()}<section class="mk-panel">
         <p class="mk-kicker">${zh() ? "註冊" : "Sign up"}</p>
         <h2>${zh() ? "選擇你的角色" : "Choose your role"}</h2>
-        <p>${zh() ? "買家、賣家和平台管理員各自有一個註冊入口。三個帳號分開建立，互不取代。" : "Buyers, sellers, and administrators each have their own sign-up. The three accounts are created separately."}</p>
+        <p>${zh() ? "買家和賣家各自註冊。超級管理員不是在這裡建立的，而是用後台帳號登入。" : "Buyers and sellers each register. The super admin is not created here and signs in with the back-office account."}</p>
         ${signupChoices()}
       </section>`;
     }
     const title = chosen === "seller"
       ? (zh() ? "註冊賣家" : "Sign up as a seller")
-      : chosen === "admin"
-        ? (zh() ? "註冊平台管理員" : "Sign up as an administrator")
-        : (zh() ? "註冊買家" : "Sign up as a buyer");
+      : (zh() ? "註冊買家" : "Sign up as a buyer");
     const note = chosen === "seller"
-      ? (zh() ? "賣家帳號會先停在待核准。平台管理員核准後才能改庫存和出貨。" : "A seller account stays pending until a platform administrator approves the shop. Inventory and shipping unlock after that.")
-      : chosen === "admin"
-        ? (zh() ? "平台管理員監看每一筆交易並核准賣家，不代替買家下單，也不代替賣家出貨。" : "An administrator monitors every transaction and approves sellers. This account does not place orders or ship them.")
-        : (zh() ? "買家帳號建立後就可以把書放進購物車並送出訂單。" : "A buyer account can add books to a cart and submit orders as soon as it is created.");
+      ? (zh() ? "賣家帳號會先停在待核准。超級管理員核准後才能改庫存和出貨。" : "A seller account stays pending until the super admin approves the shop. Inventory and shipping unlock after that.")
+      : (zh() ? "買家帳號建立後就可以把書放進購物車並送出訂單。" : "A buyer account can add books to a cart and submit orders as soon as it is created.");
     return `${chrome()}${banner()}<section class="mk-panel mk-narrow">
-      <p><a href="#/register">${zh() ? "三個註冊入口" : "All three sign-ups"}</a></p>
+      <p><a href="#/register">${zh() ? "註冊入口" : "Sign-up choices"}</a></p>
       ${roleIcon(chosen)}
       <p class="mk-kicker">${zh() ? "註冊" : "Sign up"}</p>
       <h2>${esc(title)}</h2>
@@ -911,7 +939,7 @@
       : `<p class="mk-empty">${zh() ? "目前沒有待核准的賣家申請。" : "No seller applications are waiting."}</p>`;
     return `<div class="mk-applications">
       <h3>${zh() ? "賣家申請" : "Seller applications"}</h3>
-      <p>${zh() ? "每一位賣家都要各自核准。核准後，對方才能管理庫存與出貨。" : "Approve each seller separately. Inventory and shipping stay locked until you approve that shop."}</p>
+      <p>${zh() ? "超級管理員逐一核准賣家。核准前，對方不能管理庫存與出貨。" : "The super admin approves each seller. Inventory and shipping stay locked until that shop is approved."}</p>
       ${rows}
     </div>`;
   }
@@ -1034,6 +1062,7 @@
       const action = button.dataset.action;
       if (action === "logout") {
         const current = token();
+        deferSuper = true;
         setSession("", "");
         sessionStorage.removeItem(TOKEN);
         if (current && window.MarketCloud) MarketCloud.logout(current);
@@ -1055,6 +1084,15 @@
         if (result.token) sessionStorage.setItem(TOKEN, result.token);
         db = await pull();
         flash = zh() ? "示範市集已還原。" : "Sample floor restored.";
+        go("/admin");
+        return;
+      }
+      if (action === "super") {
+        deferSuper = false;
+        const claimed = await claimSuperAdmin(true);
+        if (!claimed) return fail({ error: "admin_only" });
+        db = await pull();
+        flash = zh() ? "已進入超級管理員工作台。" : "Opened the super admin desk.";
         go("/admin");
         return;
       }
@@ -1274,15 +1312,39 @@
   }
 
   let loadGen = 0;
+  let deferSuper = false;
+  async function claimSuperAdmin(force) {
+    if (!force && (deferSuper || token())) return false;
+    if (!window.MarketCloud || typeof initAuth !== "function") return false;
+    const state = window.immbaAuthState && window.immbaAuthState.ready ? window.immbaAuthState : await initAuth();
+    if (!state || state.role !== "super_admin" || !state.session || !state.session.access_token) return false;
+    const result = await MarketCloud.enterSuper(state.session.access_token);
+    if (!result || result.ok === false || !result.token || !result.user) return false;
+    sessionStorage.setItem(TOKEN, result.token);
+    setSession(result.user.id, "admin");
+    return true;
+  }
   window.mountMarketplace = function () {
     const gen = ++loadGen;
     const root = document.getElementById("market-root");
     if (root && !db) {
       root.innerHTML = `<p class="mk-empty">${typeof getLang === "function" && getLang() === "zh" ? "正在讀取市集…" : "Loading the marketplace…"}</p>`;
     }
-    const job = window.MarketCloud ? pull() : Promise.resolve(load());
+    const job = (async () => {
+      if (window.MarketCloud && !token() && !deferSuper) {
+        const claimed = await claimSuperAdmin(false);
+        if (claimed) {
+          const head = (location.hash || "#/").replace(/^#\/?/, "").split(/[/?]/)[0];
+          if (!head || head === "login" || head === "register") {
+            location.hash = "/admin";
+            return null;
+          }
+        }
+      }
+      return window.MarketCloud ? pull() : load();
+    })();
     Promise.resolve(job).then((state) => {
-      if (gen !== loadGen) return;
+      if (gen !== loadGen || !state) return;
       db = state;
       renderMarket();
     }).catch(() => {

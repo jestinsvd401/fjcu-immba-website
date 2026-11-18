@@ -370,7 +370,7 @@ function bind() {
 
 window.addEventListener("hashchange", render);
 document.addEventListener("DOMContentLoaded", async () => {
-  if (typeof initAuth === "function" && (document.body.dataset.page === "admin" || document.body.dataset.page === "auth")) {
+  if (typeof initAuth === "function" && (document.body.dataset.page === "admin" || document.body.dataset.page === "auth" || document.body.dataset.page === "marketplace")) {
     await initAuth();
   }
   render();

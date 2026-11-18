@@ -385,7 +385,8 @@
     const name = String(input.name || "").trim();
     const email = String(input.email || "").trim().toLowerCase();
     const password = String(input.password || "");
-    const role = input.role === "seller" ? "seller" : input.role === "admin" ? "admin" : "buyer";
+    if (input.role === "admin") return { ok: false, error: "admin_only" };
+    const role = input.role === "seller" ? "seller" : "buyer";
     const shopName = String(input.shopName || "").trim();
     if (name.length < 2) return { ok: false, error: "name" };
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, error: "email" };
@@ -397,7 +398,7 @@
       name,
       email,
       password,
-      roles: role === "seller" ? ["buyer", "seller"] : role === "admin" ? ["admin"] : ["buyer"],
+      roles: role === "seller" ? ["buyer", "seller"] : ["buyer"],
       shopName: role === "seller" ? shopName : null,
       sellerStatus: role === "seller" ? "pending" : null,
       suspended: false,
@@ -414,17 +415,6 @@
         message: {
           en: name + " applied to sell as " + shopName + " and is waiting for approval.",
           zh: name + " 以 " + shopName + " 申請成為賣家，等待核准。"
-        }
-      });
-    }
-    if (role === "admin") {
-      log(db, {
-        at: user.createdAt,
-        type: "admin_registered",
-        actorName: user.name,
-        message: {
-          en: name + " registered as a platform administrator.",
-          zh: name + " 註冊成為平台管理員。"
         }
       });
     }

@@ -42,6 +42,21 @@
     },
     install(state) {
       return rpc("market_install", { p_state: state });
+    },
+    enterSuper(accessToken) {
+      return fetch(SUPABASE_URL + "/rest/v1/rpc/market_enter_super", {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: "Bearer " + accessToken,
+          "Content-Type": "application/json"
+        },
+        body: "{}"
+      }).then(async (response) => {
+        const data = await response.json().catch(() => null);
+        if (!response.ok) return { ok: false, error: "cloud" };
+        return data;
+      });
     }
   };
 })();

@@ -13,6 +13,7 @@ create table if not exists public.market_users (
   shop_name text,
   seller_status text,
   suspended boolean not null default false,
+  platform_owner boolean not null default false,
   address jsonb,
   cart jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now(),
@@ -111,6 +112,7 @@ as $$
     'shopName', u.shop_name,
     'sellerStatus', u.seller_status,
     'suspended', u.suspended,
+    'platformOwner', u.platform_owner,
     'address', case when is_admin or u.id = uid then u.address else null end,
     'cart', case when is_admin or u.id = uid then u.cart else '[]'::jsonb end,
     'createdAt', u.created_at
@@ -345,11 +347,7 @@ declare
   person_name text := trim(coalesce(p_input->>'name', ''));
   person_email text := lower(trim(coalesce(p_input->>'email', '')));
   person_password text := coalesce(p_input->>'password', '');
-  person_role text := case
-    when p_input->>'role' = 'seller' then 'seller'
-    when p_input->>'role' = 'admin' then 'admin'
-    else 'buyer'
-  end;
+  person_role text := case when p_input->>'role' = 'seller' then 'seller' else 'buyer' end;
   shop text := trim(coalesce(p_input->>'shopName', ''));
   new_id text;
   activity_id text;
@@ -370,15 +368,14 @@ begin
   if exists (select 1 from public.market_users where email = person_email) then
     return jsonb_build_object('ok', false, 'error', 'taken');
   end if;
+  if p_input->>'role' = 'admin' then
+    return jsonb_build_object('ok', false, 'error', 'admin_only');
+  end if;
   if person_role = 'seller' and char_length(shop) < 2 then
     return jsonb_build_object('ok', false, 'error', 'shop');
   end if;
   new_id := 'u_' || substr(encode(gen_random_bytes(9), 'hex'), 1, 12);
-  assigned := case
-    when person_role = 'seller' then array['buyer', 'seller']
-    when person_role = 'admin' then array['admin']
-    else array['buyer']
-  end;
+  assigned := case when person_role = 'seller' then array['buyer', 'seller'] else array['buyer'] end;
   insert into public.market_users (id, name, email, password_hash, roles, shop_name, seller_status, suspended, address, cart, created_at)
   values (
     new_id,
@@ -408,22 +405,6 @@ begin
       jsonb_build_object(
         'en', person_name || ' applied to sell as ' || shop || ' and is waiting for approval.',
         'zh', person_name || ' 以 ' || shop || ' 申請成為賣家，等待核准。'
-      )
-    );
-  elsif person_role = 'admin' then
-    update public.market_meta
-      set activity_seq = activity_seq + 1
-      where id = 'main'
-      returning 'a' || activity_seq into activity_id;
-    insert into public.market_activity (id, at, type, actor_name, message)
-    values (
-      activity_id,
-      now(),
-      'admin_registered',
-      person_name,
-      jsonb_build_object(
-        'en', person_name || ' registered as a platform administrator.',
-        'zh', person_name || ' 註冊成為平台管理員。'
       )
     );
   end if;
@@ -484,6 +465,14 @@ begin
     end if;
     next_roles := public.market_roles(rec->'roles');
     if is_admin and 'admin' = any(next_roles) and not ('admin' = any(old_user.roles)) then
+      return jsonb_build_object('ok', false, 'error', 'locked');
+    end if;
+    if old_user.platform_owner and uid is distinct from old_user.id and (
+      old_user.roles is distinct from next_roles
+      or old_user.suspended is distinct from coalesce((rec->>'suspended')::boolean, false)
+      or old_user.email is distinct from lower(rec->>'email')
+      or old_user.name is distinct from rec->>'name'
+    ) then
       return jsonb_build_object('ok', false, 'error', 'locked');
     end if;
     if not is_admin and (
@@ -549,11 +538,11 @@ begin
   loop
     update public.market_users
       set
-        name = case when is_admin then rec->>'name' else name end,
-        roles = case when is_admin then public.market_roles(rec->'roles') else roles end,
-        shop_name = case when is_admin then nullif(rec->>'shopName', '') else shop_name end,
-        seller_status = case when is_admin then nullif(rec->>'sellerStatus', '') else seller_status end,
-        suspended = case when is_admin then coalesce((rec->>'suspended')::boolean, false) else suspended end,
+        name = case when is_admin and not platform_owner then rec->>'name' else name end,
+        roles = case when is_admin and not platform_owner then public.market_roles(rec->'roles') else roles end,
+        shop_name = case when is_admin and not platform_owner then nullif(rec->>'shopName', '') else shop_name end,
+        seller_status = case when is_admin and not platform_owner then nullif(rec->>'sellerStatus', '') else seller_status end,
+        suspended = case when is_admin and not platform_owner then coalesce((rec->>'suspended')::boolean, false) else suspended end,
         address = case when id = uid then rec->'address' else address end,
         cart = case when id = uid then coalesce(rec->'cart', '[]'::jsonb) else cart end
       where id = rec->>'id';
@@ -703,3 +692,102 @@ $$;
 grant execute on function public.market_save(text, jsonb) to anon, authenticated;
 grant execute on function public.market_reset(text) to anon, authenticated;
 grant execute on function public.market_install(jsonb) to anon, authenticated;
+
+create or replace function public.market_enter_super()
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  auth_id uuid := auth.uid();
+  profile public.profiles%rowtype;
+  market_id text;
+  person_name text;
+  fresh text;
+  created public.market_users%rowtype;
+begin
+  if auth_id is null then
+    return jsonb_build_object('ok', false, 'error', 'sign_in');
+  end if;
+  select * into profile
+  from public.profiles
+  where id = auth_id
+    and role = 'super_admin';
+  if profile.id is null then
+    return jsonb_build_object('ok', false, 'error', 'admin_only');
+  end if;
+
+  person_name := nullif(trim(coalesce(profile.full_name, '')), '');
+  if person_name is null then
+    person_name := 'Super admin';
+  end if;
+
+  select id into market_id
+  from public.market_users
+  where email = lower(profile.email);
+  if market_id is null then
+    market_id := 'u_' || replace(auth_id::text, '-', '');
+  end if;
+
+  insert into public.market_users (
+    id, name, email, password_hash, roles, shop_name, seller_status, suspended, platform_owner, address, cart
+  )
+  values (
+    market_id,
+    person_name,
+    lower(profile.email),
+    crypt(gen_random_uuid()::text, gen_salt('bf')),
+    array['admin'],
+    null,
+    null,
+    false,
+    true,
+    null,
+    '[]'::jsonb
+  )
+  on conflict (id) do update set
+    name = excluded.name,
+    email = excluded.email,
+    roles = array['admin'],
+    suspended = false,
+    platform_owner = true
+  returning * into created;
+
+  fresh := encode(gen_random_bytes(24), 'hex');
+  insert into public.market_sessions (token, user_id) values (fresh, created.id);
+  return jsonb_build_object(
+    'ok', true,
+    'token', fresh,
+    'activeRole', 'admin',
+    'user', public.market_public_user(created, created.id, true)
+  );
+end;
+$$;
+
+grant execute on function public.market_enter_super() to anon, authenticated;
+
+create or replace function public.market_keep_platform_owner()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if tg_op = 'UPDATE' and old.platform_owner then
+    new.roles := old.roles;
+    new.email := old.email;
+    new.name := old.name;
+    new.suspended := old.suspended;
+    new.seller_status := old.seller_status;
+    new.shop_name := old.shop_name;
+    new.platform_owner := true;
+    new.password_hash := old.password_hash;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists market_keep_platform_owner on public.market_users;
+create trigger market_keep_platform_owner
+before update on public.market_users
+for each row execute function public.market_keep_platform_owner();
