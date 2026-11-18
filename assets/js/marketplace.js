@@ -381,23 +381,23 @@
     return `<ol class="mk-steps mk-tx">${stages.map((stage, index) => {
       const count = orders.filter((order) => E.inStage(order, stage.id)).length;
       const state = current === stage.id ? "now" : "";
-      return `<li class="${state}"><a href="${hrefFor(stage.id)}"><span>${stage.id ? index : "·"}</span><strong>${esc(zh() ? stage.zh : stage.en)}</strong><small>${count}</small></a></li>`;
+      const marked = (stage.id === "payment_confirmed" || stage.id === "completed") && count > 0;
+      const mark = marked ? "✓" : (stage.id ? String(index) : "·");
+      return `<li class="${state}${marked ? " done" : ""}"><a href="${hrefFor(stage.id)}"><span>${mark}</span><strong>${esc(zh() ? stage.zh : stage.en)}</strong><small>${count}</small></a></li>`;
     }).join("")}</ol>`;
   }
 
+  function stageLabel(order, selected) {
+    if (selected === "payment_confirmed" && order.paymentStatus === "received") return pick(STATUS.payment_confirmed);
+    if (selected === "shipping") return pick(STATUS.shipped);
+    if (selected === "completed" || order.status === "completed") return pick(STATUS.completed);
+    return pick(STATUS[order.status] || { en: order.status, zh: order.status });
+  }
+
   function timelineEntries(order) {
-    const entries = [];
-    (order.timeline || []).forEach((entry) => {
-      const shipping = entry.status === "ready_to_ship" || entry.status === "shipped";
-      const previous = entries[entries.length - 1];
-      const previousShipping = previous && (previous.status === "ready_to_ship" || previous.status === "shipped");
-      if (shipping && previousShipping) {
-        entries[entries.length - 1] = entry;
-        return;
-      }
-      entries.push(entry);
-    });
-    return entries;
+    const entries = order.timeline || [];
+    const hasShipped = entries.some((entry) => entry.status === "shipped");
+    return entries.filter((entry) => !(hasShipped && entry.status === "ready_to_ship"));
   }
 
   function paymentDetail(order) {
@@ -811,14 +811,12 @@
       actions = `<div class="mk-actions">
         <p>${zh() ? "付款" : "Payment"}: <strong>${esc(pick(PAY[order.paymentStatus]))}</strong></p>
         ${order.status === "waiting_payment" ? `<p>${zh() ? "買家已付款。確認收款後，訂單會進入出貨。" : "The buyer has paid. Confirm the receipt and the order moves to shipping."}</p>${paymentDetail(order) ? `<p>${zh() ? "付款" : "Payment"}: <strong>${esc(paymentDetail(order))}</strong></p>` : ""}<button type="button" class="mk-btn" data-action="advance" data-step="payment_received" data-id="${esc(order.id)}">${zh() ? "確認已收款" : "Confirm payment received"}</button>` : ""}
-        ${order.status === "payment_confirmed" ? `<button type="button" class="mk-btn" data-action="advance" data-step="ready_to_ship" data-id="${esc(order.id)}">${zh() ? "進入出貨" : "Move to shipping"}</button>` : ""}
-        ${order.status === "ready_to_ship" && !order.prepared ? `<button type="button" class="mk-btn" data-action="advance" data-step="prepare" data-id="${esc(order.id)}">${zh() ? "準備商品" : "Prepare the product"}</button>` : ""}
-        ${order.status === "ready_to_ship" && order.prepared ? `<label>${zh() ? "出貨備註" : "Shipment note"}<input id="ship-note" placeholder="${zh() ? "例如：下課交給學程辦公室" : "Carrier or packing note"}"></label><button type="button" class="mk-btn" data-action="advance" data-step="confirm_shipment" data-id="${esc(order.id)}">${zh() ? "確認出貨" : "Confirm shipment"}</button>` : ""}
+        ${order.status === "payment_confirmed" || order.status === "ready_to_ship" ? `<button type="button" class="mk-btn" data-action="advance" data-step="ready_to_ship" data-id="${esc(order.id)}">${zh() ? "進入出貨" : "Move to shipping"}</button>` : ""}
         ${order.status === "shipped" ? `<p class="mk-note">${zh() ? "商品正在出貨。買家親手收到後，這筆交易會出現在「交易完成」。" : "This order is in shipping. When the buyer has the product in hand, it appears under Transaction complete."}</p>` : ""}
         ${order.status === "completed" ? `<p class="mk-note">${zh() ? "這筆交易已完成，紀錄會保留。" : "This transaction is complete and stays on record."}</p>` : ""}
       </div>`;
     }
-    if (mode === "buyer" && order.status === "shipped") {
+    if (mode === "buyer" && (order.status === "shipped" || order.status === "ready_to_ship")) {
       actions = `<p class="mk-note">${zh() ? "賣家已確認收款，商品正在出貨。你收到商品後，賣家的交易完成圖示會更新。" : "The seller confirmed the payment and the product is in shipping. When you have it in hand, the seller’s completed icon updates."}</p><button type="button" class="mk-btn" data-action="complete" data-id="${esc(order.id)}">${zh() ? "我已收到商品" : "I have received the product"}</button>`;
     }
     if (mode === "admin") {
@@ -831,7 +829,7 @@
         : `<p><strong>${zh() ? "買家" : "Buyer"}</strong> ${esc(order.buyer.name)} · ${esc(order.buyer.email)}<br><strong>${zh() ? "賣家" : "Seller"}</strong> ${esc(order.seller.shopName)} · ${esc(order.seller.name)} · ${esc(order.seller.email)}</p>`;
     return `<section class="mk-sheet">
       <p class="mk-kicker">${esc(order.id)}</p>
-      <h2>${esc(pick(STATUS[order.status]))}</h2>
+      <h2>${esc(pick(order.items[0] ? order.items[0].name : { en: "Order", zh: "訂單" }))}</h2>
       ${stepper(order.status)}
       <div class="mk-split">
         <div>
@@ -929,7 +927,7 @@
           <td>${esc(order.items.map((item) => pick(item.name) + " × " + item.quantity).join(", "))}</td>
           <td>${esc(when(order.createdAt))}</td>
           <td>${esc(money(order.total))}</td>
-          <td>${esc(pick(STATUS[order.status]))}</td>
+          <td>${esc(stageLabel(order, status))}</td>
           <td>${confirmPayment(order)}</td>
         </tr>`).join("") || `<tr><td colspan="7">${zh() ? "這個狀態沒有交易。" : "No transactions for this status."}</td></tr>`}</tbody>
       </table></div>
@@ -1010,17 +1008,14 @@
     if (block) return block;
     const user = actor();
     const mine = db.orders.filter((order) => order.sellerId === user.id).map((order) => E.orderView(db, order, Date.now()));
-    const queues = [
-      ["process", zh() ? "待處理訂單" : "Orders to process"],
-      ["payments", zh() ? "待確認付款" : "Payments to confirm"],
-      ["ship", zh() ? "出貨" : "Shipping"]
-    ];
-    const current = queue === "payments" || queue === "ship" ? queue : "process";
-    const rows = mine.filter((order) => E.inQueue(order, current));
+    const queryStatus = new URLSearchParams((location.hash.split("?")[1] || "")).get("status") || "";
+    const selected = queryStatus || (queue === "payments" ? "waiting_payment" : queue === "ship" ? "shipping" : "");
+    const rows = mine.filter((order) => E.inStage(order, selected));
+    const raw = db.orders.filter((order) => order.sellerId === user.id);
     return `${chrome()}${banner()}<section class="mk-sheet">
       <h2>${zh() ? "賣家訂單" : "Shop orders"}</h2>
-      <p>${zh() ? "每一筆待收款的訂單都可以在這裡確認。確認後，買家的活動紀錄會顯示已收款。已出貨與已完成的銷售留在" : "Confirm each payment from this list. The buyer’s activity log records the confirmation. Shipped and completed sales stay in"} <a href="#/sell/sales">${zh() ? "銷售紀錄" : "sales history"}</a>${zh() ? "，不會刪除。" : " and are not deleted."}</p>
-      <div class="mk-chips">${queues.map(([id, label]) => `<a class="${current === id ? "on" : ""}" href="#/sell/orders${id === "process" ? "" : "/" + id}">${esc(label)} (${mine.filter((order) => E.inQueue(order, id)).length})</a>`).join("")}</div>
+      <p>${zh() ? "確認收款後，訂單會標在「已確認付款」。買家收到商品後，訂單會標在「交易完成」。" : "A confirmed payment is marked under Payment confirmed. When the buyer receives the goods, the order is marked under Transaction complete."}</p>
+      ${transactionBar(raw, selected, (id) => "#/sell/orders" + (id ? "?status=" + encodeURIComponent(id) : ""))}
       <div class="mk-table"><table>
         <thead><tr><th>${zh() ? "訂單編號" : "Order ID"}</th><th>${zh() ? "買家" : "Buyer"}</th><th>${zh() ? "訂單日期" : "Order date"}</th><th>${zh() ? "合計" : "Total amount"}</th><th>${zh() ? "付款狀態" : "Payment status"}</th><th>${zh() ? "訂單狀態" : "Order status"}</th><th>${zh() ? "收款" : "Payment"}</th></tr></thead>
         <tbody>${rows.map((order) => `<tr>
@@ -1029,7 +1024,7 @@
           <td>${esc(when(order.createdAt))}</td>
           <td>${esc(money(order.total))}</td>
           <td>${esc(pick(PAY[order.paymentStatus]))}</td>
-          <td>${esc(pick(STATUS[order.status]))}</td>
+          <td>${esc(stageLabel(order, selected))}</td>
           <td>${confirmPayment(order)}</td>
         </tr>`).join("")}</tbody>
       </table></div>
@@ -1507,7 +1502,7 @@
           : button.dataset.step === "transaction_complete"
             ? (zh() ? "交易已完成，紀錄會保留。" : "Transaction complete. The record stays.")
             : (zh() ? "訂單狀態已更新。賣家與買家會看到同一筆紀錄。" : "Order status updated. Buyer and seller share this record.");
-        commit(confirmed ? () => go("/sell?status=shipping") : undefined);
+        commit(confirmed ? () => go("/sell?status=payment_confirmed") : undefined);
         return;
       }
       if (action === "complete") {

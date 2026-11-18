@@ -3182,11 +3182,15 @@ button.mk-signup {
 }
 
 .mk-tx {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: stretch;
+  overflow: visible;
 }
 
 .mk-tx li {
-  min-width: 9.5rem;
+  min-width: 0;
+  flex: none;
 }
 
 .mk-tx a {
@@ -3342,6 +3346,14 @@ button.mk-signup {
   .mk-steps li {
     min-width: 0;
     flex: 1 1 calc(50% - 8px);
+  }
+
+  .mk-tx {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mk-tx li {
+    flex: none;
   }
 
   .mk-months li {

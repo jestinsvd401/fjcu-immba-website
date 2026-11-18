@@ -671,32 +671,26 @@
     if (action === "payment_received") {
       if (order.status !== "waiting_payment") return { ok: false, error: "step" };
       order.paymentStatus = "received";
-      order.status = "shipped";
-      order.prepared = true;
+      order.status = "payment_confirmed";
       order.updatedAt = moment;
       timeline(order, "payment_confirmed", seller, "Seller confirmed the payment was received.");
-      timeline(order, "shipped", seller, "Payment confirmed. The order moved to shipping.");
     } else if (action === "transaction_complete") {
       if (order.status !== "shipped" && order.status !== "ready_to_ship") return { ok: false, error: "step" };
       order.status = "completed";
       order.completedAt = moment;
       order.updatedAt = moment;
       timeline(order, "completed", seller, "Transaction complete.");
-    } else if (action === "ready_to_ship") {
-      if (order.status !== "payment_confirmed") return { ok: false, error: "step" };
-      order.status = "ready_to_ship";
+    } else if (action === "ready_to_ship" || action === "confirm_shipment") {
+      if (order.status !== "payment_confirmed" && order.status !== "ready_to_ship") return { ok: false, error: "step" };
+      order.status = "shipped";
+      order.prepared = true;
+      order.shipmentNote = action === "confirm_shipment" ? String(note || "").trim() : order.shipmentNote;
       order.updatedAt = moment;
-      timeline(order, "ready_to_ship", seller, "Moved to ready to ship.");
+      timeline(order, "shipped", seller, order.shipmentNote || "The order moved to shipping.");
     } else if (action === "prepare") {
       if (order.status !== "ready_to_ship" || order.prepared) return { ok: false, error: "step" };
       order.prepared = true;
       order.updatedAt = moment;
-    } else if (action === "confirm_shipment") {
-      if (order.status !== "ready_to_ship" || !order.prepared) return { ok: false, error: "step" };
-      order.status = "shipped";
-      order.shipmentNote = String(note || "").trim();
-      order.updatedAt = moment;
-      timeline(order, "shipped", seller, order.shipmentNote || "Shipment confirmed.");
     } else {
       return { ok: false, error: "step" };
     }
@@ -725,7 +719,7 @@
     if (gate.actor.role !== "buyer") return { ok: false, error: "buyer_only" };
     const order = findOrder(db, orderId);
     if (!order || order.buyerId !== gate.actor.id) return { ok: false, error: "missing" };
-    if (order.status !== "shipped") return { ok: false, error: "step" };
+    if (order.status !== "shipped" && order.status !== "ready_to_ship") return { ok: false, error: "step" };
     const moment = iso(now || Date.now());
     order.status = "completed";
     order.completedAt = moment;
