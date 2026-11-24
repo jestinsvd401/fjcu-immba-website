@@ -159,11 +159,10 @@ function pageContent(page, lang) {
       </div></section>`,
 
     marketplace: () => `
-      ${hero(zh ? "教材與書籍市集" : "Books & Materials Marketplace", zh ? "同學之間的二手書與教材。課程示範，不是正式書店。" : "A student desk for second-hand books and course materials. A course demonstration, not an official bookstore.")}
-      <section class="section" style="padding-top:0"><div class="container">
-        <div class="notice">${zh
-          ? "本頁為課程示範。買家、賣家與平台管理員看到的功能不同。交易紀錄會保留，不會在完成後刪除。"
-          : "Course demonstration. Buyers, sellers, and the platform admin see different tools. Completed transactions stay on record."}</div>
+      <section class="page-hero mk-hero"><div class="container">
+        <h1>${zh ? "教材與書籍市集" : "Books & Materials Marketplace"}</h1>
+      </div></section>
+      <section class="section mk-floor"><div class="container">
         <div id="market-root"></div>
       </div></section>`,
 

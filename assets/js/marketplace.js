@@ -499,11 +499,6 @@
     const cats = [{ id: "", en: "All", zh: "全部" }].concat(E.CATEGORIES.map((id) => ({ id, en: CATS[id].en, zh: CATS[id].zh })));
     return `${chrome()}${banner()}
       <section class="mk-sheet">
-        <p class="mk-kicker">${zh() ? "同學二手市集" : "Student C2C desk"}</p>
-        <h2>${zh() ? "二手書與教材" : "Second-hand books and materials"}</h2>
-        <p class="mk-lead">${zh()
-          ? "先搜尋商品。新買家註冊後就可以把商品加入購物車並購買。"
-          : "Search the listings first. A new buyer registers, then adds a product to the cart and buys it."}</p>
         <form class="mk-filters" data-action="search">
           <div class="mk-search">
             <label>${zh() ? "搜尋商品" : "Search products"}
