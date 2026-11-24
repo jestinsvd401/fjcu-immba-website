@@ -2920,6 +2920,8 @@ button.mk-signup {
 .mk-pill.pending { color: #8a5a12; }
 .mk-pill.approved,
 .mk-pill.completed { color: #0e6b62; }
+.mk-pill.removed,
+.mk-pill.suspended { color: #b71939; }
 .mk-wait { color: #5c4a78; font-size: 0.92rem; }
 
 .mk-price {

@@ -314,7 +314,7 @@
       const waiting = pendingSellers().length;
       add("/admin", zh() ? "全部交易" : "Transactions");
       add("/admin/applications", (zh() ? "賣家申請" : "Applications") + (waiting ? " " + waiting : ""));
-      add("/admin/users", zh() ? "使用者" : "Users");
+      add("/admin/users", zh() ? "賣家與買家" : "Sellers & buyers");
       add("/admin/activity", zh() ? "活動紀錄" : "Activity");
     }
     if (!user) add("/login", zh() ? "登入" : "Sign in");
@@ -1280,27 +1280,117 @@
       ${applicationsBoard()}
     </section>`;
   }
+  function peopleByRole(role) {
+    return db.users
+      .filter((user) => user.roles.includes(role) && !user.roles.includes("admin") && !user.platformOwner)
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  function personState(user) {
+    if (user.removedAt) return { key: "removed", en: "Removed", zh: "已移除" };
+    if (user.suspended) return { key: "suspended", en: "Suspended", zh: "已停用" };
+    if (user.roles.includes("seller") && user.sellerStatus && user.sellerStatus !== "approved") {
+      return SELLER_STATUS[user.sellerStatus] ? { key: user.sellerStatus, ...SELLER_STATUS[user.sellerStatus] } : { key: "pending", en: user.sellerStatus, zh: user.sellerStatus };
+    }
+    return { key: "approved", en: "Active", zh: "使用中" };
+  }
+
+  function removeUserButton(user) {
+    if (user.removedAt || user.roles.includes("admin") || user.platformOwner) return "";
+    return `<button type="button" class="mk-btn" data-action="remove-user" data-id="${esc(user.id)}" data-name="${esc(user.name)}">${zh() ? "移除" : "Remove"}</button>`;
+  }
+
   function usersPage() {
     const block = guard("admin");
     if (block) return block;
-    const users = db.users.map((user) => E.userPublic(user));
+    const sellers = peopleByRole("seller");
+    const buyers = peopleByRole("buyer");
+    const sellerRows = sellers.map((user) => {
+      const listings = db.products.filter((product) => product.sellerId === user.id);
+      const state = personState(user);
+      return `<tr>
+        <td><a href="#/admin/users/${esc(user.id)}?view=seller"><strong>${esc(user.name)}</strong></a><br><small>${esc(user.email)}</small></td>
+        <td>${esc(user.shopName || "")}</td>
+        <td>${listings.filter((product) => product.listingStatus !== "removed").length}</td>
+        <td><em class="mk-pill ${esc(state.key)}">${esc(zh() ? state.zh : state.en)}</em></td>
+        <td class="mk-row-actions"><a href="#/admin/users/${esc(user.id)}?view=seller">${zh() ? "查看上架" : "Check listings"}</a>${removeUserButton(user)}</td>
+      </tr>`;
+    }).join("");
+    const buyerRows = buyers.map((user) => {
+      const purchases = db.orders.filter((order) => order.buyerId === user.id);
+      const state = personState(user);
+      return `<tr>
+        <td><a href="#/admin/users/${esc(user.id)}?view=buyer"><strong>${esc(user.name)}</strong></a><br><small>${esc(user.email)}</small></td>
+        <td>${purchases.length}</td>
+        <td>${esc(money(purchases.reduce((sum, order) => sum + Number(order.total) || 0, 0)))}</td>
+        <td><em class="mk-pill ${esc(state.key)}">${esc(zh() ? state.zh : state.en)}</em></td>
+        <td class="mk-row-actions"><a href="#/admin/users/${esc(user.id)}?view=buyer">${zh() ? "查看購買" : "Check purchases"}</a>${removeUserButton(user)}</td>
+      </tr>`;
+    }).join("");
     return `${chrome()}${banner()}<section class="mk-sheet">
-      <h2>${zh() ? "使用者" : "Users"}</h2>
-      ${applicationSummary()}
-      <p class="mk-note">${zh() ? "也可以在這裡停用買家或賣家。平台管理員權限不能在這裡授予。" : "You can also suspend a buyer or seller here. Platform administrator access cannot be granted from this desk."}</p>
+      <p class="mk-kicker">${zh() ? "超級管理員" : "Super admin"}</p>
+      <h2>${zh() ? "賣家與買家" : "Sellers and buyers"}</h2>
+      <p>${zh() ? "賣家和買家分開列出。點進去可以查看那位賣家的上架，或那位買家的購買。必要時可以移除帳號；過去的交易仍會保留。" : "Sellers and buyers are listed separately. Open one to check that seller’s listings or that buyer’s purchases. Remove an account when necessary. Past transactions stay on record."}</p>
+      <h3>${zh() ? "賣家" : "Sellers"} (${sellers.length})</h3>
       <div class="mk-table"><table>
-        <thead><tr><th>${zh() ? "姓名" : "Name"}</th><th>${zh() ? "角色" : "Role"}</th><th>${zh() ? "店名 / 狀態" : "Shop / status"}</th><th></th></tr></thead>
-        <tbody>${users.map((user) => `<tr>
-          <td>${esc(user.name)}<br><small>${esc(user.email)}</small>${user.address && user.address.phone ? `<br><small>${esc(user.address.phone)}</small>` : ""}</td>
-          <td>${esc(user.roles.map(roleLabel).join(" / "))}</td>
-          <td>${user.roles.includes("seller") ? esc(user.shopName || "") + " · " + esc(sellerStatusLabel(user.sellerStatus)) : "—"}${user.suspended ? (zh() ? " · 已停用" : " · suspended") : ""}</td>
-          <td class="mk-row-actions">
-            ${user.roles.includes("seller") && user.sellerStatus === "pending" ? `<button type="button" data-action="user" data-step="approve" data-id="${esc(user.id)}">${zh() ? "核准賣家" : "Approve seller"}</button>` : ""}
-            ${!user.roles.includes("admin") && !user.suspended ? `<button type="button" data-action="user" data-step="suspend" data-id="${esc(user.id)}">${zh() ? "停用" : "Suspend"}</button>` : ""}
-            ${!user.roles.includes("admin") && user.suspended ? `<button type="button" data-action="user" data-step="restore" data-id="${esc(user.id)}">${zh() ? "恢復" : "Restore"}</button>` : ""}
-          </td>
-        </tr>`).join("")}</tbody>
+        <thead><tr><th>${zh() ? "賣家" : "Seller"}</th><th>${zh() ? "店名" : "Shop"}</th><th>${zh() ? "上架中" : "Listed"}</th><th>${zh() ? "狀態" : "Status"}</th><th></th></tr></thead>
+        <tbody>${sellerRows || `<tr><td colspan="5">${zh() ? "還沒有賣家。" : "No sellers yet."}</td></tr>`}</tbody>
       </table></div>
+      <h3>${zh() ? "買家" : "Buyers"} (${buyers.length})</h3>
+      <div class="mk-table"><table>
+        <thead><tr><th>${zh() ? "買家" : "Buyer"}</th><th>${zh() ? "購買筆數" : "Purchases"}</th><th>${zh() ? "購買金額" : "Spent"}</th><th>${zh() ? "狀態" : "Status"}</th><th></th></tr></thead>
+        <tbody>${buyerRows || `<tr><td colspan="5">${zh() ? "還沒有買家。" : "No buyers yet."}</td></tr>`}</tbody>
+      </table></div>
+    </section>`;
+  }
+
+  function personPage(id) {
+    const block = guard("admin");
+    if (block) return block;
+    const user = E.findUser(db, id);
+    if (!user || user.roles.includes("admin") || user.platformOwner) {
+      return `${chrome()}<section class="mk-panel"><h2>${zh() ? "找不到這位使用者" : "Person unavailable"}</h2><p><a href="#/admin/users">${zh() ? "回到賣家與買家" : "Back to sellers and buyers"}</a></p></section>`;
+    }
+    const view = new URLSearchParams(location.hash.split("?")[1] || "").get("view") === "buyer" ? "buyer" : "seller";
+    const state = personState(user);
+    const listings = db.products.filter((product) => product.sellerId === user.id);
+    const purchases = db.orders.filter((order) => order.buyerId === user.id).map((order) => E.orderView(db, order, Date.now()));
+    const showListings = view === "seller" || user.roles.includes("seller") || listings.length > 0;
+    const showPurchases = view === "buyer" || user.roles.includes("buyer") || purchases.length > 0;
+    const listingTable = listings.length ? `<div class="mk-table"><table>
+      <thead><tr><th>${zh() ? "商品" : "Listing"}</th><th>${zh() ? "價格" : "Price"}</th><th>${zh() ? "可售" : "Available"}</th><th>${zh() ? "上架狀態" : "Listing"}</th></tr></thead>
+      <tbody>${listings.map((product) => `<tr>
+        <td><div class="mk-item">${listingPhoto(product)}<strong>${esc(pick(product.name))}</strong></div></td>
+        <td>${esc(money(product.price))}</td>
+        <td>${product.quantity}</td>
+        <td>${esc(pick(LISTING[product.listingStatus] || { en: product.listingStatus, zh: product.listingStatus }))}</td>
+      </tr>`).join("")}</tbody>
+    </table></div>` : `<p class="mk-empty">${zh() ? "這位賣家沒有上架商品。" : "This seller has no listings."}</p>`;
+    const purchaseTable = purchases.length ? `<div class="mk-table"><table>
+      <thead><tr><th>${zh() ? "訂單編號" : "Order ID"}</th><th>${zh() ? "賣家" : "Seller"}</th><th>${zh() ? "商品" : "Products"}</th><th>${zh() ? "日期" : "Date"}</th><th>${zh() ? "金額" : "Amount"}</th><th>${zh() ? "狀態" : "Status"}</th></tr></thead>
+      <tbody>${purchases.map((order) => `<tr>
+        <td><a href="#/admin/transactions/${esc(order.id)}">${esc(order.id)}</a></td>
+        <td>${esc(order.seller.shopName || order.seller.name)}</td>
+        <td>${esc(order.items.map((item) => pick(item.name) + " × " + item.quantity).join(", "))}</td>
+        <td>${esc(when(order.createdAt))}</td>
+        <td>${esc(money(order.total))}</td>
+        <td>${statusMark(order)}</td>
+      </tr>`).join("")}</tbody>
+    </table></div>` : `<p class="mk-empty">${zh() ? "這位買家還沒有購買。" : "This buyer has no purchases."}</p>`;
+    return `${chrome()}${banner()}<section class="mk-sheet">
+      <p><a href="#/admin/users">${zh() ? "全部賣家與買家" : "All sellers and buyers"}</a></p>
+      <div class="mk-head">
+        <div>
+          <p class="mk-kicker">${esc(view === "buyer" ? (zh() ? "買家" : "Buyer") : (zh() ? "賣家" : "Seller"))}</p>
+          <h2>${esc(user.name)}</h2>
+        </div>
+        ${removeUserButton(user)}
+      </div>
+      <p>${esc(user.email)}${user.shopName ? " · " + esc(user.shopName) : ""} · <em class="mk-pill ${esc(state.key)}">${esc(zh() ? state.zh : state.en)}</em></p>
+      ${user.removedAt ? `<p class="mk-note">${zh() ? "這個帳號已移除，不能再登入，商品也不會出現在市集。過去的交易仍保留。" : "This account is removed. They cannot sign in, and their listings stay off the floor. Past transactions remain."}</p>` : ""}
+      ${showListings ? `<h3>${zh() ? "上架商品" : "Listings"} (${listings.length})</h3>${listingTable}` : ""}
+      ${showPurchases ? `<h3>${zh() ? "購買紀錄" : "Purchases"} (${purchases.length})</h3>${purchaseTable}` : ""}
     </section>`;
   }
 
@@ -1392,7 +1482,7 @@
       if (parts[1] === "sales") return salesPage();
     }
     if (head === "admin") {
-      if (parts[1] === "users") return usersPage();
+      if (parts[1] === "users") return parts[2] ? personPage(parts[2]) : usersPage();
       if (parts[1] === "applications") return applicationsPage();
       if (parts[1] === "activity") return activityPage();
       if (parts[1] === "transactions" && parts[2]) return adminOrder(parts[2]);
@@ -1571,6 +1661,26 @@
         const result = E.setVisibility(db, userId(), activeRole(), button.dataset.id, button.dataset.step, Date.now());
         if (!result.ok) return fail(result);
         commit();
+        return;
+      }
+      if (action === "remove-user") {
+        const name = button.dataset.name || "";
+        const sure = window.confirm(zh()
+          ? "確定移除「" + name + "」？對方會被登出，商品會從市集下架，而且不能再登入。過去的交易仍會保留。"
+          : "Remove " + name + "? They are signed out, their listings leave the floor, and they cannot sign in. Past transactions stay on record.");
+        if (!sure) return;
+        if (window.MarketCloud && token()) {
+          const result = await MarketCloud.removeUser(token(), button.dataset.id);
+          if (!result || result.ok === false) return fail(result || { error: "cloud" });
+          try { db = await pull(); } catch (error) { return fail({ error: "cloud" }); }
+          flash = zh() ? "已移除這個帳號。過去的交易仍保留。" : "Account removed. Past transactions stay on record.";
+          go("/admin/users");
+          return;
+        }
+        const result = E.removeUser(db, userId(), activeRole(), button.dataset.id, Date.now());
+        if (!result.ok) return fail(result);
+        flash = zh() ? "已移除這個帳號。過去的交易仍保留。" : "Account removed. Past transactions stay on record.";
+        commit(() => go("/admin/users"));
         return;
       }
       if (action === "user") {

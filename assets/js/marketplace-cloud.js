@@ -46,6 +46,9 @@
     adminCsv(token) {
       return rpc("market_admin_csv", { p_token: token || "" });
     },
+    removeUser(token, userId) {
+      return rpc("market_admin_remove_user", { p_token: token || "", p_user_id: userId || "" });
+    },
     install(state) {
       return rpc("market_install", { p_state: state });
     },

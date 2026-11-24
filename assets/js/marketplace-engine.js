@@ -46,6 +46,8 @@
       shopName: user.shopName || null,
       sellerStatus: user.sellerStatus || null,
       suspended: !!user.suspended,
+      removedAt: user.removedAt || null,
+      platformOwner: !!user.platformOwner,
       address: user.address || null
     };
   }
@@ -84,7 +86,7 @@
 
   function sessionActor(db, userId, activeRole) {
     const user = findUser(db, userId);
-    if (!user || user.suspended) return null;
+    if (!user || user.suspended || user.removedAt) return null;
     const role = user.roles.includes(activeRole) ? activeRole : user.roles[0];
     return Object.assign({}, user, { role });
   }
@@ -373,6 +375,10 @@
     const category = filters && filters.category ? filters.category : "";
     return db.products
       .filter((product) => product.listingStatus === "active")
+      .filter((product) => {
+        const seller = findUser(db, product.sellerId);
+        return !seller || !seller.removedAt;
+      })
       .filter((product) => !category || product.category === category)
       .filter((product) => {
         if (!query) return true;
@@ -464,7 +470,7 @@
   function login(db, email, password) {
     const user = db.users.find((entry) => entry.email === String(email || "").trim().toLowerCase());
     if (!user || user.password !== password) return { ok: false, error: "credentials" };
-    if (user.suspended) return { ok: false, error: "suspended" };
+    if (user.suspended || user.removedAt) return { ok: false, error: "suspended" };
     return { ok: true, user: userPublic(user), activeRole: openingRole(user) };
   }
 
@@ -1007,13 +1013,44 @@
         actorName: gate.actor.name,
         message: { en: gate.actor.name + " approved " + target.shopName + ".", zh: gate.actor.name + " 核准了 " + target.shopName + "。" }
       });
-    } else if (action === "suspend" && !target.suspended) {
+    } else if (action === "suspend" && !target.suspended && !target.removedAt) {
       target.suspended = true;
-    } else if (action === "restore" && target.suspended) {
+    } else if (action === "restore" && target.suspended && !target.removedAt) {
       target.suspended = false;
     } else {
       return { ok: false, error: "step" };
     }
+    return { ok: true, user: userPublic(target) };
+  }
+
+  function removeUser(db, actorId, activeRole, targetId, now) {
+    const gate = requireUser(db, actorId, activeRole);
+    if (!gate.ok) return gate;
+    if (gate.actor.role !== "admin") return { ok: false, error: "admin_only" };
+    const target = findUser(db, targetId);
+    if (!target || target.roles.includes("admin") || target.platformOwner || target.id === gate.actor.id) {
+      return { ok: false, error: "locked" };
+    }
+    if (target.removedAt) return { ok: false, error: "step" };
+    const moment = iso(now || Date.now());
+    target.suspended = true;
+    target.removedAt = moment;
+    target.cart = [];
+    db.products.forEach((product) => {
+      if (product.sellerId === target.id && product.listingStatus !== "removed") {
+        product.listingStatus = "removed";
+        product.updatedAt = moment;
+      }
+    });
+    log(db, {
+      at: moment,
+      type: "user_removed",
+      actorName: gate.actor.name,
+      message: {
+        en: gate.actor.name + " removed " + target.name + " (" + target.email + "). Past transactions stay on record.",
+        zh: gate.actor.name + " 已移除 " + target.name + "（" + target.email + "）。過去的交易仍保留。"
+      }
+    });
     return { ok: true, user: userPublic(target) };
   }
 
@@ -1086,6 +1123,7 @@
     adminCsv,
     adminOrders,
     adminUsers,
+    removeUser,
     applySeller
   };
 });
