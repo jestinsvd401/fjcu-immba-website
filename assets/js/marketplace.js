@@ -524,7 +524,8 @@
   }
 
   function listingPhoto(product) {
-    return `<span class="mk-list-photo"><img src="${esc(product.image || "")}" alt=""></span>`;
+    const image = (product && product.image) || "";
+    return `<span class="mk-list-photo"><img src="${esc(image)}" alt="${esc(product ? pick(product.name) : "")}"></span>`;
   }
 
   function card(product) {
@@ -1914,22 +1915,11 @@
   window.mountMarketplace = function () {
     const gen = ++loadGen;
     const root = document.getElementById("market-root");
-    const head = (location.hash || "#/").replace(/^#\/?/, "").split(/[/?]/)[0];
-    const signingIn = head === "login" || head === "register";
     if (db && root) renderMarket();
     else if (root) {
       root.innerHTML = `<p class="mk-empty">${typeof getLang === "function" && getLang() === "zh" ? "正在讀取市集…" : "Loading the marketplace…"}</p>`;
     }
-    const job = (async () => {
-      if (window.MarketCloud && !token() && !deferSuper && !signingIn) {
-        const claimed = await claimSuperAdmin(false);
-        if (claimed && (!head || head === "login" || head === "register")) {
-          location.hash = "/admin";
-          return null;
-        }
-      }
-      return window.MarketCloud ? pull() : load();
-    })();
+    const job = window.MarketCloud ? pull() : load();
     Promise.resolve(job).then((state) => {
       if (gen !== loadGen || !state) return;
       db = state;

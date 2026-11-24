@@ -124,7 +124,12 @@
       seller: seller
         ? { id: seller.id, name: seller.name, email: seller.email, shopName: seller.shopName || "" }
         : { id: order.sellerId, name: "Seller", email: "", shopName: "" },
-      items: order.items.map((item) => Object.assign({}, item)),
+      items: order.items.map((item) => {
+        const product = findProduct(db, item.productId);
+        return Object.assign({}, item, {
+          image: item.image || (product && product.image) || ""
+        });
+      }),
       total: order.total,
       status: order.status,
       paymentStatus: order.paymentStatus,
