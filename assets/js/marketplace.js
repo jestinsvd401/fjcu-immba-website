@@ -1436,9 +1436,10 @@
       <p class="mk-kicker">${esc(user.shopName || (zh() ? "賣家" : "Seller"))}</p>
       <h2>${zh() ? "等待核准" : "Waiting for approval"}</h2>
       <p>${zh()
-        ? "你現在可以買書。切換到買家就能逛市集、使用購物車和查看訂單。上架、庫存、出貨和銷售要等超級管理員核准這間店。"
-        : "You can buy now. Switch to Buyer for the floor, the cart, and your orders. Listing, inventory, shipping, and sales stay closed until the super admin approves this shop."}</p>
-      <p class="mk-note">${zh() ? "核准後請重新整理或重新登入，賣家工作台就會打開。" : "After approval, refresh or sign in again and the seller desk opens."}</p>
+        ? user.name + "（" + user.email + "）已登入。你現在可以買書。上架、庫存、出貨和銷售要等超級管理員核准這間店。"
+        : user.name + " (" + user.email + ") is signed in. You can buy now. Listing, inventory, shipping, and sales stay closed until the super admin approves this shop."}</p>
+      <button class="mk-btn" type="button" data-action="shop-as-buyer">${zh() ? "以買家繼續購物" : "Continue shopping as a buyer"}</button>
+      <p class="mk-note">${zh() ? "核准後重新登入，賣家工作台就會打開。右上角的角色也可以切換買家和賣家。" : "Sign in again after approval and the seller desk opens. The role menu also switches between buyer and seller."}</p>
     </section>`;
   }
 
@@ -1499,7 +1500,10 @@
 
   function afterLogin(result) {
     setSession(result.user.id, result.activeRole);
-    flash = zh() ? "已登入。" : "Signed in.";
+    const pendingSeller = result.activeRole === "seller" && result.user && result.user.sellerStatus === "pending";
+    flash = pendingSeller
+      ? (zh() ? "已登入。你現在可以購物。上架要等超級管理員核准這間店。" : "Signed in. You can shop now. Listing opens after the super admin approves this shop.")
+      : (zh() ? "已登入。" : "Signed in.");
     go(deskFor(result.activeRole));
   }
 
@@ -1570,6 +1574,14 @@
       const button = event.target.closest("[data-action]");
       if (!button || button.tagName === "FORM") return;
       const action = button.dataset.action;
+      if (action === "shop-as-buyer") {
+        const user = E.findUser(db, userId());
+        if (!user || !user.roles.includes("buyer")) return;
+        sessionStorage.setItem(ROLE, "buyer");
+        flash = zh() ? "已換成買家。你可以逛市集和下單。" : "Switched to buyer. You can browse and place orders.";
+        go("/");
+        return;
+      }
       if (action === "logout") {
         const current = token();
         deferSuper = true;
