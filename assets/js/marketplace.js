@@ -1122,6 +1122,7 @@
       <p class="mk-note">${zh() ? `這裡列出每一位賣家與每一位買家之間的全部交易，目前顯示 ${report.orders.length} 筆，資料庫共 ${db.orders.length} 筆。CSV 會下載全部交易，不受上方篩選影響。` : `Every transaction between every seller and every buyer is listed here. Showing ${report.orders.length} of ${db.orders.length}. The CSV downloads every transaction, not only the rows in the current filter.`}</p>
       ${applicationSummary()}
       <p><button type="button" class="mk-text" data-action="reset">${zh() ? "還原示範市集" : "Restore the sample floor"}</button></p>
+      <p class="mk-note">${zh() ? "還原只會把示範帳號和示範訂單回到起始狀態。已經註冊的賣家和買家、他們的上架和購買都會留下。" : "Restoring only returns the sample accounts and sample orders to the start. Sellers and buyers who already registered stay, with their listings and purchases."}</p>
       <div class="mk-stats">
         <article><span>${zh() ? "交易金額" : "Transaction amount"}</span><strong>${esc(money(report.volume))}</strong></article>
         <article><span>${zh() ? "未完成" : "Incomplete"}</span><strong>${report.incompleteCount}</strong></article>
@@ -1580,6 +1581,10 @@
         return;
       }
       if (action === "reset") {
+        const sure = window.confirm(zh()
+          ? "確定還原示範市集？示範帳號會回到起始訂單。已經註冊的賣家和買家會留下。"
+          : "Restore the sample floor? Sample accounts return to the starting orders. Sellers and buyers who already registered stay.");
+        if (!sure) return;
         if (!window.MarketCloud) {
           db = E.createSeed(new Date());
           remember(db);
