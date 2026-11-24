@@ -257,7 +257,7 @@
       }
     ];
 
-    function book(id, sellerId, name, category, description, price, quantity, purchased, status, accent, updatedDays) {
+    function book(id, sellerId, name, category, description, price, quantity, purchased, status, accent, updatedDays, image) {
       return {
         id,
         name,
@@ -266,7 +266,7 @@
         price,
         quantity,
         purchased,
-        image: cover(name.en.split(" ").slice(0, 3).join(" "), accent),
+        image: image || cover(name.en.split(" ").slice(0, 3).join(" "), accent),
         sellerId,
         listingStatus: status,
         updatedAt: at(updatedDays)
@@ -274,10 +274,10 @@
     }
 
     const products = [
-      book("p_strategy", "u_mei", { en: "International Business Strategy", zh: "國際企業策略" }, "textbooks", { en: "Used hardcover from the strategy module. Light notes in pencil on the first three chapters.", zh: "策略模組用過的精裝本，前三章有鉛筆註記。" }, 450, 4, 1, "active", "#4c2a6a", 20),
-      book("p_accounting", "u_mei", { en: "Financial Accounting", zh: "財務會計" }, "textbooks", { en: "Eighth edition, no writing inside. The companion code has been used.", zh: "第八版，內頁無筆跡。隨書序號已使用。" }, 380, 6, 0, "active", "#7a1f33", 18),
-      book("p_calc", "u_mei", { en: "Casio fx-991ES", zh: "Casio fx-991ES 計算機" }, "electronics", { en: "Scientific calculator allowed in imMBA exams. Battery replaced this term.", zh: "imMBA 考試可使用的工程計算機，本學期已換電池。" }, 650, 2, 1, "active", "#1f4d3a", 8),
-      book("p_binding", "u_mei", { en: "Thesis binding kit", zh: "論文裝訂組" }, "stationery", { en: "Covers, spine tape, and a format checklist printout for the library thesis.", zh: "封面、書背膠帶，以及圖書館論文格式檢核表影印。" }, 120, 8, 1, "active", "#8a5a12", 15),
+      book("p_strategy", "u_mei", { en: "International Business Strategy", zh: "國際企業策略" }, "textbooks", { en: "Used hardcover from the strategy module. Light notes in pencil on the first three chapters.", zh: "策略模組用過的精裝本，前三章有鉛筆註記。" }, 450, 4, 1, "active", "#4c2a6a", 20, "/assets/images/listings/business-strategy.jpg"),
+      book("p_accounting", "u_mei", { en: "Financial Accounting", zh: "財務會計" }, "textbooks", { en: "Eighth edition, no writing inside. The companion code has been used.", zh: "第八版，內頁無筆跡。隨書序號已使用。" }, 380, 6, 0, "active", "#7a1f33", 18, "/assets/images/listings/financial-accounting.jpg"),
+      book("p_calc", "u_mei", { en: "Casio fx-991ES", zh: "Casio fx-991ES 計算機" }, "electronics", { en: "Scientific calculator allowed in imMBA exams. Battery replaced this term.", zh: "imMBA 考試可使用的工程計算機，本學期已換電池。" }, 650, 2, 1, "active", "#1f4d3a", 8, "/assets/images/listings/casio-fx-991es.jpg"),
+      book("p_binding", "u_mei", { en: "Thesis binding kit", zh: "論文裝訂組" }, "stationery", { en: "Covers, spine tape, and a format checklist printout for the library thesis.", zh: "封面、書背膠帶，以及圖書館論文格式檢核表影印。" }, 120, 8, 1, "active", "#8a5a12", 15, "/assets/images/listings/thesis-binding-kit.jpg"),
       book("p_cases", "u_mei", { en: "Strategy case pack", zh: "策略個案講義" }, "packs", { en: "Hidden from the floor until Mei lists it again.", zh: "Mei 再次上架前，市集上看不到。" }, 200, 5, 0, "hidden", "#3d3a48", 6),
       book("p_analytics", "u_arun", { en: "Data Analytics course pack", zh: "資料分析課程講義" }, "packs", { en: "Printed cases and dataset notes from the analytics spotlight course.", zh: "資料分析專題的個案與資料集筆記，紙本。" }, 220, 10, 2, "active", "#243e73", 11),
       book("p_adpd", "u_arun", { en: "AI-ADPD workshop notes", zh: "AI 輔助數位產品開發筆記" }, "notes", { en: "Second-hand studio notes for product framing and the marketplace build.", zh: "產品定位與市集作業的二手工坊筆記。" }, 160, 7, 1, "active", "#b71939", 9),
