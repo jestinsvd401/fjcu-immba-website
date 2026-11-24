@@ -2938,6 +2938,20 @@ button.mk-signup {
   margin: 0;
 }
 
+.mk-search {
+  display: flex;
+  gap: 10px;
+  align-items: end;
+}
+
+.mk-search label {
+  flex: 1;
+}
+
+.mk-search .mk-btn {
+  margin: 0;
+}
+
 .mk-filters,
 .mk-panel form,
 .mk-sheet form,
@@ -3362,6 +3376,11 @@ button.mk-signup {
 }
 
 @media (max-width: 800px) {
+  .mk-search {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .mk-split,
   .mk-detail,
   .mk-roles li,

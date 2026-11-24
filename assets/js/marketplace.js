@@ -5,6 +5,7 @@
   const SESSION = "immba-market-session";
   const ROLE = "immba-market-role";
   const TOKEN = "immba-market-token";
+  const NEXT = "immba-market-next";
 
   const STATUS = {
     waiting_payment: { en: "Waiting for payment confirmation", zh: "等待確認付款" },
@@ -218,9 +219,16 @@
     }
     if (!token()) return false;
     const copy = JSON.parse(JSON.stringify(db));
+    const me = userId();
+    const actor = E.findUser(db, me);
     copy.users.forEach((user) => {
       delete user.password;
     });
+    if (!actor || !actor.roles.includes("admin")) {
+      copy.products.forEach((product) => {
+        if (product.sellerId !== me) delete product.image;
+      });
+    }
     const result = await MarketCloud.save(token(), copy);
     if (!result || result.ok === false) return false;
     remember(db);
@@ -494,17 +502,20 @@
         <p class="mk-kicker">${zh() ? "同學二手市集" : "Student C2C desk"}</p>
         <h2>${zh() ? "二手書與教材" : "Second-hand books and materials"}</h2>
         <p class="mk-lead">${zh()
-          ? "訪客可瀏覽公開商品。買家加入購物車並下單。賣家管理庫存與出貨。平台管理員只監看交易。同一套系統裡有買家、賣家與平台管理員三種角色，介面會跟著目前角色改變。"
-          : "Visitors browse public listings. Buyers add to cart and place orders. Sellers manage inventory and shipping. The platform admin monitors transactions and does not act as the buyer or the seller. One system holds buyer, seller, and platform admin roles, and the desk changes with the role you are using."}</p>
-        ${actor() ? sellApplication() : signupChoices()}
-        ${sellerDeskNote()}
+          ? "先搜尋商品。新買家註冊後就可以把商品加入購物車並購買。"
+          : "Search the listings first. A new buyer registers, then adds a product to the cart and buys it."}</p>
         <form class="mk-filters" data-action="search">
-          <label>${zh() ? "搜尋商品" : "Search products"}
-            <input name="q" value="${esc(q)}" placeholder="${zh() ? "書名、講義、賣家" : "Title, notes, seller"}">
-          </label>
+          <div class="mk-search">
+            <label>${zh() ? "搜尋商品" : "Search products"}
+              <input name="q" value="${esc(q)}" placeholder="${zh() ? "書名、講義、賣家" : "Title, notes, seller"}">
+            </label>
+            <button class="mk-btn" type="submit">${zh() ? "搜尋" : "Search"}</button>
+          </div>
           <div class="mk-chips">${cats.map((cat) => `<button type="submit" name="category" value="${esc(cat.id)}" class="${category === cat.id ? "on" : ""}">${esc(zh() ? cat.zh : cat.en)}</button>`).join("")}</div>
         </form>
         ${products.length ? `<div class="mk-grid">${products.map(card).join("")}</div>` : `<p class="mk-empty">${zh() ? "沒有符合的商品。" : "No listings match that search."}</p>`}
+        ${actor() ? sellApplication() : signupChoices()}
+        ${sellerDeskNote()}
         <div class="mk-split">
           <div>
             <h3>${zh() ? "角色與權限" : "Roles and permissions"}</h3>
@@ -548,7 +559,10 @@
     const max = Math.max(view.quantity, 1);
     let box = "";
     if (!user) {
-      box = `<p>${zh() ? "登入買家帳號後才能加入購物車。" : "Sign in as a buyer to add this to a cart."}</p><a class="mk-btn" href="#/login">${zh() ? "登入" : "Sign in"}</a>`;
+      const back = "/product/" + view.id;
+      box = `<p>${zh() ? "註冊成為買家後，就可以把這項商品加入購物車並購買。已經有帳號的話，直接登入。" : "Register as a buyer, then add this product to the cart and buy it. If you already have an account, sign in."}</p>
+        <a class="mk-btn" href="#/register/buyer" data-next="${esc(back)}">${zh() ? "註冊並購買" : "Register and buy"}</a>
+        <a class="mk-text" href="#/login" data-next="${esc(back)}">${zh() ? "已有帳號？登入" : "Already registered? Sign in"}</a>`;
     } else if (user.role === "buyer") {
       box = view.quantity > 0
         ? `<form data-action="add-cart">
@@ -1501,11 +1515,16 @@
 
   function afterLogin(result) {
     setSession(result.user.id, result.activeRole);
+    const next = sessionStorage.getItem(NEXT) || "";
+    sessionStorage.removeItem(NEXT);
+    const backToProduct = result.activeRole === "buyer" && next.startsWith("/product/");
     const pendingSeller = result.activeRole === "seller" && result.user && result.user.sellerStatus === "pending";
-    flash = pendingSeller
-      ? (zh() ? "已登入。你現在可以購物。上架要等超級管理員核准這間店。" : "Signed in. You can shop now. Listing opens after the super admin approves this shop.")
-      : (zh() ? "已登入。" : "Signed in.");
-    go(deskFor(result.activeRole));
+    flash = backToProduct
+      ? (zh() ? "已登入。把商品加入購物車，再到購物車付款購買。" : "You are signed in. Add the product to the cart, then pay and buy from the cart.")
+      : pendingSeller
+        ? (zh() ? "已登入。你現在可以購物。上架要等超級管理員核准這間店。" : "Signed in. You can shop now. Listing opens after the super admin approves this shop.")
+        : (zh() ? "已登入。" : "Signed in.");
+    go(backToProduct ? next : deskFor(result.activeRole));
   }
 
   async function enterDesk(result) {
@@ -1572,6 +1591,8 @@
     if (root.dataset.bound === "yes") return;
     root.dataset.bound = "yes";
     root.addEventListener("click", async (event) => {
+      const nextLink = event.target.closest("[data-next]");
+      if (nextLink && nextLink.dataset.next) sessionStorage.setItem(NEXT, nextLink.dataset.next);
       const button = event.target.closest("[data-action]");
       if (!button || button.tagName === "FORM") return;
       const action = button.dataset.action;
@@ -1819,8 +1840,10 @@
           items: cart.items.filter((item) => item.purchasable).map((item) => ({ productId: item.productId, quantity: item.quantity }))
         }, Date.now());
         if (!result.ok) return fail(result);
-        flash = zh() ? "已付款。賣家確認收款後，訂單才會進入出貨。" : "Payment sent. Shipping starts after the seller confirms it.";
-        commit(() => go(result.orders.length === 1 ? "/orders/" + result.orders[0].id : "/orders"));
+        commit(() => {
+          flash = zh() ? "已付款。賣家確認收款後，訂單才會進入出貨。" : "Payment sent. Shipping starts after the seller confirms it.";
+          go(result.orders.length === 1 ? "/orders/" + result.orders[0].id : "/orders");
+        });
         return;
       }
       if (action === "save-product") {

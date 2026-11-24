@@ -510,7 +510,7 @@ begin
           or p.category is distinct from item->>'category'
           or p.name is distinct from item->'name'
           or p.description is distinct from item->'description'
-          or p.image is distinct from coalesce(item->>'image', '')
+          or (item ? 'image' and p.image is distinct from coalesce(item->>'image', ''))
         )
     ) then
       return jsonb_build_object('ok', false, 'error', 'not_approved');
@@ -582,7 +582,7 @@ begin
          or old_product.price is distinct from (rec->>'price')::numeric
          or old_product.name is distinct from rec->'name'
          or old_product.description is distinct from rec->'description'
-         or old_product.image is distinct from coalesce(rec->>'image', '')
+         or (rec ? 'image' and old_product.image is distinct from coalesce(rec->>'image', ''))
          or old_product.category is distinct from rec->>'category'
          or old_product.listing_status is distinct from rec->>'listingStatus'
          or (rec->>'quantity')::integer > old_product.quantity
@@ -652,7 +652,7 @@ begin
     price = excluded.price,
     quantity = excluded.quantity,
     purchased = excluded.purchased,
-    image = excluded.image,
+    image = case when is_admin or excluded.seller_id = uid then excluded.image else public.market_products.image end,
     listing_status = excluded.listing_status,
     updated_at = excluded.updated_at;
 
