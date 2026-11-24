@@ -911,6 +911,43 @@
     return rows.map((row) => row.map(csvCell).join(",")).join("\n") + "\n";
   }
 
+  function adminCsv(db) {
+    const rows = [[
+      "Order ID",
+      "Buyer",
+      "Buyer email",
+      "Seller",
+      "Seller shop",
+      "Seller email",
+      "Products",
+      "Total amount",
+      "Payment status",
+      "Transaction status",
+      "Order date",
+      "Completed at"
+    ]];
+    db.orders.slice().sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))).forEach((order) => {
+      const buyer = findUser(db, order.buyerId);
+      const seller = findUser(db, order.sellerId);
+      const products = (order.items || []).map((item) => ((item.name && item.name.en) || item.name || "") + " x " + item.quantity).join("; ");
+      rows.push([
+        order.id,
+        buyer ? buyer.name : "",
+        buyer ? buyer.email : "",
+        seller ? seller.name : "",
+        seller ? (seller.shopName || "") : "",
+        seller ? seller.email : "",
+        products,
+        Number(order.total).toFixed(2),
+        order.paymentStatus,
+        order.status,
+        order.createdAt,
+        order.completedAt || ""
+      ]);
+    });
+    return rows.map((row) => row.map(csvCell).join(",")).join("\n") + "\n";
+  }
+
   function adminOrders(db, filters, now) {
     const query = String((filters && filters.q) || "").trim().toLowerCase();
     const status = filters && filters.status;
@@ -1046,6 +1083,7 @@
     inStage,
     salesSummary,
     salesCsv,
+    adminCsv,
     adminOrders,
     adminUsers,
     applySeller

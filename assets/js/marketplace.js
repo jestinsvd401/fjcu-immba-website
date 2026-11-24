@@ -1112,9 +1112,14 @@
     const report = E.adminOrders(db, filters, Date.now());
     const chips = [{ id: "", en: "Any status", zh: "任何狀態" }].concat(txStages().map((stage) => ({ id: stage.id, en: stage.en, zh: stage.zh })));
     return `${chrome()}${banner()}<section class="mk-sheet">
-      <p class="mk-kicker">${zh() ? "平台管理員" : "Platform admin"}</p>
-      <h2>${zh() ? "交易管理" : "Transaction management"}</h2>
-      <p class="mk-note">${zh() ? `這裡列出每一間店的每一筆買家交易，目前顯示 ${report.orders.length} 筆，資料庫共 ${db.orders.length} 筆。賣家確認收款、賣家確認出貨、買家確認收貨之後，交易完成會留在這個列表，也會留在賣家和買家的工作台。` : `Every buyer purchase from every shop is listed here. Showing ${report.orders.length} of ${db.orders.length} transactions. After the seller confirms payment, the seller confirms shipping, and the buyer confirms receipt, the completed transaction stays on this list and on the seller and buyer desks.`}</p>
+      <div class="mk-head">
+        <div>
+          <p class="mk-kicker">${zh() ? "平台管理員" : "Platform admin"}</p>
+          <h2>${zh() ? "交易管理" : "Transaction management"}</h2>
+        </div>
+        <button type="button" class="mk-btn" data-action="admin-csv">${zh() ? "下載全部交易 CSV" : "Download all transactions CSV"}</button>
+      </div>
+      <p class="mk-note">${zh() ? `這裡列出每一位賣家與每一位買家之間的全部交易，目前顯示 ${report.orders.length} 筆，資料庫共 ${db.orders.length} 筆。CSV 會下載全部交易，不受上方篩選影響。` : `Every transaction between every seller and every buyer is listed here. Showing ${report.orders.length} of ${db.orders.length}. The CSV downloads every transaction, not only the rows in the current filter.`}</p>
       ${applicationSummary()}
       <p><button type="button" class="mk-text" data-action="reset">${zh() ? "還原示範市集" : "Restore the sample floor"}</button></p>
       <div class="mk-stats">
@@ -1577,14 +1582,26 @@
         commit();
         return;
       }
+      if (action === "admin-csv") {
+        let csv = "";
+        if (window.MarketCloud && token()) {
+          const remote = await MarketCloud.adminCsv(token());
+          if (remote && remote.ok && remote.csv) csv = remote.csv;
+        }
+        if (!csv) csv = E.adminCsv(db);
+        downloadCsv(csv, "immba-all-transactions.csv");
+        return;
+      }
       if (action === "csv") {
         const wanted = button.dataset.status || "";
-        const csv = E.salesCsv(db, userId(), wanted);
+        downloadCsv(E.salesCsv(db, userId(), wanted), wanted ? "immba-transactions-" + wanted + ".csv" : "immba-transactions.csv");
+      }
+      function downloadCsv(csv, filename) {
         const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = wanted ? "immba-transactions-" + wanted + ".csv" : "immba-transactions.csv";
+        link.download = filename;
         link.click();
         URL.revokeObjectURL(url);
       }

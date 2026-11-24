@@ -43,6 +43,9 @@
     reset(token) {
       return rpc("market_reset", { p_token: token || "" });
     },
+    adminCsv(token) {
+      return rpc("market_admin_csv", { p_token: token || "" });
+    },
     install(state) {
       return rpc("market_install", { p_state: state });
     },
