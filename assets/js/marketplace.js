@@ -1902,18 +1902,18 @@
   window.mountMarketplace = function () {
     const gen = ++loadGen;
     const root = document.getElementById("market-root");
-    if (root && !db) {
+    const head = (location.hash || "#/").replace(/^#\/?/, "").split(/[/?]/)[0];
+    const signingIn = head === "login" || head === "register";
+    if (db && root) renderMarket();
+    else if (root) {
       root.innerHTML = `<p class="mk-empty">${typeof getLang === "function" && getLang() === "zh" ? "正在讀取市集…" : "Loading the marketplace…"}</p>`;
     }
     const job = (async () => {
-      if (window.MarketCloud && !token() && !deferSuper) {
+      if (window.MarketCloud && !token() && !deferSuper && !signingIn) {
         const claimed = await claimSuperAdmin(false);
-        if (claimed) {
-          const head = (location.hash || "#/").replace(/^#\/?/, "").split(/[/?]/)[0];
-          if (!head || head === "login" || head === "register") {
-            location.hash = "/admin";
-            return null;
-          }
+        if (claimed && (!head || head === "login" || head === "register")) {
+          location.hash = "/admin";
+          return null;
         }
       }
       return window.MarketCloud ? pull() : load();
@@ -1924,8 +1924,10 @@
       renderMarket();
     }).catch(() => {
       if (gen !== loadGen) return;
-      if (!db) db = load();
-      flash = tErr("cloud");
+      if (!db) {
+        db = load();
+        flash = tErr("cloud");
+      }
       renderMarket();
     });
   };

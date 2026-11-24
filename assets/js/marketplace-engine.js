@@ -32,8 +32,10 @@
     return product.quantity + (product.purchased || 0);
   }
 
-  function cover(_title, accent) {
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320" viewBox="0 0 240 320"><rect width="240" height="320" fill="${accent}"/><rect x="28" y="24" width="184" height="272" fill="none" stroke="#fff8e8" stroke-width="3"/><rect x="28" y="24" width="18" height="272" fill="#fff8e8" opacity="0.35"/></svg>`;
+  function cover(title, accent) {
+    const label = String(title || "Listing").replace(/[<>&"]/g, "").slice(0, 42);
+    const size = label.length > 24 ? 42 : 56;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1060" viewBox="0 0 800 1060"><rect width="800" height="1060" fill="${accent}"/><rect x="46" y="46" width="708" height="968" fill="none" stroke="#fff8e8" stroke-width="8"/><rect x="46" y="46" width="36" height="968" fill="#fff8e8" opacity="0.28"/><text x="430" y="545" text-anchor="middle" fill="#fff8e8" font-family="Georgia, serif" font-size="${size}">${label}</text></svg>`;
     return "data:image/svg+xml," + encodeURIComponent(svg);
   }
 
