@@ -603,6 +603,12 @@ begin
       end if;
     elsif not is_admin and rec->>'buyerId' is distinct from uid and rec->>'sellerId' is distinct from uid then
       return jsonb_build_object('ok', false, 'error', 'locked');
+    elsif not is_admin and old_order.status is distinct from rec->>'status' and not (
+      (old_order.status = 'waiting_payment' and rec->>'status' = 'payment_confirmed' and rec->>'paymentStatus' = 'received' and rec->>'sellerId' = uid)
+      or (old_order.status in ('payment_confirmed', 'ready_to_ship') and rec->>'status' = 'shipped' and rec->>'sellerId' = uid)
+      or (old_order.status = 'shipped' and rec->>'status' = 'completed' and rec->>'buyerId' = uid)
+    ) then
+      return jsonb_build_object('ok', false, 'error', 'step');
     end if;
   end loop;
 

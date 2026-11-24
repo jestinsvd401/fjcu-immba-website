@@ -668,25 +668,34 @@
     if (!order || order.sellerId !== gate.actor.id) return { ok: false, error: "missing" };
     const moment = iso(now || Date.now());
     const seller = gate.actor;
+    let type = "order_status";
+    let message = {
+      en: seller.name + " updated order " + order.id + ".",
+      zh: seller.name + " 更新了訂單 " + order.id + "。"
+    };
     if (action === "payment_received") {
       if (order.status !== "waiting_payment") return { ok: false, error: "step" };
       order.paymentStatus = "received";
       order.status = "payment_confirmed";
       order.updatedAt = moment;
       timeline(order, "payment_confirmed", seller, "Seller confirmed the payment was received.");
-    } else if (action === "transaction_complete") {
-      if (order.status !== "shipped" && order.status !== "ready_to_ship") return { ok: false, error: "step" };
-      order.status = "completed";
-      order.completedAt = moment;
-      order.updatedAt = moment;
-      timeline(order, "completed", seller, "Transaction complete.");
+      type = "payment_received";
+      message = {
+        en: seller.name + " confirmed payment received for order " + order.id + ".",
+        zh: seller.name + " 已確認收到訂單 " + order.id + " 的款項。"
+      };
     } else if (action === "ready_to_ship" || action === "confirm_shipment") {
       if (order.status !== "payment_confirmed" && order.status !== "ready_to_ship") return { ok: false, error: "step" };
       order.status = "shipped";
       order.prepared = true;
-      order.shipmentNote = action === "confirm_shipment" ? String(note || "").trim() : order.shipmentNote;
+      if (note) order.shipmentNote = String(note).trim();
       order.updatedAt = moment;
-      timeline(order, "shipped", seller, order.shipmentNote || "The order moved to shipping.");
+      timeline(order, "shipped", seller, order.shipmentNote || "Seller confirmed the shipment.");
+      type = "order_shipped";
+      message = {
+        en: seller.name + " confirmed shipping for order " + order.id + ".",
+        zh: seller.name + " 已確認訂單 " + order.id + " 出貨。"
+      };
     } else if (action === "prepare") {
       if (order.status !== "ready_to_ship" || order.prepared) return { ok: false, error: "step" };
       order.prepared = true;
@@ -694,21 +703,12 @@
     } else {
       return { ok: false, error: "step" };
     }
-    const payment = action === "payment_received";
     log(db, {
       at: moment,
-      type: payment ? "payment_received" : action === "confirm_shipment" ? "order_shipped" : "order_status",
+      type,
       actorName: seller.name,
       orderId: order.id,
-      message: payment
-        ? {
-          en: seller.name + " confirmed payment received for order " + order.id + ".",
-          zh: seller.name + " 已確認收到訂單 " + order.id + " 的款項。"
-        }
-        : {
-          en: seller.name + " updated order " + order.id + " (" + action.replaceAll("_", " ") + ").",
-          zh: seller.name + " 更新了訂單 " + order.id + "。"
-        }
+      message
     });
     return { ok: true, order: orderView(db, order, now || Date.now()) };
   }
@@ -719,20 +719,20 @@
     if (gate.actor.role !== "buyer") return { ok: false, error: "buyer_only" };
     const order = findOrder(db, orderId);
     if (!order || order.buyerId !== gate.actor.id) return { ok: false, error: "missing" };
-    if (order.status !== "shipped" && order.status !== "ready_to_ship") return { ok: false, error: "step" };
+    if (order.status !== "shipped") return { ok: false, error: "step" };
     const moment = iso(now || Date.now());
     order.status = "completed";
     order.completedAt = moment;
     order.updatedAt = moment;
-    timeline(order, "completed", gate.actor, "Buyer confirmed the books arrived.");
+    timeline(order, "completed", gate.actor, "Buyer confirmed the product arrived. The transaction is complete.");
     log(db, {
       at: moment,
       type: "order_completed",
       actorName: gate.actor.name,
       orderId: order.id,
       message: {
-        en: gate.actor.name + " received the product for order " + order.id + ".",
-        zh: gate.actor.name + " 已收到訂單 " + order.id + " 的商品。"
+        en: gate.actor.name + " confirmed receipt of order " + order.id + ". The transaction is complete.",
+        zh: gate.actor.name + " 已確認收到訂單 " + order.id + " 的商品，交易完成。"
       }
     });
     return { ok: true, order: orderView(db, order, now || Date.now()) };
@@ -834,9 +834,7 @@
     if (wanted === "shipping" || wanted === "shipped" || wanted === "ready_to_ship") {
       return order.status === "ready_to_ship" || order.status === "shipped";
     }
-    if (wanted === "payment_confirmed") {
-      return order.paymentStatus === "received" && order.status !== "waiting_payment" && order.status !== "completed";
-    }
+    if (wanted === "payment_confirmed") return order.status === "payment_confirmed";
     return order.status === wanted;
   }
 
@@ -869,7 +867,7 @@
       completedOrders: completed.length,
       pendingPayments: pending.length,
       pendingPaymentAmount: pending.reduce((sum, order) => sum + order.total, 0),
-      waitingShipment: mine.filter((order) => order.status === "ready_to_ship" || order.status === "shipped").length,
+      waitingShipment: mine.filter((order) => order.status === "payment_confirmed" || order.status === "ready_to_ship").length,
       completedTotal: completed.reduce((sum, order) => sum + order.total, 0)
     };
   }

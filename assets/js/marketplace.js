@@ -361,7 +361,7 @@
   }
 
   function canConfirmReceipt(order) {
-    return !!order && (order.status === "shipped" || order.status === "ready_to_ship");
+    return !!order && order.status === "shipped";
   }
 
   function receiptIcon(order) {
@@ -377,7 +377,7 @@
       { en: "Shipping", zh: "出貨" },
       { en: "Transaction complete", zh: "交易完成" }
     ];
-    const at = status === "completed" ? 3 : status === "shipped" || status === "ready_to_ship" ? 2 : status === "payment_confirmed" ? 1 : 0;
+    const at = status === "completed" ? 4 : status === "shipped" && mode === "buyer" ? 3 : status === "shipped" || status === "ready_to_ship" ? 2 : status === "payment_confirmed" ? 1 : 0;
     return `<ol class="mk-steps">${stages.map((stage, index) => {
       const state = index < at ? "done" : index === at ? "now" : "later";
       const mark = index < at ? "✓" : String(index + 1);
@@ -429,9 +429,9 @@
   function workflow() {
     const steps = [
       [zh() ? "加入購物車並付款" : "Add to cart and pay", zh() ? "買家選好書或教材，加入購物車，從購物車付款並買下。" : "The buyer chooses a book or material, adds it to the cart, then pays and buys from the cart."],
-      [zh() ? "賣家確認收款" : "Seller confirms the payment", zh() ? "賣家核對付款參考，確認已經收到款項。" : "The seller checks the payment reference and confirms the money arrived."],
-      [zh() ? "出貨" : "Shipping", zh() ? "確認收款後，訂單進入出貨。" : "Once the payment is confirmed, the order moves to shipping."],
-      [zh() ? "交易完成" : "Transaction complete", zh() ? "出貨之後，這筆交易標成完成並保留紀錄。" : "After shipping, the sale is marked transaction complete and the record stays."]
+      [zh() ? "賣家確認收款" : "Seller confirms the payment", zh() ? "賣家核對付款參考，確認已經收到款項。這一步完成後，訂單才會等到出貨。" : "The seller checks the payment reference and confirms the money arrived. Shipping waits until this is done."],
+      [zh() ? "賣家確認出貨" : "Seller confirms shipping", zh() ? "收款確認後，賣家在商品寄出或交給買家時確認出貨。" : "After the payment is confirmed, the seller confirms shipping when the product goes out or is handed over."],
+      [zh() ? "買家確認收貨" : "Buyer confirms receipt", zh() ? "商品到手後，買家確認收貨。這筆交易才算完成，並同時出現在管理員、賣家和買家的工作台。" : "When the product is in hand, the buyer confirms receipt. That completes the transaction on the administrator, seller, and buyer desks."]
     ];
     return `<ol class="mk-workflow">${steps.map((step, index) => `<li><span>${index + 1}</span><div><strong>${esc(step[0])}</strong><p>${esc(step[1])}</p></div></li>`).join("")}</ol>`;
   }
@@ -782,15 +782,15 @@
         <td>${esc(order.seller.shopName)}</td>
         <td>${esc(when(order.createdAt))}</td>
         <td>${esc(money(order.total))}</td>
-        <td>${esc(pick(STATUS[order.status]))}</td>
+        <td>${statusMark(order)}</td>
         <td>${receiptIcon(order)}</td>
       </tr>`).join("")}</tbody>
     </table></div>` : `<p class="mk-empty">${esc(empty)}</p>`;
     return `${chrome()}${banner()}<section class="mk-sheet">
       <h2>${zh() ? "我的訂單" : "My orders"}</h2>
       <p>${zh()
-        ? "商品送到後，點紅色的確認收貨圖示。賣家的交易完成圖示會一併更新。"
-        : "When the product is in hand, use the red receipt icon. The seller’s Transaction complete icon updates as well."}</p>
+        ? "賣家先確認收款，再確認出貨。商品到手後，點確認收貨。這筆交易會標成完成，並同時出現在你的購買紀錄、賣家的交易完成，以及管理員的交易列表。"
+        : "The seller confirms the payment, then confirms shipping. When the product is in hand, confirm receipt. The transaction is then complete on your purchase history, the seller’s completed transactions, and the administrator’s transaction list."}</p>
       <h3>${zh() ? "進行中" : "Open orders"}</h3>
       ${table(open, zh() ? "沒有進行中的訂單。回到市集開始一筆。" : "No open orders. Browse the floor to start one.")}
       <h3>${zh() ? "購買紀錄" : "Purchase history"}</h3>
@@ -798,11 +798,20 @@
     </section>`;
   }
 
-  function confirmPayment(order) {
+  function statusMark(order, selected) {
+    if (order.status === "completed") return `<em class="mk-pill completed">${esc(pick(STATUS.completed))}</em>`;
+    return esc(selected == null ? pick(STATUS[order.status] || { en: order.status, zh: order.status }) : stageLabel(order, selected));
+  }
+
+  function orderAction(order) {
     if (order.status === "waiting_payment") {
       return `<button type="button" class="mk-btn" data-action="advance" data-step="payment_received" data-id="${esc(order.id)}">${zh() ? "確認已收款" : "Confirm payment received"}</button>`;
     }
-    if (order.paymentStatus === "received") return esc(pick(PAY.received));
+    if (order.status === "payment_confirmed" || order.status === "ready_to_ship") {
+      return `<button type="button" class="mk-btn" data-action="advance" data-step="confirm_shipment" data-id="${esc(order.id)}">${zh() ? "確認出貨" : "Confirm shipping"}</button>`;
+    }
+    if (order.status === "shipped") return `<span class="mk-wait">${zh() ? "等待買家確認收貨" : "Waiting for the buyer to confirm receipt"}</span>`;
+    if (order.status === "completed") return `<span class="mk-wait">${zh() ? "買家已確認收貨" : "Buyer confirmed receipt"}</span>`;
     return "";
   }
 
@@ -814,7 +823,7 @@
     return `${chrome()}${banner()}<section class="mk-sheet">
       <p class="mk-kicker">${zh() ? "買家" : "Buyer"}</p>
       <h2>${zh() ? "活動紀錄" : "Activity log"}</h2>
-      <p>${zh() ? "賣家確認收到你的付款後，這筆確認會出現在這裡，也會留在該筆訂單的狀態紀錄。" : "When a seller confirms that your payment was received, that confirmation appears here and on the order."}</p>
+      <p>${zh() ? "賣家確認收款、賣家確認出貨，以及你確認收貨，都會留在這裡。確認收貨後，這筆交易在管理員、賣家和你的訂單上都標成完成。" : "Payment confirmation, shipping confirmation, and your receipt confirmation are recorded here. After you confirm receipt, the transaction is complete on the administrator desk, the seller desk, and your orders."}</p>
       ${entries.length ? `<ol class="mk-timeline">${entries.map((entry) => `<li><strong>${esc(pick(entry.message))}</strong><span>${esc(when(entry.at))} · ${esc(entry.actorName)}</span><p><a href="#/orders/${esc(entry.orderId)}">${esc(entry.orderId)}</a></p></li>`).join("")}</ol>` : `<p class="mk-empty">${zh() ? "還沒有與你的訂單有關的活動。" : "No activity for your orders yet."}</p>`}
     </section>`;
   }
@@ -823,19 +832,26 @@
     const user = actor();
     let actions = "";
     if (mode === "seller" && user) {
+      const paymentLine = paymentDetail(order) ? `<p>${zh() ? "付款方式" : "Paid by"}: <strong>${esc(paymentDetail(order))}</strong></p>` : "";
       actions = `<div class="mk-actions">
         <p>${zh() ? "付款" : "Payment"}: <strong>${esc(pick(PAY[order.paymentStatus]))}</strong></p>
-        ${order.status === "waiting_payment" ? `<p>${zh() ? "買家已付款。確認收款後，訂單會進入出貨。" : "The buyer has paid. Confirm the receipt and the order moves to shipping."}</p>${paymentDetail(order) ? `<p>${zh() ? "付款" : "Payment"}: <strong>${esc(paymentDetail(order))}</strong></p>` : ""}<button type="button" class="mk-btn" data-action="advance" data-step="payment_received" data-id="${esc(order.id)}">${zh() ? "確認已收款" : "Confirm payment received"}</button>` : ""}
-        ${order.status === "payment_confirmed" || order.status === "ready_to_ship" ? `<button type="button" class="mk-btn" data-action="advance" data-step="ready_to_ship" data-id="${esc(order.id)}">${zh() ? "進入出貨" : "Move to shipping"}</button>` : ""}
-        ${order.status === "shipped" ? `<p class="mk-note">${zh() ? "商品正在出貨。買家親手收到後，這筆交易會出現在「交易完成」。" : "This order is in shipping. When the buyer has the product in hand, it appears under Transaction complete."}</p>` : ""}
-        ${order.status === "completed" ? `<p class="mk-note">${zh() ? "這筆交易已完成，紀錄會保留。" : "This transaction is complete and stays on record."}</p>` : ""}
+        ${order.status === "waiting_payment" ? `<p>${zh() ? "買家已付款。請先確認收款，之後再另外確認出貨。" : "The buyer has paid. Confirm the payment first. Confirm shipping as a separate step."}</p>${paymentLine}` : ""}
+        ${order.status === "payment_confirmed" || order.status === "ready_to_ship" ? `<p>${zh() ? "收款已確認。商品寄出或交給買家時，請確認出貨。" : "Payment is confirmed. Confirm shipping when the product goes out or is handed over."}</p>` : ""}
+        ${order.status === "shipped" ? `<p class="mk-note">${zh() ? "出貨已確認。買家收到商品並確認收貨後，這筆交易才會完成，並同時顯示在管理員、賣家和買家的工作台。" : "Shipping is confirmed. The transaction is complete only after the buyer confirms receipt, and then it shows on the administrator, seller, and buyer desks."}</p>` : ""}
+        ${order.status === "completed" ? `<p class="mk-note">${zh() ? "買家已確認收貨。這筆交易已完成，管理員、賣家和買家都會看到。" : "The buyer confirmed receipt. This transaction is complete on the administrator, seller, and buyer desks."}</p>` : ""}
+        ${orderAction(order)}
       </div>`;
     }
     if (mode === "buyer" && canConfirmReceipt(order)) {
-      actions = `<p class="mk-note">${zh() ? "收到商品後，點確認收貨。賣家的交易完成圖示會顯示這筆訂單。" : "When you have the product, use Confirm receipt. It then shows on the seller’s Transaction complete icon."}</p>${receiptIcon(order)}`;
+      actions = `<p class="mk-note">${zh() ? "商品到手後，確認收貨。這筆交易會同時標成完成，出現在你的訂單、賣家的交易完成，以及管理員的交易列表。" : "When the product is in hand, confirm receipt. The transaction is then complete on your orders, the seller’s completed transactions, and the administrator’s transaction list."}</p>${receiptIcon(order)}`;
+    }
+    if (mode === "buyer" && order.status === "completed") {
+      actions = `<p class="mk-note">${zh() ? "你已確認收貨。這筆交易已完成，賣家和管理員也看得到。" : "You confirmed receipt. This transaction is complete for the seller and the administrator as well."}</p>`;
     }
     if (mode === "admin") {
-      actions = `<p class="mk-note">${zh() ? "監看不等於修改。管理員不能代為確認付款或出貨。" : "Monitoring does not mean editing. The admin does not confirm payment or shipment."}</p>`;
+      actions = `<p class="mk-note">${order.status === "completed"
+        ? (zh() ? "買家已確認收貨。這筆交易在管理員、賣家和買家的工作台都標成完成。" : "The buyer confirmed receipt. This transaction is complete on the administrator, seller, and buyer desks.")
+        : (zh() ? "交易要等賣家確認收款、賣家確認出貨，再由買家確認收貨，才算完成。管理員只監看，不能代為確認。" : "A transaction is complete only after the seller confirms payment, the seller confirms shipping, and the buyer confirms receipt. The administrator monitors these steps and does not confirm them.")}</p>`;
     }
     const people = mode === "buyer"
       ? `<p><strong>${esc(order.seller.shopName)}</strong><br>${esc(order.seller.name)}</p>`
@@ -934,7 +950,7 @@
           <th>${zh() ? "日期" : "Date"}</th>
           <th>${zh() ? "合計" : "Total"}</th>
           <th>${zh() ? "狀態" : "Status"}</th>
-          <th>${zh() ? "收款" : "Payment"}</th>
+          <th>${zh() ? "下一步" : "Next step"}</th>
         </tr></thead>
         <tbody>${transactions.map((order) => `<tr>
           <td><a href="#/sell/orders/${esc(order.id)}">${esc(order.id)}</a></td>
@@ -942,8 +958,8 @@
           <td>${esc(order.items.map((item) => pick(item.name) + " × " + item.quantity).join(", "))}</td>
           <td>${esc(when(order.createdAt))}</td>
           <td>${esc(money(order.total))}</td>
-          <td>${esc(stageLabel(order, status))}</td>
-          <td>${confirmPayment(order)}</td>
+          <td>${statusMark(order, status)}</td>
+          <td>${orderAction(order)}</td>
         </tr>`).join("") || `<tr><td colspan="7">${zh() ? "這個狀態沒有交易。" : "No transactions for this status."}</td></tr>`}</tbody>
       </table></div>
     </section>`;
@@ -1029,18 +1045,18 @@
     const raw = db.orders.filter((order) => order.sellerId === user.id);
     return `${chrome()}${banner()}<section class="mk-sheet">
       <h2>${zh() ? "賣家訂單" : "Shop orders"}</h2>
-      <p>${zh() ? "確認收款後，訂單會標在「已確認付款」。買家收到商品後，訂單會標在「交易完成」。" : "A confirmed payment is marked under Payment confirmed. When the buyer receives the goods, the order is marked under Transaction complete."}</p>
+      <p>${zh() ? "先確認收款，再確認出貨。買家確認收貨後，訂單會標在「交易完成」，管理員和買家也會看到同一筆完成交易。" : "Confirm the payment, then confirm shipping. After the buyer confirms receipt, the order is marked Transaction complete. The administrator and the buyer see that same completed transaction."}</p>
       ${transactionBar(raw, selected, (id) => "#/sell/orders" + (id ? "?status=" + encodeURIComponent(id) : ""))}
       <div class="mk-table"><table>
-        <thead><tr><th>${zh() ? "訂單編號" : "Order ID"}</th><th>${zh() ? "買家" : "Buyer"}</th><th>${zh() ? "訂單日期" : "Order date"}</th><th>${zh() ? "合計" : "Total amount"}</th><th>${zh() ? "付款狀態" : "Payment status"}</th><th>${zh() ? "訂單狀態" : "Order status"}</th><th>${zh() ? "收款" : "Payment"}</th></tr></thead>
+        <thead><tr><th>${zh() ? "訂單編號" : "Order ID"}</th><th>${zh() ? "買家" : "Buyer"}</th><th>${zh() ? "訂單日期" : "Order date"}</th><th>${zh() ? "合計" : "Total amount"}</th><th>${zh() ? "付款狀態" : "Payment status"}</th><th>${zh() ? "訂單狀態" : "Order status"}</th><th>${zh() ? "下一步" : "Next step"}</th></tr></thead>
         <tbody>${rows.map((order) => `<tr>
           <td><a href="#/sell/orders/${esc(order.id)}">${esc(order.id)}</a></td>
           <td>${esc(order.buyer.name)}</td>
           <td>${esc(when(order.createdAt))}</td>
           <td>${esc(money(order.total))}</td>
           <td>${esc(pick(PAY[order.paymentStatus]))}</td>
-          <td>${esc(stageLabel(order, selected))}</td>
-          <td>${confirmPayment(order)}</td>
+          <td>${statusMark(order, selected)}</td>
+          <td>${orderAction(order)}</td>
         </tr>`).join("")}</tbody>
       </table></div>
       ${rows.length ? "" : `<p class="mk-empty">${zh() ? "這個佇列是空的。" : "Nothing in this queue."}</p>`}
@@ -1079,7 +1095,7 @@
           <td>${esc(when(order.createdAt))}</td>
           <td>${esc(money(order.total))}</td>
           <td>${esc(pick(PAY[order.paymentStatus]))}</td>
-          <td>${esc(pick(STATUS[order.status]))}</td>
+          <td>${statusMark(order)}</td>
         </tr>`).join("")}</tbody>
       </table></div>
     </section>`;
@@ -1094,14 +1110,14 @@
     return `${chrome()}${banner()}<section class="mk-sheet">
       <p class="mk-kicker">${zh() ? "平台管理員" : "Platform admin"}</p>
       <h2>${zh() ? "交易管理" : "Transaction management"}</h2>
-      <p class="mk-note">${zh() ? `這裡列出每一間店的每一筆買家交易，目前顯示 ${report.orders.length} 筆，資料庫共 ${db.orders.length} 筆。監看不會刪除已完成的交易。` : `Every buyer purchase from every shop is listed here. Showing ${report.orders.length} of ${db.orders.length} transactions. Monitoring does not delete a completed sale.`}</p>
+      <p class="mk-note">${zh() ? `這裡列出每一間店的每一筆買家交易，目前顯示 ${report.orders.length} 筆，資料庫共 ${db.orders.length} 筆。賣家確認收款、賣家確認出貨、買家確認收貨之後，交易完成會留在這個列表，也會留在賣家和買家的工作台。` : `Every buyer purchase from every shop is listed here. Showing ${report.orders.length} of ${db.orders.length} transactions. After the seller confirms payment, the seller confirms shipping, and the buyer confirms receipt, the completed transaction stays on this list and on the seller and buyer desks.`}</p>
       ${applicationSummary()}
       <p><button type="button" class="mk-text" data-action="reset">${zh() ? "還原示範市集" : "Restore the sample floor"}</button></p>
       <div class="mk-stats">
         <article><span>${zh() ? "交易金額" : "Transaction amount"}</span><strong>${esc(money(report.volume))}</strong></article>
         <article><span>${zh() ? "未完成" : "Incomplete"}</span><strong>${report.incompleteCount}</strong></article>
         <article><span>${zh() ? "異常" : "Abnormal"}</span><strong>${report.abnormalCount}</strong></article>
-        ${txStages().map((stage) => `<article><span>${esc(zh() ? stage.zh : stage.en)}</span><strong>${db.orders.filter((order) => stage.id === "shipping" ? order.status === "ready_to_ship" || order.status === "shipped" : order.status === stage.id).length}</strong></article>`).join("")}
+        ${txStages().map((stage) => `<article><span>${esc(zh() ? stage.zh : stage.en)}</span><strong>${db.orders.filter((order) => E.inStage(order, stage.id)).length}</strong></article>`).join("")}
       </div>
       <form class="mk-filters" data-action="admin-filter">
         <div class="mk-chips">
@@ -1125,8 +1141,8 @@
           <td>${esc(order.seller.shopName)}<br><small>${esc(order.seller.name)}</small></td>
           <td>${esc(when(order.createdAt))}</td>
           <td>${esc(money(order.total))}</td>
-          <td>${esc(pick(STATUS[order.status]))}</td>
-          <td>${order.flags.length ? esc(order.flags.map((flag) => pick(FLAGS[flag]) || flag).join(", ")) : order.incomplete ? (zh() ? "未完成" : "Incomplete") : (zh() ? "已入帳" : "On record")}</td>
+          <td>${statusMark(order)}</td>
+          <td>${order.status === "completed" ? (zh() ? "交易完成" : "Transaction complete") : order.flags.length ? esc(order.flags.map((flag) => pick(FLAGS[flag]) || flag).join(", ")) : order.incomplete ? (zh() ? "未完成" : "Incomplete") : (zh() ? "已入帳" : "On record")}</td>
         </tr>`).join("")}</tbody>
       </table></div>
       ${report.orders.length ? "" : `<p class="mk-empty">${zh() ? "沒有符合的交易。" : "No transactions match that search."}</p>`}
@@ -1511,19 +1527,25 @@
         const note = document.getElementById("ship-note");
         const result = E.advance(db, userId(), activeRole(), button.dataset.id, button.dataset.step, note ? note.value : "", Date.now());
         if (!result.ok) return fail(result);
-        const confirmed = button.dataset.step === "payment_received";
-        flash = confirmed
-          ? (zh() ? "已確認收款。付款圖示已更新，訂單進入出貨。" : "Payment confirmed. The payment icon is updated and the order is in shipping.")
-          : button.dataset.step === "transaction_complete"
-            ? (zh() ? "交易已完成，紀錄會保留。" : "Transaction complete. The record stays.")
-            : (zh() ? "訂單狀態已更新。賣家與買家會看到同一筆紀錄。" : "Order status updated. Buyer and seller share this record.");
-        commit(confirmed ? () => go("/sell?status=payment_confirmed") : undefined);
+        const step = button.dataset.step;
+        const onOrders = location.hash.startsWith("#/sell/orders");
+        const desk = (status) => (onOrders ? "/sell/orders" : "/sell") + "?status=" + status;
+        if (step === "payment_received") {
+          flash = zh() ? "已確認收款。請再確認出貨，交易才會繼續。" : "Payment received. Confirm shipping as the next step.";
+          commit(() => go(desk("payment_confirmed")));
+        } else if (step === "confirm_shipment" || step === "ready_to_ship") {
+          flash = zh() ? "已確認出貨。買家確認收貨後，這筆交易會在管理員、賣家和買家的工作台標成完成。" : "Shipping confirmed. After the buyer confirms receipt, this transaction is complete on the administrator, seller, and buyer desks.";
+          commit(() => go(desk("shipping")));
+        } else {
+          flash = zh() ? "訂單狀態已更新。" : "Order status updated.";
+          commit();
+        }
         return;
       }
       if (action === "complete") {
         const result = E.completeOrder(db, userId(), activeRole(), button.dataset.id, Date.now());
         if (!result.ok) return fail(result);
-        flash = zh() ? "已收到商品。賣家的交易完成圖示會顯示這筆訂單。" : "Product received. It now shows on the seller’s completed transactions.";
+        flash = zh() ? "已確認收貨。這筆交易已完成，賣家和管理員的工作台也會顯示交易完成。" : "Receipt confirmed. This transaction is complete on the seller desk and the administrator desk as well.";
         commit();
         return;
       }
