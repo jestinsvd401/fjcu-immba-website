@@ -2870,6 +2870,27 @@ button.mk-signup {
   height: 128px;
 }
 
+.mk-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mk-list-photo {
+  width: 52px;
+  height: 68px;
+  flex: none;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #efe9de;
+}
+
+.mk-list-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .mk-stock,
 .mk-pill {
   font-family: inherit;

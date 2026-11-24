@@ -523,6 +523,10 @@
       </section>`;
   }
 
+  function listingPhoto(product) {
+    return `<span class="mk-list-photo"><img src="${esc(product.image || "")}" alt=""></span>`;
+  }
+
   function card(product) {
     return `<a class="mk-card" href="#/product/${esc(product.id)}">
       <span class="mk-photo"><img src="${esc(product.image || "")}" alt="${esc(pick(product.name))}"><em class="mk-stock ${product.stockStatus}">${esc(pick(STOCK[product.stockStatus]))}</em></span>
@@ -928,7 +932,7 @@
           <th></th>
         </tr></thead>
         <tbody>${listings.map((product) => `<tr>
-          <td>${esc(pick(product.name))}<br><small>${esc(purchaseNote(product))}</small></td>
+          <td><div class="mk-item">${listingPhoto(product)}<div><strong>${esc(pick(product.name))}</strong><br><small>${esc(purchaseNote(product))}</small></div></div></td>
           <td>${esc(money(product.price))}</td>
           <td>${product.quantity}</td>
           <td>${purchaseCount(product)}</td>
@@ -986,7 +990,7 @@
           <th></th>
         </tr></thead>
         <tbody>${result.products.map((product) => `<tr>
-          <td>${esc(pick(product.name))}<br><small>${zh() ? "目前存貨" : "Current inventory"} ${product.currentInventory} − ${zh() ? "已購買" : "purchased"} ${product.purchased}</small><br><small>${esc(purchaseNote(product))}</small></td>
+          <td><div class="mk-item">${listingPhoto(product)}<div><strong>${esc(pick(product.name))}</strong><br><small>${zh() ? "目前存貨" : "Current inventory"} ${product.currentInventory} − ${zh() ? "已購買" : "purchased"} ${product.purchased}</small><br><small>${esc(purchaseNote(product))}</small></div></div></td>
           <td>${esc(pick(CATS[product.category]))}</td>
           <td>${esc(money(product.price))}</td>
           <td><input data-qty="${esc(product.id)}" type="number" min="0" value="${product.quantity}" ${locked ? "disabled" : ""}></td>
