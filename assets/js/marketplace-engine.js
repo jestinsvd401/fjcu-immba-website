@@ -45,6 +45,7 @@
       roles: user.roles.slice(),
       shopName: user.shopName || null,
       sellerStatus: user.sellerStatus || null,
+      sellerApprovedAt: user.sellerApprovedAt || null,
       suspended: !!user.suspended,
       removedAt: user.removedAt || null,
       platformOwner: !!user.platformOwner,
@@ -370,6 +371,17 @@
     return email === "jestinsvd@outlook.com" || name === "jordan";
   }
 
+  function listingRank(db, product) {
+    const seller = findUser(db, product.sellerId);
+    if (jordanListing(db, product)) {
+      return { tier: 0, approved: "", sellerId: seller ? seller.id : "" };
+    }
+    if (seller && seller.sellerStatus === "approved" && seller.sellerApprovedAt) {
+      return { tier: 1, approved: String(seller.sellerApprovedAt), sellerId: seller.id };
+    }
+    return { tier: 2, approved: "", sellerId: seller ? seller.id : "" };
+  }
+
   function publicProducts(db, filters) {
     const query = (filters && filters.q ? String(filters.q) : "").trim().toLowerCase();
     const category = filters && filters.category ? filters.category : "";
@@ -390,8 +402,11 @@
         return blob.includes(query);
       })
       .sort((a, b) => {
-        const rank = Number(jordanListing(db, b)) - Number(jordanListing(db, a));
-        if (rank) return rank;
+        const left = listingRank(db, a);
+        const right = listingRank(db, b);
+        if (left.tier !== right.tier) return left.tier - right.tier;
+        if (left.approved !== right.approved) return right.approved.localeCompare(left.approved);
+        if (left.sellerId !== right.sellerId) return left.sellerId.localeCompare(right.sellerId);
         return String(b.updatedAt || "").localeCompare(String(a.updatedAt || ""));
       })
       .map((product) => productView(product, findUser(db, product.sellerId)));
@@ -1006,6 +1021,7 @@
     const moment = iso(now || Date.now());
     if (action === "approve" && target.sellerStatus === "pending") {
       target.sellerStatus = "approved";
+      target.sellerApprovedAt = moment;
       if (!target.roles.includes("seller")) target.roles.push("seller");
       log(db, {
         at: moment,
