@@ -3524,3 +3524,120 @@ button.mk-signup {
     padding-bottom: 88px;
   }
 }
+
+/* Phones and landscape phones, iOS and Android. */
+@media (max-width: 900px) {
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  label,
+  summary {
+    touch-action: manipulation;
+  }
+
+  .header {
+    position: static;
+  }
+
+  .site-notice {
+    position: sticky;
+    top: 0;
+    z-index: 60;
+  }
+
+  .notice-nav {
+    max-height: min(70vh, 70dvh);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .header-brand {
+    min-height: 0;
+    gap: 12px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .brand {
+    gap: 12px;
+  }
+
+  .brand-logo {
+    width: 72px;
+    height: 72px;
+  }
+
+  .brand-text em {
+    font-size: 1.15rem;
+    letter-spacing: 0.03em;
+    white-space: normal;
+  }
+
+  .brand-text strong {
+    font-size: 1.05rem;
+  }
+
+  .page-hero {
+    padding: 28px 0 18px;
+  }
+
+  .page-hero h1 {
+    font-size: clamp(1.9rem, 8vw, 2.6rem);
+  }
+
+  .site-notice .official-link,
+  .nav-toggle {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .mk-grid {
+    grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  }
+
+  .mk-card h3 {
+    font-size: 1.2rem;
+  }
+
+  .mk-detail > img {
+    height: min(280px, 46vh);
+    width: 100%;
+  }
+
+  .mk-links a,
+  .mk-chips button,
+  .mk-chips a,
+  .mk-text,
+  .mk-row-actions button,
+  .mk-row-actions a {
+    min-height: 44px;
+  }
+
+  .mk-buy {
+    display: grid;
+    gap: 10px;
+  }
+
+  .mk-buy .mk-btn,
+  .mk-buy .mk-text,
+  .mk-search .mk-btn,
+  .mk-panel form .mk-btn,
+  .mk-sheet form .mk-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+    max-width: 100%;
+  }
+
+  .notice {
+    padding-right: 88px;
+  }
+}

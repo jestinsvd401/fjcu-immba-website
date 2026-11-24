@@ -323,7 +323,7 @@ function bind() {
     sessionStorage.setItem("immba-nav-collapsed", collapsed ? "1" : "0");
   };
   const savedNav = sessionStorage.getItem("immba-nav-collapsed");
-  const preferCollapsed = window.matchMedia("(max-width: 760px)").matches;
+  const preferCollapsed = window.matchMedia("(max-width: 900px)").matches;
   applyNavState(savedNav === "1" || (savedNav === null && preferCollapsed));
   toggle?.addEventListener("click", () => applyNavState(!notice.classList.contains("is-collapsed")));
   const closeDrops = () => {
