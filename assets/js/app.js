@@ -194,7 +194,11 @@ async function render() {
     inner = authPage(lang);
   } else if (page === "admin" && typeof adminPage === "function") {
     const state = window.immbaAuthState || {};
-    if (!state.user) {
+    const resetPurpose = state.user && state.user.user_metadata && state.user.user_metadata.purpose === "market_reset";
+    if (resetPurpose) {
+      location.replace(withLang("auth.html?view=market-reset"));
+      inner = "";
+    } else if (!state.user) {
       location.replace(withLang("auth.html"));
       inner = `<p class="muted" style="padding:48px 0;text-align:center">${lang === "zh" ? "請先登入。" : "Please sign in."}</p>`;
     } else if (state.missingTable) {

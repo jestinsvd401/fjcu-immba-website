@@ -61,6 +61,9 @@ as $$
 declare
   admin_count integer;
 begin
+  if coalesce(new.raw_user_meta_data ->> 'purpose', '') = 'market_reset' then
+    return new;
+  end if;
   select count(*) into admin_count from public.profiles where role = 'super_admin';
   insert into public.profiles (id, email, full_name, role)
   values (
@@ -105,6 +108,11 @@ declare
 begin
   if auth.uid() is null then
     raise exception 'not authenticated';
+  end if;
+
+  if coalesce(auth.jwt() -> 'user_metadata' ->> 'purpose', '') = 'market_reset' then
+    select * into result from public.profiles where id = auth.uid();
+    return result;
   end if;
 
   select * into result from public.profiles where id = auth.uid();

@@ -16,6 +16,7 @@ create table if not exists public.market_users (
   suspended boolean not null default false,
   removed_at timestamptz,
   platform_owner boolean not null default false,
+  password_changed_at timestamptz,
   address jsonb,
   cart jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now(),
@@ -119,7 +120,8 @@ as $$
     'platformOwner', u.platform_owner,
     'address', case when is_admin or u.id = uid then u.address else null end,
     'cart', case when is_admin or u.id = uid then u.cart else '[]'::jsonb end,
-    'createdAt', u.created_at
+    'createdAt', u.created_at,
+    'passwordChangedAt', u.password_changed_at
   )
 $$;
 

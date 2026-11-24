@@ -3346,6 +3346,16 @@ button.mk-signup {
   margin: 0 0 12px;
 }
 
+.mk-forgot {
+  margin: 0 0 8px;
+  font-size: 0.92rem;
+}
+
+.mk-forgot a {
+  font-weight: 600;
+  color: #b71939;
+}
+
 .mk-check {
   display: flex !important;
   flex-direction: row;

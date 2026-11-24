@@ -106,6 +106,11 @@ function authCopy(lang) {
     sent: zh ? "信件已寄出，請查收。" : "Email sent. Please check your inbox.",
     registered: zh ? "請先到信箱完成驗證，再登入。" : "Check your email to verify, then sign in.",
     saved: zh ? "密碼已更新，請重新登入。" : "Password updated. Please sign in again.",
+    marketResetTitle: zh ? "設定市集新密碼" : "Set a new marketplace password",
+    marketResetLead: zh ? "電子郵件已驗證。請為買家或賣家工作台設定新密碼。" : "Your email is verified. Choose a new password for the buyer or seller desk.",
+    marketResetWait: zh ? "請打開驗證信裡的連結，或輸入信裡的 6 位數驗證碼。" : "Open the link in the verification email, or enter the 6-digit code from that email.",
+    marketCode: zh ? "驗證碼" : "Verification code",
+    marketConfirm: zh ? "再輸入一次新密碼" : "Confirm new password",
     needSql: zh ? "尚未建立 profiles 資料表。請在 Supabase SQL Editor 執行 supabase/auth.sql。" : "The profiles table is missing. Run supabase/auth.sql in the Supabase SQL editor."
   };
 }
@@ -158,6 +163,24 @@ function authPage(lang) {
         <button class="btn btn-action" type="submit">${t.reset}</button>
       </form>
       ${authLinks(t)}`
+    );
+  }
+  if (view === "market-reset") {
+    const sessionUser = window.immbaAuthState && window.immbaAuthState.user;
+    const verified = !!(sessionUser && sessionUser.email);
+    return authFormCard(
+      t.marketResetTitle,
+      verified ? t.marketResetLead : t.marketResetWait,
+      `${flashHtml}
+      <form id="auth-market-reset-form" class="admin-form">
+        ${verified ? `<p><strong>${t.email}:</strong> ${escapeHtml(sessionUser.email)}</p>` : `<label>${t.email}<input type="email" name="email" required autocomplete="email"></label>
+        <label>${t.marketCode}<input name="code" inputmode="numeric" autocomplete="one-time-code" minlength="6" maxlength="6" pattern="[0-9]{6}" required></label>`}
+        <label>${t.passwordNew}<input type="password" name="password" required minlength="4" autocomplete="new-password"></label>
+        <label>${t.marketConfirm}<input type="password" name="confirm" required minlength="4" autocomplete="new-password"></label>
+        <p class="admin-flash" id="auth-error" hidden></p>
+        <button class="btn btn-action" type="submit">${t.savePassword}</button>
+      </form>
+      <p class="auth-links"><a href="${withLang("marketplace.html")}#/login">${t.backLogin}</a></p>`
     );
   }
   if (view === "update") {
@@ -260,21 +283,84 @@ async function refreshAuthState() {
   return window.immbaAuthState;
 }
 
+async function sendMarketResetEmail(email) {
+  const client = authClient();
+  const redirects = [
+    new URL("auth.html?view=market-reset", location.href).href,
+    new URL("auth.html", location.href).href
+  ];
+  let last = null;
+  for (const emailRedirectTo of redirects) {
+    const { error } = await client.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo,
+        data: { purpose: "market_reset" }
+      }
+    });
+    if (!error) return { ok: true };
+    last = error;
+    const message = String(error.message || "").toLowerCase();
+    if (!message.includes("redirect")) break;
+  }
+  return { ok: false, error: "mail", detail: last && last.message ? last.message : "" };
+}
+
+async function completeMarketReset(password, email, code) {
+  const client = authClient();
+  if (!window.MarketCloud || typeof MarketCloud.resetPassword !== "function") {
+    return { ok: false, error: "cloud" };
+  }
+  let session = null;
+  const existing = await client.auth.getSession();
+  session = existing.data && existing.data.session;
+  if (code) {
+    const address = String(email || (session && session.user && session.user.email) || "").trim();
+    let verified = await client.auth.verifyOtp({ email: address, token: String(code).trim(), type: "email" });
+    if (verified.error) {
+      verified = await client.auth.verifyOtp({ email: address, token: String(code).trim(), type: "magiclink" });
+    }
+    if (verified.error || !verified.data || !verified.data.session) {
+      return { ok: false, error: "verify", detail: verified.error && verified.error.message };
+    }
+    session = verified.data.session;
+  }
+  if (!session || !session.access_token) return { ok: false, error: "verify" };
+  const result = await MarketCloud.resetPassword(session.access_token, password);
+  if (result && result.ok) {
+    try { await client.auth.signOut(); } catch (ignore) { /* the marketplace password is already saved */ }
+  }
+  return result || { ok: false, error: "cloud" };
+}
+
+window.sendMarketResetEmail = sendMarketResetEmail;
+window.completeMarketReset = completeMarketReset;
+
 async function initAuth() {
   if (typeof window.supabase === "undefined") {
     window.immbaAuthState = emptyAuthState();
     return window.immbaAuthState;
   }
+  const initialHash = location.hash || "";
+  const initialView = new URLSearchParams(location.search).get("view") || "";
   const client = authClient();
   client.auth.onAuthStateChange((_event, session) => {
     window.immbaAuthState.session = session;
     window.immbaAuthState.user = session && session.user ? session.user : null;
   });
   await refreshAuthState();
-  const hash = location.hash || "";
-  if (hash.includes("type=recovery")) {
+  const resetUser = window.immbaAuthState.user;
+  const resetPurpose = resetUser && resetUser.user_metadata && resetUser.user_metadata.purpose === "market_reset";
+  const marketReset = initialView === "market-reset"
+    || initialHash.includes("type=magiclink")
+    || initialHash.includes("type=email")
+    || (resetPurpose && initialHash.includes("type=signup"));
+  const recovery = initialHash.includes("type=recovery");
+  if (marketReset || recovery) {
     const url = new URL(location.href);
-    url.searchParams.set("view", "update");
+    url.searchParams.set("view", marketReset ? "market-reset" : "update");
+    url.hash = "";
     history.replaceState({}, "", url.pathname + url.search);
   }
   return window.immbaAuthState;
@@ -334,6 +420,25 @@ function bindAuthForms() {
     if (error) return showAuthError(error, t.error);
     sessionStorage.setItem("immba-auth-flash", t.sent);
     location.href = withLang("auth.html");
+  });
+  document.getElementById("auth-market-reset-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const data = new FormData(e.currentTarget);
+    const password = String(data.get("password") || "");
+    const confirm = String(data.get("confirm") || "");
+    if (password !== confirm) return showAuthError(null, lang === "zh" ? "兩次輸入的密碼不相同。" : "The two passwords do not match.");
+    if (password.length < 4) return showAuthError(null, lang === "zh" ? "密碼至少 4 個字。" : "Use at least 4 characters.");
+    const sessionUser = window.immbaAuthState && window.immbaAuthState.user;
+    const result = await completeMarketReset(
+      password,
+      String(data.get("email") || (sessionUser && sessionUser.email) || ""),
+      String(data.get("code") || "")
+    );
+    if (!result || result.ok === false) {
+      return showAuthError({ message: result && result.detail }, t.error);
+    }
+    sessionStorage.setItem("immba-market-flash", lang === "zh" ? "密碼已更新。請用新密碼登入。" : "Password updated. Sign in with the new password.");
+    location.href = withLang("marketplace.html") + "#/login";
   });
   document.getElementById("auth-update-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();

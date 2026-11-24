@@ -66,6 +66,9 @@
     name: { en: "Add a name.", zh: "請填名稱。" },
     email: { en: "Use a valid email.", zh: "請填有效的電子郵件。" },
     password: { en: "Use at least 4 characters.", zh: "密碼至少 4 個字。" },
+    mismatch: { en: "The two passwords do not match.", zh: "兩次輸入的密碼不相同。" },
+    verify: { en: "The email verification is missing or has expired. Open the link in the email, or enter the 6-digit code.", zh: "電子郵件驗證不存在或已過期。請打開信件裡的連結，或輸入 6 位數驗證碼。" },
+    mail: { en: "The verification email could not be sent. Wait a minute and try again.", zh: "驗證信沒有寄出。請稍等一分鐘再試。" },
     taken: { en: "That email is already registered.", zh: "這個電子郵件已經註冊。" },
     shop: { en: "A seller needs a shop name.", zh: "賣家需要店名。" },
     category: { en: "Choose a category.", zh: "請選擇分類。" },
@@ -647,6 +650,7 @@
         <form data-action="login">
           <label>${zh() ? "電子郵件" : "Email"}<input name="email" type="email" autocomplete="username" required></label>
           <label>${zh() ? "密碼" : "Password"}<input name="password" type="password" autocomplete="current-password" required></label>
+          <p class="mk-forgot"><a href="#/forgot">${zh() ? "忘記密碼？" : "Forgot password?"}</a></p>
           <button class="mk-btn" type="submit">${zh() ? "登入" : "Sign in"}</button>
         </form>
         <p class="mk-note">${zh() ? "買家和賣家在這裡登入，請輸入註冊時設定的密碼。示範密碼只給右側的示範按鈕使用。" : "Buyers and sellers sign in here with the password chosen at sign-up. The sample password is only for the sample buttons."}</p>
@@ -662,6 +666,44 @@
         <p><a href="#/">${zh() ? "以訪客繼續" : "Continue as a visitor"}</a></p>
       </section>
     </div>`;
+  }
+
+  function forgotPage() {
+    return `${chrome()}${banner()}<section class="mk-panel mk-narrow">
+      <p><a href="#/login">${zh() ? "返回登入" : "Back to sign-in"}</a></p>
+      <p class="mk-kicker">${zh() ? "買家與賣家" : "Buyer and seller"}</p>
+      <h2>${zh() ? "忘記密碼" : "Forgot password"}</h2>
+      <p>${zh() ? "輸入註冊時使用的電子郵件。我們會寄一封驗證信，確認這個信箱屬於你，然後你才能設定新密碼。" : "Enter the email used at sign-up. We send a verification message so you can prove this address is yours, then you set a new password."}</p>
+      <form data-action="forgot">
+        <label>${zh() ? "電子郵件" : "Email"}<input name="email" type="email" autocomplete="username" required></label>
+        <button class="mk-btn" type="submit">${zh() ? "寄出驗證信" : "Send verification email"}</button>
+      </form>
+      <p class="mk-note">${zh() ? "平台管理員會看到這次申請，以及密碼完成變更的紀錄。新密碼不會顯示給管理員。" : "The platform admin sees this request and the completed password change. The new password is never shown to the admin."}</p>
+    </section>`;
+  }
+
+  function forgotVerifyPage() {
+    const email = sessionStorage.getItem("immba-reset-email") || "";
+    if (!email) {
+      return `${chrome()}${banner()}<section class="mk-panel mk-narrow">
+        <h2>${zh() ? "請先填寫電子郵件" : "Enter your email first"}</h2>
+        <p><a href="#/forgot">${zh() ? "回到忘記密碼" : "Back to forgot password"}</a></p>
+      </section>`;
+    }
+    return `${chrome()}${banner()}<section class="mk-panel mk-narrow">
+      <p><a href="#/forgot">${zh() ? "使用另一個電子郵件" : "Use a different email"}</a></p>
+      <p class="mk-kicker">${zh() ? "電子郵件驗證" : "Email verification"}</p>
+      <h2>${zh() ? "設定新密碼" : "Set a new password"}</h2>
+      <p>${zh()
+        ? "如果 " + email + " 是買家或賣家帳號，驗證信已經寄出。打開信件裡的連結來設定新密碼，或把信裡的 6 位數驗證碼填在這裡。"
+        : "If " + email + " is a buyer or seller account, the verification email is on its way. Open the link in that email to set a new password, or enter the 6-digit code here."}</p>
+      <form data-action="forgot-confirm">
+        <label>${zh() ? "驗證碼" : "Verification code"}<input name="code" inputmode="numeric" autocomplete="one-time-code" minlength="6" maxlength="6" pattern="[0-9]{6}" required></label>
+        <label>${zh() ? "新密碼" : "New password"}<input name="password" type="password" autocomplete="new-password" minlength="4" required></label>
+        <label>${zh() ? "再輸入一次新密碼" : "Confirm new password"}<input name="confirm" type="password" autocomplete="new-password" minlength="4" required></label>
+        <button class="mk-btn" type="submit">${zh() ? "設定新密碼" : "Set new password"}</button>
+      </form>
+    </section>`;
   }
 
   function registerPage(role) {
@@ -1131,6 +1173,7 @@
       </div>
       <p class="mk-note">${zh() ? `這裡列出每一位賣家與每一位買家之間的全部交易，目前顯示 ${report.orders.length} 筆，資料庫共 ${db.orders.length} 筆。CSV 會下載全部交易，不受上方篩選影響。` : `Every transaction between every seller and every buyer is listed here. Showing ${report.orders.length} of ${db.orders.length}. The CSV downloads every transaction, not only the rows in the current filter.`}</p>
       ${applicationSummary()}
+      ${passwordMonitor()}
       <p><button type="button" class="mk-text" data-action="reset">${zh() ? "還原示範市集" : "Restore the sample floor"}</button></p>
       <p class="mk-note">${zh() ? "還原只會把示範帳號和示範訂單回到起始狀態。已經註冊的賣家和買家、他們的上架和購買都會留下。" : "Restoring only returns the sample accounts and sample orders to the start. Sellers and buyers who already registered stay, with their listings and purchases."}</p>
       <div class="mk-stats">
@@ -1400,17 +1443,44 @@
       </div>
       <p>${esc(user.email)}${user.shopName ? " · " + esc(user.shopName) : ""} · <em class="mk-pill ${esc(state.key)}">${esc(zh() ? state.zh : state.en)}</em></p>
       ${user.removedAt ? `<p class="mk-note">${zh() ? "這個帳號已移除，不能再登入，商品也不會出現在市集。過去的交易仍保留。" : "This account is removed. They cannot sign in, and their listings stay off the floor. Past transactions remain."}</p>` : ""}
+      ${passwordChangedNote(user)}
       ${showListings ? `<h3>${zh() ? "上架商品" : "Listings"} (${listings.length})</h3>${listingTable}` : ""}
       ${showPurchases ? `<h3>${zh() ? "購買紀錄" : "Purchases"} (${purchases.length})</h3>${purchaseTable}` : ""}
     </section>`;
   }
 
+  function passwordChanges() {
+    return (db.activity || []).filter((entry) => entry.type === "password_reset_requested" || entry.type === "password_changed");
+  }
+  function passwordChangedNote(user) {
+    if (!user || !user.passwordChangedAt) {
+      return `<p class="mk-note">${zh() ? "這個帳號還沒有透過電子郵件驗證重設過密碼。" : "This account has not reset its password by email verification."}</p>`;
+    }
+    return `<p class="mk-note">${zh()
+      ? "最近一次通過電子郵件驗證後重設密碼：" + when(user.passwordChangedAt)
+      : "Latest password change after email verification: " + when(user.passwordChangedAt)}</p>`;
+  }
+  function passwordMonitor() {
+    const rows = passwordChanges();
+    const asked = rows.filter((entry) => entry.type === "password_reset_requested").length;
+    const changed = rows.filter((entry) => entry.type === "password_changed").length;
+    return `<p class="mk-note">${zh()
+      ? `密碼變更：${asked} 次申請，${changed} 次已完成。活動紀錄會留下每一次申請和完成變更，管理員可以從這裡監看。`
+      : `Password changes: ${asked} requested and ${changed} completed. The activity log keeps every request and every completed change so the admin can monitor them.`} <a href="#/admin/activity">${zh() ? "打開活動紀錄" : "Open the activity log"}</a></p>`;
+  }
   function activityPage() {
     const block = guard("admin");
     if (block) return block;
+    const resets = passwordChanges();
+    const timeline = (entries) => entries.length
+      ? `<ol class="mk-timeline">${entries.map((entry) => `<li><strong>${esc(pick(entry.message))}</strong><span>${esc(when(entry.at))} · ${esc(entry.actorName)}</span>${entry.orderId ? `<p><a href="#/admin/transactions/${esc(entry.orderId)}">${esc(entry.orderId)}</a></p>` : ""}</li>`).join("")}</ol>`
+      : `<p class="mk-empty">${zh() ? "目前沒有紀錄。" : "Nothing recorded yet."}</p>`;
     return `${chrome()}${banner()}<section class="mk-sheet">
+      <h2>${zh() ? "密碼變更" : "Password changes"}</h2>
+      <p class="mk-note">${zh() ? "買家或賣家申請重設密碼，以及通過電子郵件驗證後完成變更，都會出現在這裡。" : "A buyer or seller asking to reset a password, and the completed change after email verification, both appear here."}</p>
+      ${timeline(resets)}
       <h2>${zh() ? "市集活動" : "Marketplace activity"}</h2>
-      <ol class="mk-timeline">${db.activity.map((entry) => `<li><strong>${esc(pick(entry.message))}</strong><span>${esc(when(entry.at))} · ${esc(entry.actorName)}</span>${entry.orderId ? `<p><a href="#/admin/transactions/${esc(entry.orderId)}">${esc(entry.orderId)}</a></p>` : ""}</li>`).join("")}</ol>
+      ${timeline(db.activity)}
     </section>`;
   }
 
@@ -1476,6 +1546,7 @@
     const head = parts[0] || "";
     if (head === "sell" && sellerWaiting()) return waitingPage();
     if (head === "login") return loginPage();
+    if (head === "forgot") return parts[1] === "verify" ? forgotVerifyPage() : forgotPage();
     if (head === "register") return registerPage(parts[1]);
     if (head === "product") return productPage(parts[1]);
     if (head === "cart") return cartPage();
@@ -1767,6 +1838,41 @@
         await enterDesk(result);
         return;
       }
+      if (action === "forgot") {
+        const email = String(data.get("email") || "").trim();
+        if (!window.MarketCloud || typeof sendMarketResetEmail !== "function") return fail({ error: "cloud" });
+        const gate = await MarketCloud.resetRequest(email);
+        if (!gate || gate.ok === false) return fail(gate || { error: "cloud" });
+        if (gate.eligible) {
+          const sent = await sendMarketResetEmail(email);
+          if (!sent || sent.ok === false) {
+            flash = (sent && sent.detail) || tErr("mail");
+            renderMarket();
+            return;
+          }
+        }
+        sessionStorage.setItem("immba-reset-email", email);
+        go("/forgot/verify");
+        return;
+      }
+      if (action === "forgot-confirm") {
+        const email = sessionStorage.getItem("immba-reset-email") || "";
+        const password = String(data.get("password") || "");
+        const confirm = String(data.get("confirm") || "");
+        if (password !== confirm) return fail({ error: "mismatch" });
+        if (password.length < 4) return fail({ error: "password" });
+        if (typeof completeMarketReset !== "function") return fail({ error: "cloud" });
+        const result = await completeMarketReset(password, email, String(data.get("code") || ""));
+        if (!result || result.ok === false) {
+          flash = (result && result.detail) || tErr((result && result.error) || "verify");
+          renderMarket();
+          return;
+        }
+        sessionStorage.removeItem("immba-reset-email");
+        sessionStorage.setItem("immba-market-flash", zh() ? "密碼已更新。請用新密碼登入。" : "Password updated. Sign in with the new password.");
+        go("/login");
+        return;
+      }
       if (action === "register") {
         const input = {
           name: data.get("name"),
@@ -1932,6 +2038,7 @@
   }
   window.mountMarketplace = function () {
     const gen = ++loadGen;
+    const pendingFlash = sessionStorage.getItem("immba-market-flash") || "";
     const root = document.getElementById("market-root");
     if (db && root) renderMarket();
     else if (root) {
@@ -1941,12 +2048,20 @@
     Promise.resolve(job).then((state) => {
       if (gen !== loadGen || !state) return;
       db = state;
+      if (pendingFlash) {
+        flash = pendingFlash;
+        sessionStorage.removeItem("immba-market-flash");
+      }
       renderMarket();
     }).catch(() => {
       if (gen !== loadGen) return;
       if (!db) {
         db = load();
         flash = tErr("cloud");
+      }
+      if (pendingFlash) {
+        flash = pendingFlash;
+        sessionStorage.removeItem("immba-market-flash");
       }
       renderMarket();
     });
